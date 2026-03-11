@@ -1,0 +1,86 @@
+# Dependencies
+node_modules/
+.venv/
+env/
+venv/
+.pnp
+.pnp.*
+
+# Build outputs
+dist/
+.next/
+out/
+build/
+*.tsbuildinfo
+next-env.d.ts
+
+# Databases
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+omr_edge.db
+
+# Specific patterns for apps and packages
+apps/**/dist/
+packages/**/dist/
+apps/**/.next/
+apps/**/out/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Environment files - ensure all .env variations are ignored in all subdirectories
+.env
+.env.*
+!.env.sample
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+desktop.ini
+
+# IDE - VS Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
+# IDE - IntelliJ
+.idea/
+*.iws
+*.iml
+*.ipr
+
+# Coverage and tests
+coverage/
+.nyc_output
+
+# Turborepo
+.turbo/
+
+# Temporary files
+.tmp/
+.temp/
+*.swp
+*.bak
+*~
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Demo and scripts
+scripts/reset-demo.sh
+scripts/reset-db.sh.bak

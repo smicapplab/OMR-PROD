@@ -1,0 +1,20 @@
+{
+  "name": "omr-prod",
+  "private": true,
+  "packageManager": "pnpm@10.30.0",
+  "scripts": {
+    "build": "turbo build",
+    "dev": "turbo dev",
+    "lint": "turbo lint",
+    "format": "prettier --write \"**/*.{ts,tsx,md,json,py}\"",
+    "db:push": "turbo db:push",
+    "db:generate": "turbo db:generate",
+    "doctor": "node scripts/workspace-doctor.mjs"
+  },
+  "devDependencies": {
+    "prettier": "^3.1.0",
+    "turbo": "latest",
+    "typescript": "^5.9.3",
+    "@types/node": "^20.11.30"
+  }
+}

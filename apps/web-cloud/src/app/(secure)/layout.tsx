@@ -1,0 +1,129 @@
+"use client";
+
+import { useEffect } from "react";
+import { useAuth } from "@/app/context/AuthContext";
+import { useRouter, usePathname } from "next/navigation";
+import { 
+    LayoutDashboard, Users, School, LogOut, Search, 
+    BarChart3, ChevronRight,
+    FileCheck,
+    Globe
+} from "lucide-react";
+import Link from "next/link";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
+
+export default function SecureLayout({ children }: { children: React.ReactNode }) {
+    const { user, isLoading, logout } = useAuth();
+    const router = useRouter();
+    const pathname = usePathname();
+
+    useEffect(() => {
+        if (!isLoading && !user) {
+            router.push("/login");
+        }
+    }, [user, isLoading, router]);
+
+    if (isLoading) return (
+        <div className="h-screen w-screen flex items-center justify-center bg-slate-50">
+            <div className="flex flex-col items-center gap-4">
+                <div className="h-12 w-12 rounded-2xl bg-indigo-600 animate-pulse shadow-lg shadow-indigo-100" />
+                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Synchronizing Vault...</p>
+            </div>
+        </div>
+    );
+
+    if (!user) return null;
+
+    const navItems = [
+        { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+        { name: "Institutions", href: "/maintenance/schools", icon: School },
+        { name: "Region Registry", href: "/maintenance/regions", icon: Globe },
+        { name: "User Registry", href: "/maintenance/users", icon: Users },
+        { name: "Answer Keys", href: "/maintenance/keys", icon: FileCheck },
+        { name: "Analytics", href: "/analytics", icon: BarChart3, disabled: true },
+    ];
+
+    return (
+        <div className="flex h-screen bg-slate-50/50 overflow-hidden font-sans">
+            {/* Sidebar */}
+            <aside className="w-64 border-r bg-white flex flex-col shrink-0 z-30">
+                <div className="p-6 border-b">
+                    <div className="flex items-center gap-3">
+                        <div className="h-9 w-9 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-bold italic shadow-lg shadow-indigo-100">O</div>
+                        <span className="font-black text-slate-900 tracking-tighter text-lg">National Hub</span>
+                    </div>
+                </div>
+                
+                <nav className="flex-1 p-4 space-y-1">
+                    {navItems.map((item) => (
+                        <Link 
+                            key={item.name}
+                            href={item.disabled ? "#" : item.href}
+                            className={cn(
+                                "flex w-full items-center justify-between px-4 py-3 text-sm font-bold rounded-xl transition-all group",
+                                pathname === item.href 
+                                    ? "bg-indigo-50 text-indigo-700 shadow-sm" 
+                                    : "text-slate-400 hover:bg-slate-50",
+                                item.disabled && "opacity-40 cursor-not-allowed"
+                            )}
+                        >
+                            <div className="flex items-center gap-3">
+                                <item.icon className={cn("h-4 w-4", pathname === item.href ? "text-indigo-600" : "text-slate-300 group-hover:text-indigo-400")} />
+                                {item.name}
+                            </div>
+                            {pathname === item.href && <ChevronRight className="h-3 w-3" />}
+                        </Link>
+                    ))}
+                </nav>
+
+                <div className="p-4 border-t">
+                    <div className="p-4 bg-slate-900 rounded-2xl text-white shadow-xl">
+                        <div className="flex items-center gap-2 mb-1.5 opacity-80">
+                            <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                            <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">Security Link Active</p>
+                        </div>
+                        <p className="text-[11px] font-bold uppercase tracking-tighter">Enterprise v1.0.4</p>
+                    </div>
+                </div>
+            </aside>
+
+            {/* Main Section */}
+            <main className="flex-1 flex flex-col overflow-hidden">
+                <header className="h-16 border-b bg-white flex items-center justify-between px-8 shrink-0 z-20">
+                    <div className="flex items-center gap-4 bg-slate-50 px-4 py-2.5 rounded-2xl border border-slate-100 w-96 group focus-within:border-indigo-200 transition-all">
+                        <Search className="h-4 w-4 text-slate-300 group-focus-within:text-indigo-400" />
+                        <input 
+                            type="text" 
+                            placeholder="Global portal search..." 
+                            className="bg-transparent border-none outline-none text-sm w-full font-medium text-slate-900 placeholder:text-slate-300" 
+                        />
+                    </div>
+
+                    <div className="flex items-center gap-4">
+                        <div className="text-right">
+                            <p className="text-sm font-black text-slate-900 leading-none mb-1">{user.firstName} {user.lastName}</p>
+                            <Badge className="bg-indigo-50 text-indigo-600 border-none text-[9px] font-black uppercase h-4 px-1.5">{user.userType}</Badge>
+                        </div>
+                        <Avatar className="h-10 w-10 border-2 border-white shadow-sm ring-1 ring-slate-100">
+                            <AvatarFallback className="bg-indigo-100 text-indigo-700 font-bold text-xs uppercase">
+                                {user.firstName?.[0]}{user.lastName?.[0]}
+                            </AvatarFallback>
+                        </Avatar>
+                        <button 
+                            onClick={logout}
+                            className="p-2.5 hover:bg-rose-50 hover:text-rose-500 rounded-xl text-slate-300 transition-all"
+                        >
+                            <LogOut className="h-5 w-5" />
+                        </button>
+                    </div>
+                </header>
+
+                <div className="flex-1 overflow-hidden">
+                    {children}
+                </div>
+            </main>
+        </div>
+    );
+}
