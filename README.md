@@ -75,5 +75,41 @@ npm run dev
 2. **Hash**: System generates SHA-256 of the raw master image.
 3. **Process**: OMR engine extracts bubble data and generates a low-res WebP proxy.
 4. **Verify**: Local operator corrects any ambiguous bubbles (Audit log created).
-5. **Sync**: Master image, proxy, and data are pushed to Cloud Hub.
+5. **Sync**: Master image, proxy, and data are pushed to Cloud Hub using the **Machine Secret**.
 6. **Grade**: Cloud Hub verifies SHA-256 and performs authoritative grading against master keys.
+
+## 📟 Machine Enrollment (Edge-to-Cloud)
+
+To ensure secure data transmission, every Edge Appliance must be enrolled in the National Hub before it can sync data.
+
+### 1. Authorize on Cloud Portal
+1. Log in to the **National Hub** (`localhost:3001`) as a `SUPER_ADMIN`.
+2. Navigate to **Edge Appliances**.
+3. Click **Authorize Appliance**, enter a unique Machine ID (e.g., `EDGE-NCR-001`), and select the target School.
+4. Copy the generated **Enrollment Token**.
+
+### 2. Enroll via Edge CLI
+On the physical Edge Appliance, run the enrollment script:
+```bash
+cd apps/api-edge
+# Usage: python enroll.py <TOKEN> <CLOUD_URL>
+python enroll.py ABCD-1234 http://cloud-hub-address:4000
+```
+This will exchange the one-time token for a permanent **Machine Secret**, stored in `apps/api-edge/.env`.
+
+## 👥 User Roles & Access Control
+
+The system uses a hierarchical role structure to maintain security:
+
+| Role | Scope | Key Capabilities |
+| :--- | :--- | :--- |
+| **SUPER_ADMIN** | National | Manage Regions, Schools, Users, and Answer Keys. |
+| **REGIONAL_DIRECTOR** | Regional | View-only access to all school stats within their assigned region. |
+| **SCHOOL_ADMIN** | Institutional | Approve/Override local OMR corrections; Manage local operators. |
+| **EDGE_OPERATOR** | Appliance | Perform scans, verify bubble confidence, and trigger syncs. |
+
+### Assigning Operators
+Operators are created in the **National Hub** under **User Registry**. 
+- Set the `Visibility Scope` to `SCHOOL`.
+- Assign the `Scope Value` to the specific School ID.
+- Once created, the Edge Appliance will automatically pull these credentials during its next sync cycle (every 30 seconds).

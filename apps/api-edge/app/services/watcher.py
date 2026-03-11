@@ -29,7 +29,7 @@ class ScanHandler(FileSystemEventHandler):
             db_scan = scanner_service.process_new_file(
                 file_path,
                 db,
-                school_id="DEV-SCHOOL-001",
+                school_id=settings.DEFAULT_SCHOOL_ID,
                 machine_id=settings.MACHINE_ID
             )
             logger.info(f"✅ Processed {file_path.name} (ID: {db_scan.id})")

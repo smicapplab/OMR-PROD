@@ -7,7 +7,10 @@ import { MaintenanceModule } from './maintenance/maintenance.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({ 
+        isGlobal: true,
+        envFilePath: ['.env.local', '.env']
+    }),
     DatabaseModule,
     SyncModule,
     AuthModule,

@@ -12,11 +12,12 @@ export const scans = sqliteTable('scans', {
     // Sync Status: pending | synced | error
     syncStatus: text('sync_status').default('pending'),
     
-    // OMR Processing status: success | error
+    // OMR Processing status: success | error | pending_approval
     processStatus: text('process_status').default('pending'),
     
     confidence: real('confidence'),
     reviewRequired: integer('review_required', { mode: 'boolean' }).default(false),
+    isManuallyEdited: integer('is_manually_edited', { mode: 'boolean' }).default(false),
     
     // Raw OMR data (JSON string in SQLite)
     rawData: text('raw_data'),

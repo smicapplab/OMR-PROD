@@ -12,11 +12,14 @@ class Settings(BaseSettings):
     # Security (Placeholder for SQLCipher or encryption logic)
     DATABASE_KEY: Optional[str] = "dev-secret-key"
     
-    # Sync Configuration
     CLOUD_API_URL: str = "http://localhost:4000"
-    MACHINE_ID: str = "DEV-MACHINE-001"
+    MACHINE_ID: str = "MACHINE-00001"
+    MACHINE_SECRET: Optional[str] = None
+    DEFAULT_SCHOOL_ID: str = "305312"
 
     class Config:
         case_sensitive = True
+        env_file = ".env"
+        extra = "ignore"
 
 settings = Settings()

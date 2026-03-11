@@ -142,6 +142,15 @@ export default function UsersManagement() {
         }
     }, [visibilityScope, regions, scopeValue]);
 
+    const handleRegionToggle = (code: string) => {
+        const currentRegions = scopeValue ? scopeValue.split(',').filter(Boolean) : [];
+        if (currentRegions.includes(code)) {
+            setScopeValue(currentRegions.filter(c => c !== code).join(','));
+        } else {
+            setScopeValue([...currentRegions, code].join(','));
+        }
+    };
+
     useEffect(() => {
         loadData(0);
     }, []);
@@ -188,7 +197,10 @@ export default function UsersManagement() {
                                     <select 
                                         className="w-full h-11 px-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-indigo-500 transition-all text-slate-900"
                                         value={userType}
-                                        onChange={e => setUserType(e.target.value)}
+                                        onChange={e => {
+                                            setUserType(e.target.value);
+                                            setScopeValue(""); // Reset scope value when role changes
+                                        }}
                                     >
                                         <option value="EDGE_OPERATOR">Edge Operator</option>
                                         <option value="SCHOOL_ADMIN">School Admin</option>
@@ -205,22 +217,39 @@ export default function UsersManagement() {
                                             <select 
                                                 className="w-full h-10 px-3 bg-white border border-indigo-200 rounded-xl text-sm font-bold text-slate-900"
                                                 value={visibilityScope}
-                                                onChange={e => setVisibilityScope(e.target.value)}
+                                                onChange={e => {
+                                                    setVisibilityScope(e.target.value);
+                                                    setScopeValue(""); // Reset value when scope changes
+                                                }}
                                             >
                                                 <option value="NATIONAL">National (Global)</option>
-                                                <option value="REGIONAL">Regional (By Region)</option>
+                                                <option value="REGIONAL">Regional (Multi-Region)</option>
                                             </select>
                                         </div>
                                         {visibilityScope === 'REGIONAL' && (
                                             <div className="space-y-2">
-                                                <label className="text-[10px] font-black uppercase text-indigo-600">Target Region</label>
-                                                <select 
-                                                    className="w-full h-10 px-3 bg-white border border-indigo-200 rounded-xl text-sm font-bold text-slate-900"
-                                                    value={scopeValue}
-                                                    onChange={e => setScopeValue(e.target.value)}
-                                                >
-                                                    {regions.map(r => <option key={r.id} value={r.code}>{r.name} ({r.code})</option>)}
-                                                </select>
+                                                <label className="text-[10px] font-black uppercase text-indigo-600">Target Regions (Select Multiple)</label>
+                                                <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto p-2 bg-white border border-indigo-200 rounded-xl">
+                                                    {regions.map(r => {
+                                                        const isSelected = (scopeValue || "").split(',').includes(r.code);
+                                                        return (
+                                                            <div 
+                                                                key={r.id} 
+                                                                onClick={() => handleRegionToggle(r.code)}
+                                                                className={cn(
+                                                                    "cursor-pointer px-2 py-1.5 rounded-lg border text-[10px] font-bold transition-all flex items-center justify-between",
+                                                                    isSelected 
+                                                                        ? "bg-indigo-600 border-indigo-600 text-white shadow-sm" 
+                                                                        : "bg-slate-50 border-slate-100 text-slate-600 hover:border-indigo-200"
+                                                                )}
+                                                            >
+                                                                {r.name}
+                                                                {isSelected && <ShieldCheck className="h-3 w-3" />}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                                <p className="text-[9px] text-slate-400 font-medium italic mt-1">Click to toggle regional authorization.</p>
                                             </div>
                                         )}
                                     </div>

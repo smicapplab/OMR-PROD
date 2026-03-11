@@ -7,10 +7,15 @@
   "scripts": {
     "db:generate": "drizzle-kit generate --config=drizzle.edge.config.ts",
     "db:push": "drizzle-kit push:sqlite --config=drizzle.edge.config.ts",
+    "db:edge:push": "drizzle-kit push:sqlite --config=drizzle.edge.config.ts",
+    "db:cloud:push": "drizzle-kit push:pg --config=drizzle.config.ts",
     "seed:essential": "tsx seed-essential.ts",
-    "seed:demo": "tsx seed-demo.ts"
+    "seed:regions": "tsx seed-regions.ts",
+    "seed:demo": "tsx seed-demo.ts",
+    "db:cloud:seed": "tsx seed-demo.ts"
   },
   "dependencies": {
+    "@libsql/client": "^0.6.0",
     "drizzle-orm": "^0.30.0",
     "postgres": "^3.4.3",
     "bcrypt": "^5.1.1",

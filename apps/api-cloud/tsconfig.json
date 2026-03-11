@@ -1,23 +1,9 @@
 {
+  "extends": "../../packages/config/tsconfig.base.json",
   "compilerOptions": {
-    "ignoreDeprecations": "6.0",
-    "module": "CommonJS",
-    "declaration": true,
-    "removeComments": true,
-    "emitDecoratorMetadata": true,
-    "experimentalDecorators": true,
-    "allowSyntheticDefaultImports": true,
-    "target": "ES2021",
-    "sourceMap": true,
     "outDir": "./dist",
-    "baseUrl": "./",
-    "incremental": true,
-    "skipLibCheck": true,
-    "noEmit": false,
-    "moduleResolution": "Node",
-    "paths": {
-      "@omr-prod/database": ["../../packages/database/src/index"]
-    }
+    "baseUrl": ".",
+    "noEmit": false
   },
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules", "dist"]

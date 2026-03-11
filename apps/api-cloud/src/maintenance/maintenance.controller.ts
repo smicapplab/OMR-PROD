@@ -2,6 +2,7 @@ import { Controller, Get, Post, Body, Inject, Query } from '@nestjs/common';
 import { eq, sql } from 'drizzle-orm';
 import * as schema from '@omr-prod/database';
 import * as bcrypt from 'bcrypt';
+import * as crypto from 'crypto';
 
 @Controller('maintenance')
 export class MaintenanceController {
@@ -41,7 +42,8 @@ export class MaintenanceController {
         division: schema.schools.division,
         address: schema.schools.address,
         createdAt: schema.schools.createdAt,
-        regionName: schema.regions.name
+        regionName: schema.regions.name,
+        regionId: schema.schools.regionId
     })
     .from(schema.schools)
     .leftJoin(schema.regions, eq(schema.schools.regionId, schema.regions.id))
@@ -73,24 +75,41 @@ export class MaintenanceController {
   // --- MACHINES ---
   @Get('machines')
   async listMachines() {
-    return this.db.select({
-        id: schema.machines.id,
-        machineId: schema.machines.machineId,
-        status: schema.machines.status,
-        schoolName: schema.schools.name,
-        lastHeartbeat: schema.machines.lastHeartbeatAt
-    })
-    .from(schema.machines)
-    .leftJoin(schema.schools, eq(schema.machines.schoolId, schema.schools.id));
+    const machines = await this.db.select().from(schema.machines);
+    const assignments = await this.db.select().from(schema.machineAssignments);
+    
+    return machines.map((m: any) => ({
+        ...m,
+        lastHeartbeat: m.lastHeartbeatAt,
+        assignments: assignments.filter((a: any) => a.machineId === m.id)
+    }));
   }
 
-  @Post('machines')
-  async enrollMachine(@Body() body: any) {
-    return this.db.insert(schema.machines).values({
-      machineId: body.machineId,
-      schoolId: body.schoolId,
-      status: 'active',
-    }).returning();
+  @Post('machines/approve')
+  async approveMachine(@Body() body: any) {
+    const { id, assignments } = body;
+
+    return this.db.transaction(async (tx: any) => {
+        // 1. Update status to active
+        await tx.update(schema.machines)
+            .set({ status: 'active', updatedAt: new Date() })
+            .where(eq(schema.machines.id, id));
+
+        // 2. Clear old and insert new assignments
+        await tx.delete(schema.machineAssignments).where(eq(schema.machineAssignments.machineId, id));
+
+        if (assignments && assignments.length > 0) {
+            await tx.insert(schema.machineAssignments).values(
+                assignments.map((a: any) => ({
+                    machineId: id,
+                    scope: a.scope,
+                    scopeValue: a.scopeValue
+                }))
+            );
+        }
+
+        return { ok: true };
+    });
   }
 
   // --- USERS ---

@@ -26,11 +26,20 @@ export const schools = pgTable('schools', {
 export const machines = pgTable('machines', {
     id: uuid('id').defaultRandom().primaryKey(),
     machineId: varchar('machine_id', { length: 255 }).notNull().unique(),
-    schoolId: uuid('school_id').notNull().references(() => schools.id, { onDelete: 'cascade' }),
     status: varchar('status', { length: 50 }).default('pending').notNull(),
+    secret: varchar('secret', { length: 255 }), 
+    enrollmentToken: varchar('enrollment_token', { length: 255 }),
     hostname: varchar('hostname', { length: 255 }),
     ipAddress: varchar('ip_address', { length: 50 }),
     lastHeartbeatAt: timestamp('last_heartbeat_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const machineAssignments = pgTable('machine_assignments', {
+    id: uuid('id').defaultRandom().primaryKey(),
+    machineId: uuid('machine_id').notNull().references(() => machines.id, { onDelete: 'cascade' }),
+    scope: varchar('scope', { length: 50 }).notNull().default('SCHOOL'), // 'SCHOOL' or 'REGION'
+    scopeValue: uuid('scope_value').notNull(), // UUID of the school or region
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });

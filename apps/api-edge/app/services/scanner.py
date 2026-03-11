@@ -1,4 +1,5 @@
 import shutil
+import time
 from pathlib import Path
 from sqlalchemy.orm import Session
 from app.models.scan import Scan
@@ -24,16 +25,22 @@ class ScannerService:
     def process_new_file(self, file_path: Path, db: Session, school_id: str, machine_id: str):
         """
         Process a single image file, save to DB, and move to success/error folder.
+        Uses SHA-256 hash for filenames to prevent local collisions.
         """
         try:
             # 1. Run OMR
             result = omr_service.process_scan(file_path)
+            sha = result["original_sha"]
             
+            # Use SHA as the filename to match cloud naming and prevent collisions
+            unique_filename = f"{sha}{file_path.suffix}"
+            target_path = self.success_dir / unique_filename
+
             # 2. Persist to DB
             db_scan = Scan(
-                file_name=file_path.name,
-                file_path=str(self.success_dir / file_path.name),
-                original_sha=result["original_sha"],
+                file_name=unique_filename,
+                file_path=str(target_path),
+                original_sha=sha,
                 confidence=result["confidence"],
                 review_required=result["review_required"],
                 raw_data=result["data"],
@@ -45,21 +52,27 @@ class ScannerService:
             db.commit()
             db.refresh(db_scan)
             
-            # 3. Move file
-            shutil.move(str(file_path), str(self.success_dir / file_path.name))
+            # 3. Move file (Using copy + remove or just move to ensure it's preserved in success)
+            shutil.move(str(file_path), str(target_path))
             
             return db_scan
 
         except Exception as e:
             db.rollback()
             logger.error(f"Error processing {file_path}: {e}")
+            
+            # For errors, we might not have a SHA, so use timestamp
+            timestamp = int(time.time())
+            error_filename = f"err_{timestamp}_{file_path.name}"
+            error_path = self.error_dir / error_filename
+
             # Move to error folder
-            shutil.move(str(file_path), str(self.error_dir / file_path.name))
+            shutil.move(str(file_path), str(error_path))
             
             # Log error scan in DB
             error_scan = Scan(
-                file_name=file_path.name,
-                file_path=str(self.error_dir / file_path.name),
+                file_name=error_filename,
+                file_path=str(error_path),
                 process_status="error",
                 school_id=school_id,
                 machine_id=machine_id

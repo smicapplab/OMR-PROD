@@ -18,7 +18,7 @@ export class AuthController {
 
     const tokens = await this.authService.login(user);
 
-    res.cookie('hris_refresh', tokens.refreshToken, {
+    res.cookie('omr_refresh', tokens.refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
@@ -34,14 +34,14 @@ export class AuthController {
 
   @Post('refresh')
   async refresh(@Req() req: Request) {
-    const token = req.cookies['hris_refresh'];
+    const token = req.cookies['omr_refresh'];
     if (!token) throw new UnauthorizedException();
     return this.authService.refresh(token);
   }
 
   @Post('logout')
   async logout(@Res({ passthrough: true }) res: Response) {
-    res.clearCookie('hris_refresh', { path: '/api/v1/auth/refresh' });
+    res.clearCookie('omr_refresh', { path: '/api/v1/auth/refresh' });
     return { ok: true };
   }
 

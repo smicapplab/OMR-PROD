@@ -3,20 +3,20 @@ import { IsString, IsNotEmpty, IsNumber, IsBoolean, IsObject, IsOptional, IsUUID
 export class SyncScanDto {
   @IsString()
   @IsNotEmpty()
-  machine_id: string;
+  machine_id!: string;
 
   @IsString()
   @IsNotEmpty()
-  original_sha: string;
+  original_sha!: string;
 
   @IsNumber()
-  confidence: number;
+  confidence!: number;
 
   @IsBoolean()
-  review_required: boolean;
+  review_required!: boolean;
 
   @IsObject()
-  raw_data: any;
+  raw_data!: any;
 
   @IsString()
   @IsOptional()

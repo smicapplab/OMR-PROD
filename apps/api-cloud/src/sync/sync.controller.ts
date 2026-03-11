@@ -1,7 +1,9 @@
-import { Controller, Get, Post, Param, Body, Inject, UnauthorizedException, NotFoundException } from '@nestjs/common';
-import { eq, and } from 'drizzle-orm';
+import { Controller, Get, Post, Param, Body, Inject, UnauthorizedException, NotFoundException, Headers } from '@nestjs/common';
+import { eq, and, or, inArray } from 'drizzle-orm';
 import * as schema from '@omr-prod/database';
 import { SyncScanDto } from './dto/sync-scan.dto';
+import { EnrollMachineDto } from './dto/enroll-machine.dto';
+import * as crypto from 'crypto';
 
 @Controller('sync')
 export class SyncController {
@@ -9,31 +11,89 @@ export class SyncController {
     @Inject('DATABASE_CONNECTION') private readonly db: any,
   ) {}
 
-  @Post('scans')
-  async syncScanResult(@Body() body: SyncScanDto) {
-    console.log(`📥 Sync Request: ${body.original_sha} from ${body.machine_id}`);
+  @Post('register')
+  async registerMachine(@Body() body: { machineId: string }) {
+    console.log(`🆕 Registration attempt: ${body.machineId}`);
 
-    // 1. VERIFY MACHINE ENROLLMENT
+    // Check if machine already exists
+    let [machine] = await this.db.select().from(schema.machines)
+        .where(eq(schema.machines.machineId, body.machineId))
+        .limit(1);
+
+    if (machine) {
+        // If it exists, return the existing secret (or we could rotate it)
+        return {
+            ok: true,
+            status: machine.status,
+            machineSecret: machine.secret
+        };
+    }
+
+    // New machine: Create as PENDING
+    const secret = crypto.randomBytes(32).toString('hex');
+    await this.db.insert(schema.machines).values({
+        machineId: body.machineId,
+        secret: secret,
+        status: 'pending'
+    });
+
+    return {
+        ok: true,
+        status: 'pending',
+        machineSecret: secret
+    };
+  }
+
+  @Post('scans')
+  async syncScanResult(
+    @Body() body: SyncScanDto,
+    @Headers('x-machine-secret') machineSecret: string
+  ) {
+    // 1. VERIFY MACHINE AUTHORIZATION (Identity + Active Status)
     const [machine] = await this.db.select()
         .from(schema.machines)
         .where(and(
             eq(schema.machines.machineId, body.machine_id),
+            eq(schema.machines.secret, machineSecret),
             eq(schema.machines.status, 'active')
         ))
         .limit(1);
 
     if (!machine) {
-        console.error(`❌ Unauthorized Machine: ${body.machine_id}`);
-        throw new UnauthorizedException('Machine not enrolled or inactive');
+        throw new UnauthorizedException('Machine not authorized or pending approval');
     }
 
-    // Update heartbeat
+    // 2. LOG HEARTBEAT
     await this.db.update(schema.machines)
         .set({ lastHeartbeatAt: new Date() })
         .where(eq(schema.machines.id, machine.id));
 
-    // Use machine's school ID if payload doesn't have one
-    const schoolId = body.school_id || machine.schoolId;
+    // 3. RESOLVE SCHOOL ID (Resilient Lookup)
+    // The edge might send a UUID (which changes on reset) or a stable School Code
+    const inputSchoolId = body.school_id;
+    if (!inputSchoolId) throw new UnauthorizedException('Missing school identification');
+
+    let resolvedSchool;
+    
+    // Attempt lookup by UUID first
+    if (inputSchoolId.length === 36) { // Basic UUID length check
+        [resolvedSchool] = await this.db.select().from(schema.schools)
+            .where(eq(schema.schools.id, inputSchoolId)).limit(1);
+    }
+
+    // If not found by UUID, lookup by stable School Code
+    if (!resolvedSchool) {
+        [resolvedSchool] = await this.db.select().from(schema.schools)
+            .where(eq(schema.schools.code, inputSchoolId)).limit(1);
+    }
+
+    if (!resolvedSchool) {
+        console.error(`❌ Sync Rejected: School [${inputSchoolId}] not found in National Registry.`);
+        throw new NotFoundException(`School [${inputSchoolId}] not found`);
+    }
+
+    const schoolId = resolvedSchool.id;
+    console.log(`✅ Syncing for School: ${resolvedSchool.name} (${schoolId})`);
 
     // --- GRADING LOGIC ---
     const studentAnswers = body.raw_data?.answers || {};
@@ -141,12 +201,59 @@ export class SyncController {
   }
 
   @Get('machines/:machineId/operators')
-  async getMachineOperators(@Param('machineId') machineId: string) {
-    // Also verify machine here
-    const [machine] = await this.db.select().from(schema.machines).where(eq(schema.machines.machineId, machineId)).limit(1);
-    if (!machine || machine.status !== 'active') throw new UnauthorizedException();
+  async getMachineOperators(
+    @Param('machineId') machineId: string,
+    @Headers('x-machine-secret') machineSecret: string
+  ) {
+    console.log(`🔍 Operator Pull Request`);
+    console.log(`   - Machine ID: ${machineId}`);
+    console.log(`   - Secret Received: [${machineSecret || 'MISSING'}]`);
 
-    const operators = await this.db.select().from(schema.users);
+    // Also verify machine and secret here
+    const [machine] = await this.db.select()
+        .from(schema.machines)
+        .where(and(
+            eq(schema.machines.machineId, machineId),
+            eq(schema.machines.secret, machineSecret),
+            eq(schema.machines.status, 'active')
+        ))
+        .limit(1);
+
+    if (!machine) {
+        console.error(`❌ Authorization Failed for Machine: ${machineId}. Secret provided: ${machineSecret}`);
+        throw new UnauthorizedException('Machine not enrolled, inactive, or invalid secret');
+    }
+
+    console.log(`✅ Machine Authorized: ${machine.machineId} (${machine.id})`);
+
+    const assignments = await this.db.select().from(schema.machineAssignments)
+        .where(eq(schema.machineAssignments.machineId, machine.id));
+
+    if (assignments.length === 0) return [];
+
+    const schoolIds = assignments.filter((a: any) => a.scope === 'SCHOOL').map((a: any) => a.scopeValue);
+    const regionIds = assignments.filter((a: any) => a.scope === 'REGION').map((a: any) => a.scopeValue);
+
+    const conditions = [];
+
+    if (schoolIds.length > 0) {
+        conditions.push(inArray(schema.users.schoolId, schoolIds));
+    }
+
+    if (regionIds.length > 0) {
+        // Find schools in these regions
+        const schoolsInRegions = await this.db.select({ id: schema.schools.id }).from(schema.schools)
+            .where(inArray(schema.schools.regionId, regionIds));
+        const regionSchoolIds = schoolsInRegions.map((s: any) => s.id);
+        if (regionSchoolIds.length > 0) {
+            conditions.push(inArray(schema.users.schoolId, regionSchoolIds));
+        }
+    }
+
+    if (conditions.length === 0) return [];
+
+    const operators = await this.db.select().from(schema.users).where(or(...conditions));
+
     return operators.map((user: any) => ({
       id: user.id,
       email: user.email,

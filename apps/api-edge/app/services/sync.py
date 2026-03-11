@@ -23,7 +23,13 @@ class SyncService:
     @property
     def client(self):
         base_url = f"{settings.CLOUD_API_URL}/api/v1" if settings.CLOUD_API_URL else "http://localhost:4000/api/v1"
-        return httpx.Client(base_url=base_url, timeout=30.0)
+        secret = settings.MACHINE_SECRET or ""
+        logger.info(f"📡 Machine: {settings.MACHINE_ID}, Secret: {secret[:4]}***")
+        return httpx.Client(
+            base_url=base_url,
+            timeout=30.0,
+            headers={"X-Machine-Secret": secret}
+        )
 
     def pull_operators(self, db: Session):
         try:
@@ -93,6 +99,7 @@ class SyncService:
                 # 3. PUSH DATA
                 payload = {
                     "machine_id": settings.MACHINE_ID,
+                    "school_id": scan.school_id,
                     "original_sha": scan.original_sha,
                     "confidence": scan.confidence,
                     "review_required": scan.review_required,

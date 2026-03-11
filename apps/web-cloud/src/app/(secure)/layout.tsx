@@ -7,7 +7,8 @@ import {
     LayoutDashboard, Users, School, LogOut, Search, 
     BarChart3, ChevronRight,
     FileCheck,
-    Globe
+    Globe,
+    Monitor
 } from "lucide-react";
 import Link from "next/link";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -39,6 +40,7 @@ export default function SecureLayout({ children }: { children: React.ReactNode }
     const navItems = [
         { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
         { name: "Institutions", href: "/maintenance/schools", icon: School },
+        { name: "Edge Appliances", href: "/maintenance/machines", icon: Monitor },
         { name: "Region Registry", href: "/maintenance/regions", icon: Globe },
         { name: "User Registry", href: "/maintenance/users", icon: Users },
         { name: "Answer Keys", href: "/maintenance/keys", icon: FileCheck },

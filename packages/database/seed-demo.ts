@@ -73,11 +73,31 @@ async function main() {
     { email: 'ncr.monitor@omr-prod.gov.ph', firstName: 'Nora', lastName: 'NCR', userType: 'DEPED_MONITOR', visibilityScope: 'REGIONAL', scopeValue: 'NCR' },
     { email: 'manila.monitor@omr-prod.gov.ph', firstName: 'Manny', lastName: 'Manila', userType: 'DEPED_MONITOR', visibilityScope: 'DIVISION', scopeValue: 'Manila' },
     { email: 'msci.admin@omr-prod.gov.ph', firstName: 'Admin', lastName: 'MSci', userType: 'SCHOOL_ADMIN', schoolId: msSci.id, visibilityScope: 'SCHOOL', scopeValue: msSci.id },
-    { email: 'psci.op@omr-prod.gov.ph', firstName: 'Operator', lastName: 'PSci', userType: 'EDGE_OPERATOR', schoolId: phiSci.id, visibilityScope: 'SCHOOL', scopeValue: phiSci.id }
+    { email: 'psci.op@omr-prod.gov.ph', firstName: 'Operator', lastName: 'PSci', userType: 'EDGE_OPERATOR', schoolId: phiSci.id, visibilityScope: 'SCHOOL', scopeValue: phiSci.id },
+    { email: 'operator1@mshs.edu.ph', firstName: 'MSHS', lastName: 'Operator 1', userType: 'EDGE_OPERATOR', schoolId: msSci.id, visibilityScope: 'SCHOOL', scopeValue: msSci.id }
   ];
 
   for (const u of testUsers) {
     await db.insert(schema.users).values({ ...u, passwordHash: pass, isActive: true }).onConflictDoNothing();
+  }
+
+  // 4. Pre-enroll a Development Machine
+  console.log('Pre-enrolling MACHINE-00001...');
+  const [devMachine] = await db.insert(schema.machines).values({
+    machineId: 'MACHINE-00001',
+    status: 'active',
+    secret: 'dev-machine-secret-123',
+    hostname: 'dev-laptop',
+    ipAddress: '127.0.0.1'
+  }).onConflictDoNothing().returning();
+
+  if (devMachine) {
+    await db.insert(schema.machineAssignments).values({
+        machineId: devMachine.id,
+        scope: 'SCHOOL',
+        scopeValue: msSci.id
+    });
+    console.log('✅ MACHINE-00001 pre-authorized for MSHS');
   }
 
   console.log('--- ✅ Demo Seeding Complete ---');

@@ -1,7 +1,11 @@
 {
   "name": "omr-prod",
   "private": true,
-  "packageManager": "pnpm@10.30.0",
+  "packageManager": "npm@10.9.2",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
     "build": "turbo build",
     "dev": "turbo dev",

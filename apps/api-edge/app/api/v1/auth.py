@@ -26,7 +26,7 @@ async def login(
 
     # Set refresh token in HttpOnly cookie
     response.set_cookie(
-        key="hris_refresh", # Keeping the cookie name from your HRIS reference
+        key="omr_refresh",
         value=refresh_token,
         httponly=True,
         secure=False, # Set to True in production with HTTPS
@@ -50,7 +50,7 @@ async def refresh(
     request: Request,
     db: Session = Depends(get_db)
 ):
-    refresh_token = request.cookies.get("hris_refresh")
+    refresh_token = request.cookies.get("omr_refresh")
     if not refresh_token:
         raise HTTPException(status_code=401, detail="Missing refresh token")
 
