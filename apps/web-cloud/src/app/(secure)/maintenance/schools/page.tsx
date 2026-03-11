@@ -157,10 +157,6 @@ export default function SchoolsManagement() {
                                     </div>
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black uppercase text-slate-400 leading-none">Division / City</label>
-                                    <Input placeholder="e.g. Manila" value={division} onChange={e => setDivision(e.target.value)} required />
-                                </div>
-                                <div className="space-y-2">
                                     <label className="text-[10px] font-black uppercase text-slate-400 leading-none">Street Address</label>
                                     <Input placeholder="123 Education St." value={address} onChange={e => setAddress(e.target.value)} />
                                 </div>
@@ -222,13 +218,9 @@ export default function SchoolsManagement() {
                                             </TableCell>
                                             <TableCell>
                                                 <div className="flex flex-col">
-                                                    <div className="flex items-center gap-1.5 mb-1">
+                                                    <div className="flex items-center gap-1.5">
                                                         <Globe className="h-3 w-3 text-indigo-400" />
                                                         <span className="text-[10px] font-black text-slate-600 uppercase leading-none">{s.regionName || 'NCR'}</span>
-                                                    </div>
-                                                    <div className="flex items-center gap-1.5">
-                                                        <Map className="h-3 w-3 text-slate-300" />
-                                                        <span className="text-[10px] font-bold text-slate-400 leading-none">{s.division}</span>
                                                     </div>
                                                 </div>
                                             </TableCell>

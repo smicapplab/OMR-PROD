@@ -26,11 +26,15 @@ interface UserData {
     scopeValue: string;
 }
 
+interface RegionData {
+    id: string;
+    name: string;
+    code: string;
+}
+
 interface SchoolData {
     id: string;
     name: string;
-    region: string;
-    division: string;
 }
 
 interface PaginatedResponse {
@@ -51,6 +55,7 @@ const ROLE_LABELS: Record<string, string> = {
 export default function UsersManagement() {
     const [users, setUsers] = useState<UserData[]>([]);
     const [schools, setSchools] = useState<SchoolData[]>([]);
+    const [regions, setRegions] = useState<RegionData[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [total, setTotal] = useState(0);
     const [offset, setOffset] = useState(0);
@@ -70,20 +75,21 @@ export default function UsersManagement() {
     async function loadData(currentOffset = 0) {
         setIsLoading(true);
         try {
-            const [userRes, schoolData] = await Promise.all([
+            const [userRes, schoolRes, regionRes] = await Promise.all([
                 apiFetch<PaginatedResponse>("/api/v1/maintenance/users", {
                     params: { limit: LIMIT, offset: currentOffset }
                 }),
-                apiFetch<SchoolData[]>("/api/v1/maintenance/schools")
+                apiFetch<any>("/api/v1/maintenance/schools"),
+                apiFetch<RegionData[]>("/api/v1/maintenance/regions")
             ]);
             setUsers(userRes.items);
             setTotal(userRes.total);
-            // Handle school list pagination if needed later, for now schoolRes might be full list or paginated
-            // If schools endpoint also returns paginated, we need to handle it.
-            // Let's assume for dropdown we want all schools or a searchable list.
-            setSchools(Array.isArray(schoolData) ? schoolData : (schoolData as any).items || []);
             
-            if (Array.isArray(schoolData) && schoolData.length > 0) setSchoolId(schoolData[0].id);
+            const schoolList = Array.isArray(schoolRes) ? schoolRes : schoolRes.items || [];
+            setSchools(schoolList);
+            setRegions(regionRes);
+            
+            if (schoolList.length > 0) setSchoolId(schoolList[0].id);
         } catch (err) {
             console.error(err);
         } finally {
@@ -129,6 +135,12 @@ export default function UsersManagement() {
         setOffset(newOffset);
         loadData(newOffset);
     };
+
+    useEffect(() => {
+        if (visibilityScope === 'REGIONAL' && regions.length > 0 && !scopeValue) {
+            setScopeValue(regions[0].code);
+        }
+    }, [visibilityScope, regions, scopeValue]);
 
     useEffect(() => {
         loadData(0);
@@ -197,18 +209,18 @@ export default function UsersManagement() {
                                             >
                                                 <option value="NATIONAL">National (Global)</option>
                                                 <option value="REGIONAL">Regional (By Region)</option>
-                                                <option value="DIVISION">Division (By City)</option>
                                             </select>
                                         </div>
-                                        {visibilityScope !== 'NATIONAL' && (
+                                        {visibilityScope === 'REGIONAL' && (
                                             <div className="space-y-2">
-                                                <label className="text-[10px] font-black uppercase text-indigo-600">Target {visibilityScope === 'REGIONAL' ? 'Region' : 'Division'}</label>
-                                                <Input 
-                                                    placeholder={visibilityScope === 'REGIONAL' ? "e.g. NCR" : "e.g. Manila"} 
-                                                    value={scopeValue} 
-                                                    onChange={e => setScopeValue(e.target.value)} 
-                                                    className="bg-white border-indigo-200"
-                                                />
+                                                <label className="text-[10px] font-black uppercase text-indigo-600">Target Region</label>
+                                                <select 
+                                                    className="w-full h-10 px-3 bg-white border border-indigo-200 rounded-xl text-sm font-bold text-slate-900"
+                                                    value={scopeValue}
+                                                    onChange={e => setScopeValue(e.target.value)}
+                                                >
+                                                    {regions.map(r => <option key={r.id} value={r.code}>{r.name} ({r.code})</option>)}
+                                                </select>
                                             </div>
                                         )}
                                     </div>
