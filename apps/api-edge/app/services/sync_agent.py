@@ -15,14 +15,16 @@ def run_sync_loop(interval_seconds: int = 30):
     
     while True:
         db = SessionLocal()
-        try:
             # 1. Pull latest operators/config from cloud
             sync_service.pull_operators(db)
             
-            # 2. Push audit logs
+            # 2. Pull HQ resolutions (Finalized decisions)
+            sync_service.pull_resolutions(db)
+            
+            # 3. Push audit logs
             sync_service.push_logs(db)
             
-            # 3. Push pending scan results
+            # 4. Push pending scan results
             sync_service.push_scans(db)
             
         except Exception as e:

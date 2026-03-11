@@ -85,6 +85,33 @@ class SyncService:
         except Exception as e:
             logger.error(f"❌ Failed to push logs: {e}")
 
+    def pull_resolutions(self, db: Session):
+        try:
+            logger.info(f"Pulling resolutions for Machine: {settings.MACHINE_ID}")
+            response = self.client.get(f"/sync/machines/{settings.MACHINE_ID}/resolutions")
+            response.raise_for_status()
+            
+            resolutions = response.json()
+            if not resolutions: return
+
+            updated_count = 0
+            for res in resolutions:
+                sha = res["sha"]
+                # Find local scan with this SHA
+                scan = db.query(Scan).filter(Scan.original_sha == sha).first()
+                if scan and scan.process_status == "pending_approval":
+                    # HQ has resolved it!
+                    scan.process_status = "success"
+                    scan.review_required = False
+                    scan.is_manually_edited = False # Clear flag as it's now authoritative
+                    updated_count += 1
+            
+            if updated_count > 0:
+                db.commit()
+                logger.info(f"✅ Applied {updated_count} HQ resolutions to local records.")
+        except Exception as e:
+            logger.error(f"❌ Failed to pull resolutions: {e}")
+
     def push_scans(self, db: Session):
         pending_scans = db.query(Scan).filter(Scan.sync_status == "pending").all()
         if not pending_scans: return

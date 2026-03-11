@@ -281,6 +281,40 @@ export class SyncController {
     };
   }
 
+  @Get('machines/:machineId/resolutions')
+  async getMachineResolutions(
+    @Param('machineId') machineId: string,
+    @Headers('x-machine-secret') machineSecret: string
+  ) {
+    // 1. Verify machine
+    const [machine] = await this.db.select().from(schema.machines)
+        .where(and(
+            eq(schema.machines.machineId, machineId),
+            eq(schema.machines.secret, machineSecret),
+            eq(schema.machines.status, 'active')
+        ))
+        .limit(1);
+
+    if (!machine) throw new UnauthorizedException();
+
+    // 2. Fetch recent scan updates for this machine that are finalized
+    // We return scans that were updated in the last 24 hours (or just recently resolved)
+    const resolutions = await this.db.select({
+        sha: schema.scans.originalSha,
+        status: schema.scans.status,
+        reviewRequired: schema.scans.reviewRequired,
+        updatedAt: schema.scans.updatedAt
+    })
+    .from(schema.scans)
+    .where(and(
+        eq(schema.scans.machineId, machineId),
+        eq(schema.scans.reviewRequired, false) // Only return if resolved
+    ))
+    .limit(100);
+
+    return resolutions;
+  }
+
   @Get('machines/:machineId/operators')
   async getMachineOperators(
     @Param('machineId') machineId: string,
