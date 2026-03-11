@@ -91,6 +91,7 @@ async def get_scan(scan_id: int, db: Session = Depends(get_db)):
 
 @app.patch(f"{settings.API_V1_STR}/scans/{{scan_id}}")
 async def update_scan(scan_id: int, payload: dict, db: Session = Depends(get_db), user = Depends(get_current_user)):
+    print(f"📥 Received correction for scan {scan_id}")
     from app.models.scan import Scan
     from app.models.user import ActivityLog
     scan = db.query(Scan).filter(Scan.id == scan_id).first()
@@ -105,8 +106,13 @@ async def update_scan(scan_id: int, payload: dict, db: Session = Depends(get_db)
     log = ActivityLog(
         user_id=user.id, scan_id=scan_id, action="SCAN_CORRECTION",
         status_after="pending_approval",
-        details={"old_data": old_data, "new_data": payload.get("raw_data")},
-        machine_id=settings.MACHINE_ID
+        details={
+            "old_data": old_data, 
+            "new_data": payload.get("raw_data"),
+            "sha": scan.original_sha
+        },
+        machine_id=settings.MACHINE_ID,
+        is_synced=False
     )
     db.add(log)
     db.commit()

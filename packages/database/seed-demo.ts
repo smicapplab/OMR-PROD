@@ -1,6 +1,7 @@
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import * as schema from './src/schema';
+import { userMachines } from './src/schema/users';
 import * as bcrypt from 'bcrypt';
 import 'dotenv/config';
 import { eq } from 'drizzle-orm';
@@ -52,7 +53,7 @@ async function main() {
     { email: 'auditor@omr-prod.gov.ph', firstName: 'Arthur', lastName: 'Auditor', userType: 'NATIONAL_AUDITOR', visibilityScope: 'NATIONAL', scopeValue: 'ALL' },
     { email: 'monitor.ncr@omr-prod.gov.ph', firstName: 'Nora', lastName: 'NCR', userType: 'DEPED_MONITOR', visibilityScope: 'REGIONAL', scopeValue: findByCode('NCR') },
     { email: 'admin.777@omr-prod.gov.ph', firstName: 'Admin', lastName: '777', userType: 'SCHOOL_ADMIN', schoolId: tsAlpha.id, visibilityScope: 'SCHOOL', scopeValue: tsAlpha.id },
-    { email: 'operator1@mshs.edu.ph', firstName: 'MSHS', lastName: 'Operator 1', userType: 'EDGE_OPERATOR', schoolId: msSci.id, visibilityScope: 'SCHOOL', scopeValue: msSci.id }
+    { email: 'operator1@mshs.edu.ph', firstName: 'MSHS', lastName: 'Operator 1', userType: 'EDGE_OPERATOR', visibilityScope: 'SCHOOL', scopeValue: msSci.id }
   ];
 
   for (const u of testUsers) {
@@ -82,41 +83,13 @@ async function main() {
     // Explicitly link operator1 to MACHINE-00001
     const [op1] = await db.select().from(schema.users).where(eq(schema.users.email, 'operator1@mshs.edu.ph')).limit(1);
     if (op1) {
-        await db.insert(schema.userMachines).values({
+        await db.insert(userMachines).values({
             userId: op1.id,
             machineId: devMachine.id
         }).onConflictDoNothing();
     }
     
     console.log('✅ MACHINE-00001 pre-authorized for multiple schools and personnel');
-  }
-
-  // 5. Generate 150+ Dummy Scans for Dashboard Testing
-  console.log('Generating 150+ Scans for Global Stream testing...');
-  const dummyScans = Array.from({ length: 155 }).map((_, i) => ({
-    machineId: 'MACHINE-00001',
-    schoolId: i % 2 === 0 ? tsAlpha.id : tsBeta.id,
-    fileName: `test_scan_${i}.png`,
-    originalSha: `fake_sha_${i}_${Date.now()}`,
-    status: 'success',
-    confidence: 0.85 + (Math.random() * 0.1),
-    reviewRequired: i % 10 === 0,
-    totalScore: 30 + Math.floor(Math.random() * 10),
-    maxScore: 40,
-    extracted_data: {
-        student_info: {
-            first_name: { answer: `Student_${i}` },
-            last_name: { answer: `Doe` },
-            lrn: { answer: `100000000${i}` }
-        }
-    },
-    createdAt: new Date(Date.now() - (i * 1000 * 60)) // Space them out by minutes
-  }));
-
-  // Batch insert for performance
-  for (let i = 0; i < dummyScans.length; i += 50) {
-    const batch = dummyScans.slice(i, i + 50);
-    await db.insert(schema.scans).values(batch).onConflictDoNothing();
   }
 
   console.log('--- ✅ Demo Seeding Complete ---');

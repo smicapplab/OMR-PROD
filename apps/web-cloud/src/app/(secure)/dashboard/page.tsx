@@ -109,7 +109,7 @@ export default function NationalDashboard() {
                                             </div>
                                         </TableCell>
                                         <TableCell className="font-bold text-slate-500 text-[10px] uppercase">
-                                            {scan.schoolId.substring(0, 13)}...
+                                            {scan.schoolName || 'Unknown School'}
                                         </TableCell>
                                         <TableCell className="text-center">
                                             <div className="inline-flex flex-col items-center">

@@ -138,7 +138,7 @@ export function ActivityLogSlider({ scanId, isOpen, onClose }: ActivityLogSlider
                             {isLoading ? (
                                 <div className="py-20 text-center flex flex-col items-center gap-3">
                                     <Loader2 className="h-6 w-6 animate-spin text-indigo-600" />
-                                    <p className="text-[10px] font-black text-slate-400 uppercase">Syncing forensic history...</p>
+                                    <p className="text-[10px] font-black text-slate-400 uppercase">Syncing audit history...</p>
                                 </div>
                             ) : logs.length === 0 ? (
                                 <div className="py-10 text-center border-2 border-dashed rounded-2xl border-slate-100">

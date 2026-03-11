@@ -289,7 +289,7 @@ export default function DashboardPage() {
                                     {isDetailLoading && !selectedScan ? (
                                         <div className="flex flex-1 flex-col items-center justify-center bg-slate-50/30">
                                             <Loader2 className="h-10 w-10 animate-spin text-indigo-200 mb-4" />
-                                            <p className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em]">Loading High-Res Forensic Master...</p>
+                                            <p className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em]">Loading High-Res Official Master...</p>
                                         </div>
                                     ) : selectedScan ? (
                                         <ResizablePanelGroup orientation="horizontal">
@@ -375,7 +375,7 @@ export default function DashboardPage() {
 
                                                         <div className="space-y-4">
                                                             <div className="flex items-center justify-between">
-                                                                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Forensic Timeline</h4>
+                                                                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Audit Timeline</h4>
                                                                 <button 
                                                                     onClick={() => setIsLogOpen(true)}
                                                                     className="text-[10px] font-black text-indigo-600 uppercase tracking-tighter underline underline-offset-4 hover:text-indigo-800"
@@ -399,7 +399,7 @@ export default function DashboardPage() {
                                                                         <div className="h-6 w-6 rounded-full bg-white flex items-center justify-center border shrink-0">
                                                                             <CheckCircle2 className="h-3 w-3 text-slate-300" />
                                                                         </div>
-                                                                        <p className="text-[10px] font-bold text-slate-400 uppercase italic mt-1.5 tracking-tighter">No forensic modifications</p>
+                                                                        <p className="text-[10px] font-bold text-slate-400 uppercase italic mt-1.5 tracking-tighter">No integrity modifications</p>
                                                                     </div>
                                                                 )}
                                                             </div>
@@ -439,7 +439,7 @@ export default function DashboardPage() {
                                 </div>
                             ) : (
                                 <div className="flex h-full flex-col items-center justify-center bg-slate-50/30 p-20 text-center text-slate-400 italic text-sm">
-                                    Select a record from the feed to begin forensic review
+                                    Select a record from the feed to begin official review
                                 </div>
                             )}
                         </ResizablePanel>

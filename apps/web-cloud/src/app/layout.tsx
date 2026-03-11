@@ -9,7 +9,7 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
 export const metadata: Metadata = {
   title: "National OMR Portal",
-  description: "Centralized exam grading and forensic analytics",
+  description: "Centralized exam grading and Integrity Analytics",
 };
 
 export default function RootLayout({

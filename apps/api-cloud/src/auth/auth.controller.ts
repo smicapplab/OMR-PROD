@@ -47,12 +47,13 @@ export class AuthController {
 
   @Get('me')
   async me(@Req() req: Request) {
-    // Note: In production we'd use a JwtGuard here
     const authHeader = req.headers.authorization;
     if (!authHeader) throw new UnauthorizedException();
     
-    // Simplification for dev: verifying the token directly
-    // Ideally use @UseGuards(JwtAuthGuard)
-    return { message: "Authenticated session active" };
+    const token = authHeader.split(' ')[1];
+    const user = await this.authService.verifyToken(token);
+    if (!user) throw new UnauthorizedException();
+
+    return user;
   }
 }

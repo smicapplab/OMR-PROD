@@ -112,7 +112,7 @@ export default function ScanDetailPage() {
 
                     <div className="mt-auto pt-10 text-xs text-gray-400">
                         <p>Machine: DEV-MACHINE-001</p>
-                        <p>Forensic Hash: {scan.original_sha.substring(0, 16)}...</p>
+                        <p>Integrity Hash: {scan.original_sha.substring(0, 16)}...</p>
                     </div>
                 </div>
             </div>

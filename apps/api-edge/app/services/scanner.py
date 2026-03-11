@@ -35,7 +35,8 @@ class ScannerService:
             
             # 2. VALIDATE SCHOOL IDENTIFICATION
             # If student bubbled a different school ID than what the machine/operator expects
-            extracted_school_id = extracted_data.get("student_info", {}).get("school_id", {}).get("answer")
+            # Correct path is student_info -> current_school -> school_id
+            extracted_school_id = extracted_data.get("student_info", {}).get("current_school", {}).get("school_id", {}).get("answer")
             review_required = result["review_required"]
             
             if school_id and extracted_school_id and str(school_id) != str(extracted_school_id):

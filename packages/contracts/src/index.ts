@@ -50,6 +50,7 @@ export interface AuditLog {
 export interface CloudScan {
     id: string;
     schoolId: string;
+    schoolName?: string;
     machineId: string;
     fileName: string;
     totalScore: number;

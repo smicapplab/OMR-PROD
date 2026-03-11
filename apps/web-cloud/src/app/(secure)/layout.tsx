@@ -8,7 +8,10 @@ import {
     BarChart3, ChevronRight,
     FileCheck,
     Globe,
-    Monitor
+    Monitor,
+    AlertTriangle,
+    ShieldCheck,
+    History
 } from "lucide-react";
 import Link from "next/link";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -37,15 +40,21 @@ export default function SecureLayout({ children }: { children: React.ReactNode }
 
     if (!user) return null;
 
-    const navItems = [
-        { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-        { name: "Institutions", href: "/maintenance/schools", icon: School },
-        { name: "Edge Appliances", href: "/maintenance/machines", icon: Monitor },
-        { name: "Region Registry", href: "/maintenance/regions", icon: Globe },
-        { name: "User Registry", href: "/maintenance/users", icon: Users },
-        { name: "Answer Keys", href: "/maintenance/keys", icon: FileCheck },
-        { name: "Analytics", href: "/analytics", icon: BarChart3, disabled: true },
+    const allNavItems = [
+        { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, scopes: ['NATIONAL', 'REGIONAL', 'DIVISION', 'SCHOOL'] },
+        { name: "Exam Records", href: "/scans", icon: FileCheck, scopes: ['NATIONAL', 'REGIONAL', 'DIVISION', 'SCHOOL'] },
+        { name: "Validation Queue", href: "/maintenance/validation", icon: ShieldCheck, scopes: ['NATIONAL', 'SCHOOL'] },
+        { name: "Correction Queue", href: "/maintenance/orphaned", icon: AlertTriangle, scopes: ['NATIONAL'] },
+        { name: "Audit History", href: "/maintenance/history", icon: History, scopes: ['NATIONAL'] },
+        { name: "Institutions", href: "/maintenance/schools", icon: School, scopes: ['NATIONAL'] },
+        { name: "Edge Appliances", href: "/maintenance/machines", icon: Monitor, scopes: ['NATIONAL'] },
+        { name: "Region Registry", href: "/maintenance/regions", icon: Globe, scopes: ['NATIONAL'] },
+        { name: "User Registry", href: "/maintenance/users", icon: Users, scopes: ['NATIONAL'] },
+        { name: "Answer Keys", href: "/maintenance/keys", icon: FileCheck, scopes: ['NATIONAL'] },
+        { name: "Analytics", href: "/analytics", icon: BarChart3, disabled: true, scopes: ['NATIONAL', 'REGIONAL'] },
     ];
+
+    const navItems = allNavItems.filter(item => item.scopes.includes(user.visibilityScope));
 
     return (
         <div className="flex h-screen bg-slate-50/50 overflow-hidden font-sans">

@@ -67,4 +67,14 @@ export class AuthService {
       throw new UnauthorizedException();
     }
   }
+
+  async verifyToken(token: string) {
+    try {
+        const payload = this.jwtService.verify(token);
+        const [user] = await this.db.select().from(schema.users).where(eq(schema.users.id, payload.sub)).limit(1);
+        return user;
+    } catch {
+        return null;
+    }
+  }
 }

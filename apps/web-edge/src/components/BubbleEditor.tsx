@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -93,6 +93,13 @@ interface BubbleEditorProps {
 export function BubbleEditor({ scan, isOpen, onClose, onSaved }: BubbleEditorProps) {
     const [localData, setLocalData] = useState<OMRRawData>(JSON.parse(JSON.stringify(scan.rawData)));
     const [isSaving, setIsSaving] = useState(false);
+
+    // Sync state when scan prop changes (prevents state bleeding between records)
+    useEffect(() => {
+        if (scan?.rawData) {
+            setLocalData(JSON.parse(JSON.stringify(scan.rawData)));
+        }
+    }, [scan]);
 
     const subjects = useMemo(() => Object.keys(localData?.answers || {}), [localData]);
 
@@ -266,7 +273,7 @@ export function BubbleEditor({ scan, isOpen, onClose, onSaved }: BubbleEditorPro
                         <div className="h-8 w-8 rounded-lg bg-indigo-600 flex items-center justify-center">
                             <Save className="h-4 w-4 text-white" />
                         </div>
-                        <SheetTitle className="text-xl font-bold text-slate-900 uppercase tracking-tight">Forensic Adjustment</SheetTitle>
+                        <SheetTitle className="text-xl font-bold text-slate-900 uppercase tracking-tight">Data Correction</SheetTitle>
                     </div>
                     <SheetDescription className="text-slate-500 font-medium truncate">
                         Student LRN: <span className="font-bold text-indigo-600">{localData.student_info?.lrn?.answer}</span>

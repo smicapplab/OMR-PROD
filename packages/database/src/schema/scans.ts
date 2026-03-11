@@ -1,5 +1,6 @@
 import { pgTable, uuid, varchar, timestamp, index, uniqueIndex, integer, real, text, boolean, jsonb } from 'drizzle-orm/pg-core';
 import { schools } from './schools';
+import { users } from './users';
 
 export const answerKeys = pgTable('answer_keys', {
     id: uuid('id').defaultRandom().primaryKey(),
@@ -20,7 +21,7 @@ export const answerKeys = pgTable('answer_keys', {
 
 export const scans = pgTable('omr_scans', {
     id: uuid('id').defaultRandom().primaryKey(),
-    schoolId: uuid('school_id').notNull().references(() => schools.id, { onDelete: 'cascade' }),
+    schoolId: uuid('school_id').references(() => schools.id, { onDelete: 'set null' }),
     machineId: varchar('machine_id', { length: 255 }).notNull(),
     
     fileName: varchar('file_name', { length: 255 }),
@@ -33,6 +34,7 @@ export const scans = pgTable('omr_scans', {
     
     // Extracted OMR data (Letters)
     extracted_data: jsonb('extracted_data'),
+    pending_data: jsonb('pending_data'), // Proposed changes awaiting QA
     
     // --- SCORING DATA (CLOUD ONLY) ---
     totalScore: integer('total_score'),
@@ -49,3 +51,15 @@ export const scans = pgTable('omr_scans', {
     shaIdx: uniqueIndex('scans_sha_idx').on(t.originalSha),
     machineIdx: index('scans_machine_idx').on(t.machineId),
 }));
+
+export const correctionLogs = pgTable('correction_logs', {
+    id: uuid('id').defaultRandom().primaryKey(),
+    scanId: uuid('scan_id').notNull().references(() => scans.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id').references(() => users.id),
+    action: varchar('action', { length: 50 }).notNull(), // 'SCHOOL_ASSIGNMENT' | 'BUBBLE_CORRECTION'
+    oldData: jsonb('old_data'),
+    newData: jsonb('new_data'),
+    reason: text('reason'),
+    status: varchar('status', { length: 50 }).notNull().default('approved'), // 'pending' | 'approved' | 'rejected'
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});

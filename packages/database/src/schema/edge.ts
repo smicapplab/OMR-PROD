@@ -6,7 +6,7 @@ export const scans = sqliteTable('scans', {
     fileName: text('file_name'),
     filePath: text('file_path'),
     
-    // Forensic Integrity
+    // Data Integrity
     originalSha: text('original_sha'),
     
     // Sync Status: pending | synced | error
@@ -28,4 +28,16 @@ export const scans = sqliteTable('scans', {
 
     createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`),
     updatedAt: text('updated_at').default(sql`CURRENT_TIMESTAMP`),
+});
+
+export const activityLogs = sqliteTable('activity_logs', {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    userId: text('user_id').notNull(),
+    scanId: integer('scan_id').notNull(),
+    action: text('action').notNull(),
+    statusAfter: text('status_after'),
+    details: text('details'), // JSON string
+    machineId: text('machine_id'),
+    isSynced: integer('is_synced', { mode: 'boolean' }).default(false),
+    createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`),
 });

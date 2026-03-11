@@ -19,7 +19,10 @@ def run_sync_loop(interval_seconds: int = 30):
             # 1. Pull latest operators/config from cloud
             sync_service.pull_operators(db)
             
-            # 2. Push pending scan results
+            # 2. Push audit logs
+            sync_service.push_logs(db)
+            
+            # 3. Push pending scan results
             sync_service.push_scans(db)
             
         except Exception as e:

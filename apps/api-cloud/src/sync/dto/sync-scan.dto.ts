@@ -15,6 +15,10 @@ export class SyncScanDto {
   @IsBoolean()
   review_required!: boolean;
 
+  @IsBoolean()
+  @IsOptional()
+  is_manually_edited?: boolean;
+
   @IsObject()
   raw_data!: any;
 

@@ -6,7 +6,7 @@ import os
 from pathlib import Path
 from sqlalchemy.orm import Session
 from app.core.config import settings
-from app.models.user import User
+from app.models.user import User, ActivityLog
 from app.models.scan import Scan
 
 logging.basicConfig(level=logging.INFO)
@@ -17,6 +17,7 @@ class SyncService:
     Handles communication between Edge and Cloud Hub.
     - Captures result push
     - Operator list pull
+    - Activity Log sync
     - Local storage sync (Simulated Cloud Storage)
     """
     
@@ -56,6 +57,33 @@ class SyncService:
             logger.info(f"✅ Synced {len(operators_data)} operators.")
         except Exception as e:
             logger.error(f"❌ Failed to pull operators: {e}")
+
+    def push_logs(self, db: Session):
+        try:
+            logs = db.query(ActivityLog).filter(ActivityLog.is_synced == False).all()
+            if not logs: return
+
+            logger.info(f"📤 Pushing {len(logs)} activity logs...")
+            
+            payload = {
+                "logs": [
+                    {
+                        "id": l.id,
+                        "action": l.action,
+                        "details": l.details,
+                        "created_at": l.created_at.isoformat()
+                    } for l in logs
+                ]
+            }
+
+            response = self.client.post("/sync/logs", json=payload)
+            response.raise_for_status()
+
+            for l in logs: l.is_synced = True
+            db.commit()
+            logger.info(f"✅ Synced {len(logs)} logs.")
+        except Exception as e:
+            logger.error(f"❌ Failed to push logs: {e}")
 
     def push_scans(self, db: Session):
         pending_scans = db.query(Scan).filter(Scan.sync_status == "pending").all()
@@ -103,6 +131,7 @@ class SyncService:
                     "original_sha": scan.original_sha,
                     "confidence": scan.confidence,
                     "review_required": scan.review_required,
+                    "is_manually_edited": scan.is_manually_edited,
                     "raw_data": scan.raw_data,
                     "file_name": scan.file_name,
                     "file_url": f"/cloud-assets/masters/{master_filename}",
@@ -114,7 +143,7 @@ class SyncService:
                 
                 scan.sync_status = "synced"
                 db.commit()
-                logger.info(f"✅ Synced scan: {scan.file_name} with forensic images")
+                logger.info(f"✅ Synced scan: {scan.file_name} with official images")
             except Exception as e:
                 logger.error(f"❌ Failed to sync scan {scan.file_name}: {e}")
 

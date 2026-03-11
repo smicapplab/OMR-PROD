@@ -20,8 +20,9 @@ class User(Base):
 class ActivityLog(Base):
     __tablename__ = "activity_logs"
 
-    id = Column(String, primary_key=True, default=lambda: str(uuid_pkg.uuid4()))
-    user_id = Column(String, ForeignKey("users.id"), index=True)
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(String, ForeignKey("users.id"))
+
     
     # New: Explicit scan link
     scan_id = Column(Integer, index=True)
@@ -32,5 +33,6 @@ class ActivityLog(Base):
     details = Column(JSON) 
     
     machine_id = Column(String, index=True)
+    is_synced = Column(Boolean, default=False)
     
     created_at = Column(DateTime, default=datetime.datetime.utcnow)

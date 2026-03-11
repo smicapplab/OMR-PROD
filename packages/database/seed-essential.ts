@@ -21,6 +21,8 @@ async function main() {
     userType: 'SUPER_ADMIN',
     firstName: 'System',
     lastName: 'Administrator',
+    visibilityScope: 'NATIONAL',
+    scopeValue: 'ALL'
   }).onConflictDoNothing().returning();
 
   if (admin) {

@@ -1,4 +1,4 @@
-# OMR-PROD: National Forensic Exam System
+# OMR-PROD: National Examination System
 
 A production-grade, distributed Optical Mark Recognition (OMR) system designed for nationwide exam administration. This system features **Offline-First Edge Appliances** for school-site capture and a **National Cloud Hub** for authoritative grading and analytics.
 
@@ -6,7 +6,7 @@ A production-grade, distributed Optical Mark Recognition (OMR) system designed f
 
 ### 1. Edge Appliance (The Capture Layer)
 *   **Role**: Physical hardware deployed at school sites or division offices.
-*   **Context**: Scans papers, performs local OMR, and generates forensic SHA-256 hashes.
+*   **Context**: Scans papers, performs local OMR, and generates integrity SHA-256 hashes.
 *   **Data Strategy**: Decoupled from institutional IDs locally to maximize performance. It uses a **Machine Identity** for all cloud communication.
 *   **Local Storage**: SQLite database storing capture logs, operator audit trails, and raw images.
 
@@ -25,7 +25,7 @@ The system enforces strict data boundaries based on the user's assigned **Visibi
 | Role | Visibility Scope | Data Access | Key Capabilities |
 | :--- | :--- | :--- | :--- |
 | **SUPER_ADMIN** | `NATIONAL` | All nationwide scans. | Manage Registry, Approve Appliances, Reset System. |
-| **NATIONAL_AUDITOR**| `NATIONAL` | All nationwide scans. | Read-only access to all forensic logs and grading details. |
+| **NATIONAL_AUDITOR**| `NATIONAL` | All nationwide scans. | Read-only access to all audit logs and grading details. |
 | **DEPED_MONITOR** | `REGIONAL` | All schools in assigned Region. | Read-only analytics and sync stream for their region. |
 | **SCHOOL_ADMIN** | `SCHOOL` | Scans for assigned School(s). | Review/Approve bubble corrections; Manage local ops. |
 | **EDGE_OPERATOR** | `APPLIANCE` | Local machine scans only. | Capture papers, verify bubble confidence, trigger sync. |
@@ -58,8 +58,11 @@ Once `ACTIVE`, the machine can sync. The Cloud Hub verifies the `X-Machine-Secre
 ## 📡 Data Integrity & Sync Logic
 
 *   **Stable Identifiers**: Edge machines send stable **School Codes** (e.g., `305312`) in the sync payload.
-*   **Resilient Lookup**: The Cloud Hub attempts to resolve the payload ID to a UUID. If the payload ID is missing or "orphaned" (e.g. after a DB reset), the Hub automatically assigns the data to the machine's primary authorized school.
-*   **Forensic Naming**: Raw images are renamed locally to their **SHA-256 hash** before being moved to the `success/` folder to prevent name collisions and ensure a permanent forensic link.
+*   **Orphaned Paper Workflow**: To maintain integrity accuracy, the Cloud Hub **never assumes** the school assignment for incoming data, as a single Edge machine may service multiple institutions. 
+    *   If the bubbled school ID is invalid or missing, the scan is marked as `orphaned`.
+    *   Orphaned scans are held in a secure **Correction Queue** for National QA review.
+*   **National QA Correction**: Authorized personnel can review orphaned official images and student data to manually assign them to the correct institution. Every correction is audited.
+*   **Integrity Naming**: Raw images are renamed locally to their **SHA-256 hash** before being moved to the `success/` folder to prevent name collisions and ensure a permanent integrity link.
 
 ---
 
