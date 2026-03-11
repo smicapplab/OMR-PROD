@@ -23,7 +23,15 @@ export const users = pgTable('users', {
     lastLoginAt: timestamp('last_login_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-}, (t) => ({
+    });
+
+    export const userMachines = pgTable('user_machines', {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    machineId: uuid('machine_id').notNull().references(() => machines.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    });
+
     emailUq: uniqueIndex('users_email_uq').on(t.email),
     schoolIdx: index('users_school_id_idx').on(t.schoolId),
     activeIdx: index('users_is_active_idx').on(t.isActive),
