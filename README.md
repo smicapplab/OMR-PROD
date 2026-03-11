@@ -1,115 +1,84 @@
-# OMR-PROD: Distributed Forensic Exam System
+# OMR-PROD: National Forensic Exam System
 
-A production-grade, distributed Optical Mark Recognition (OMR) system designed for nationwide exam administration. This system features **Offline-First Edge Appliances** for school-site capture and a **National Cloud Hub** for authoritative grading and monitoring.
-
-## 🌟 Key Features
-
-- **Offline-First Edge Hub**: Process exam sheets locally at school sites without internet connectivity.
-- **Forensic Integrity**: Every scan is hashed (SHA-256) at the point of capture to ensure data immutability.
-- **Hierarchical Sync**: Automated bidirectional sync between Edge Appliances and the National Hub.
-- **Authoritative Cloud Grading**: Grading logic is centralized in the cloud to prevent local tampering.
-- **Audit Trail**: Full manual correction history with operator identification.
-- **Advanced OMR Engine**: OpenCV-based processing with 4-point fiducial alignment and confidence scoring.
+A production-grade, distributed Optical Mark Recognition (OMR) system designed for nationwide exam administration. This system features **Offline-First Edge Appliances** for school-site capture and a **National Cloud Hub** for authoritative grading and analytics.
 
 ## 🏗 System Architecture
 
-- **`apps/api-edge` (Python/FastAPI)**: Runs on local appliances. Handles OMR processing and local auth.
-- **`apps/api-cloud` (NestJS)**: The National Hub backend. Handles global state and authoritative grading.
-- **`apps/web-edge` (Next.js)**: Local operator console for scanning and manual verification.
-- **`apps/web-cloud` (Next.js)**: National monitoring dashboard and management portal.
-- **`packages/database`**: Shared Drizzle ORM schema for both PostgreSQL (Cloud) and SQLite (Edge).
+### 1. Edge Appliance (The Capture Layer)
+*   **Role**: Physical hardware deployed at school sites or division offices.
+*   **Context**: Scans papers, performs local OMR, and generates forensic SHA-256 hashes.
+*   **Data Strategy**: Decoupled from institutional IDs locally to maximize performance. It uses a **Machine Identity** for all cloud communication.
+*   **Local Storage**: SQLite database storing capture logs, operator audit trails, and raw images.
 
-## 🚀 Getting Started
+### 2. National Hub (The Authoritative Layer)
+*   **Role**: Centralized cloud infrastructure for grading, monitoring, and long-term storage.
+*   **Context**: Manages the "Human Registry" (RBAC) and "Appliance Registry".
+*   **Data Strategy**: Resolves stable **School Codes** from Edge payloads into internal UUIDs for database integrity.
+*   **Security**: Enforces visibility boundaries (National, Regional, Institutional).
 
-### Prerequisites
+---
 
-- Node.js (v20+)
-- pnpm or npm
-- Docker & Docker Compose
-- Python 3.9+ (for Edge API)
+## 🔐 Security & Visibility Matrix (RBAC)
 
-### 1. Database Setup
+The system enforces strict data boundaries based on the user's assigned **Visibility Scope**.
 
-Start the National Hub database:
+| Role | Visibility Scope | Data Access | Key Capabilities |
+| :--- | :--- | :--- | :--- |
+| **SUPER_ADMIN** | `NATIONAL` | All nationwide scans. | Manage Registry, Approve Appliances, Reset System. |
+| **NATIONAL_AUDITOR**| `NATIONAL` | All nationwide scans. | Read-only access to all forensic logs and grading details. |
+| **DEPED_MONITOR** | `REGIONAL` | All schools in assigned Region. | Read-only analytics and sync stream for their region. |
+| **SCHOOL_ADMIN** | `SCHOOL` | Scans for assigned School(s). | Review/Approve bubble corrections; Manage local ops. |
+| **EDGE_OPERATOR** | `APPLIANCE` | Local machine scans only. | Capture papers, verify bubble confidence, trigger sync. |
+
+---
+
+## 📟 Appliance Enrollment Workflow
+
+To prevent unauthorized data injection, every Edge Appliance must be approved by a National Administrator.
+
+### 1. Edge Request (Self-Registration)
+On the Edge Appliance terminal:
 ```bash
-docker-compose up -d
+# Register the machine name (e.g. NCR-BOX-001)
+python enroll.py http://cloud-hub-address:4000
+```
+This generates a unique **Machine Secret** and creates a `PENDING` record in the Cloud Hub.
+
+### 2. National Approval
+1. Log in to the **National Hub** as `SUPER_ADMIN`.
+2. Navigate to **Appliance Registry**.
+3. Locate the new machine in the **Pending Approval** queue.
+4. Click **Approve & Deploy**, assigning the machine to its authorized Schools or Regions.
+
+### 3. Authorized Sync
+Once `ACTIVE`, the machine can sync. The Cloud Hub verifies the `X-Machine-Secret` header on every request.
+
+---
+
+## 📡 Data Integrity & Sync Logic
+
+*   **Stable Identifiers**: Edge machines send stable **School Codes** (e.g., `305312`) in the sync payload.
+*   **Resilient Lookup**: The Cloud Hub attempts to resolve the payload ID to a UUID. If the payload ID is missing or "orphaned" (e.g. after a DB reset), the Hub automatically assigns the data to the machine's primary authorized school.
+*   **Forensic Naming**: Raw images are renamed locally to their **SHA-256 hash** before being moved to the `success/` folder to prevent name collisions and ensure a permanent forensic link.
+
+---
+
+## 🛠 Developer Operations
+
+### Cloud Hub Reset (Postgres)
+Wipes the cloud database, pushes the schema, and seeds standard regions, schools, and the Super Admin.
+```bash
+./scripts/reset-db-demo.sh
 ```
 
-Initialize the cloud schema:
+### Edge Machine Reset (SQLite)
+Wipes local scans, initializes SQLite, and configures the machine as `MACHINE-00001` for testing.
 ```bash
-cd OMR-PROD
-npm run db:push
+./scripts/reset-edge-demo.sh
 ```
 
-### 2. Environment Configuration
-
-Copy the example environment files:
-```bash
-cp .env.example .env
-cp apps/api-cloud/.env.example apps/api-cloud/.env
-cp apps/web-edge/.env.local.example apps/web-edge/.env.local
-```
-
-### 3. Installation & Development
-
-Install dependencies from the root:
-```bash
-npm install
-```
-
-Start all services in development mode:
-```bash
-npm run dev
-```
-
-## 🌐 Access Portals
-
-- **Edge Console**: `http://localhost:3000` (Local scanning & correction)
-- **National Hub**: `http://localhost:3001` (Global monitoring)
-- **Cloud API**: `http://localhost:4000` (National backend)
-- **Edge API**: `http://localhost:8000` (Local appliance backend)
-
-## 🔐 Forensic Integrity Workflow
-
-1. **Capture**: Scanner drops image in `uploads/` folder.
-2. **Hash**: System generates SHA-256 of the raw master image.
-3. **Process**: OMR engine extracts bubble data and generates a low-res WebP proxy.
-4. **Verify**: Local operator corrects any ambiguous bubbles (Audit log created).
-5. **Sync**: Master image, proxy, and data are pushed to Cloud Hub using the **Machine Secret**.
-6. **Grade**: Cloud Hub verifies SHA-256 and performs authoritative grading against master keys.
-
-## 📟 Machine Enrollment (Edge-to-Cloud)
-
-To ensure secure data transmission, every Edge Appliance must be enrolled in the National Hub before it can sync data.
-
-### 1. Authorize on Cloud Portal
-1. Log in to the **National Hub** (`localhost:3001`) as a `SUPER_ADMIN`.
-2. Navigate to **Edge Appliances**.
-3. Click **Authorize Appliance**, enter a unique Machine ID (e.g., `EDGE-NCR-001`), and select the target School.
-4. Copy the generated **Enrollment Token**.
-
-### 2. Enroll via Edge CLI
-On the physical Edge Appliance, run the enrollment script:
-```bash
-cd apps/api-edge
-# Usage: python enroll.py <TOKEN> <CLOUD_URL>
-python enroll.py ABCD-1234 http://cloud-hub-address:4000
-```
-This will exchange the one-time token for a permanent **Machine Secret**, stored in `apps/api-edge/.env`.
-
-## 👥 User Roles & Access Control
-
-The system uses a hierarchical role structure to maintain security:
-
-| Role | Scope | Key Capabilities |
-| :--- | :--- | :--- |
-| **SUPER_ADMIN** | National | Manage Regions, Schools, Users, and Answer Keys. |
-| **REGIONAL_DIRECTOR** | Regional | View-only access to all school stats within their assigned region. |
-| **SCHOOL_ADMIN** | Institutional | Approve/Override local OMR corrections; Manage local operators. |
-| **EDGE_OPERATOR** | Appliance | Perform scans, verify bubble confidence, and trigger syncs. |
-
-### Assigning Operators
-Operators are created in the **National Hub** under **User Registry**. 
-- Set the `Visibility Scope` to `SCHOOL`.
-- Assign the `Scope Value` to the specific School ID.
-- Once created, the Edge Appliance will automatically pull these credentials during its next sync cycle (every 30 seconds).
+### Default Test Credentials
+*   **National Admin**: `admin@omr-prod.gov.ph` / `admin-secure-password`
+*   **Regional Monitor**: `monitor.ncr@omr-prod.gov.ph` / `password123`
+*   **School Admin**: `admin.777@omr-prod.gov.ph` / `password123`
+*   **Edge Operator**: `operator1@mshs.edu.ph` / `password123`

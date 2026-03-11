@@ -122,6 +122,7 @@ export class MaintenanceController {
     const o = parseInt(offset);
 
     const items = await this.db.select().from(schema.users).limit(l).offset(o);
+    const userMacs = await this.db.select().from(schema.userMachines);
     const [totalResult] = await this.db.select({ count: sql`count(*)` }).from(schema.users);
 
     return {
@@ -133,7 +134,9 @@ export class MaintenanceController {
             lastName: u.lastName,
             isActive: u.isActive,
             visibilityScope: u.visibilityScope,
-            scopeValue: u.scopeValue
+            scopeValue: u.scopeValue,
+            schoolId: u.schoolId,
+            machineIds: userMacs.filter((um: any) => um.userId === u.id).map((um: any) => um.machineId)
         })),
         total: parseInt(totalResult.count),
         limit: l,
@@ -143,21 +146,63 @@ export class MaintenanceController {
 
   @Post('users')
   async createUser(@Body() body: any) {
-    const { email, password, firstName, lastName, userType, schoolId, visibilityScope, scopeValue } = body;
+    const { email, password, firstName, lastName, userType, schoolId, visibilityScope, scopeValue, machineIds } = body;
     
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password || 'password123', salt);
 
-    return this.db.insert(schema.users).values({
-      email,
-      passwordHash,
-      firstName,
-      lastName,
-      userType: userType || 'EDGE_OPERATOR',
-      schoolId: schoolId || null,
-      visibilityScope: visibilityScope || 'SCHOOL',
-      scopeValue: scopeValue || null
-    }).returning();
+    return this.db.transaction(async (tx: any) => {
+        const [user] = await tx.insert(schema.users).values({
+            email,
+            passwordHash,
+            firstName,
+            lastName,
+            userType: userType || 'EDGE_OPERATOR',
+            schoolId: schoolId || null,
+            visibilityScope: visibilityScope || 'SCHOOL',
+            scopeValue: scopeValue || null
+        }).returning();
+
+        if (machineIds && machineIds.length > 0) {
+            await tx.insert(schema.userMachines).values(
+                machineIds.map((mid: string) => ({ userId: user.id, machineId: mid }))
+            );
+        }
+        return user;
+    });
+  }
+
+  @Post('users/update')
+  async updateUser(@Body() body: any) {
+    const { id, email, password, firstName, lastName, userType, schoolId, visibilityScope, scopeValue, machineIds, isActive } = body;
+
+    return this.db.transaction(async (tx: any) => {
+        const updateData: any = { 
+            email, firstName, lastName, userType, schoolId, visibilityScope, scopeValue, isActive,
+            updatedAt: new Date() 
+        };
+        if (password) {
+            const salt = await bcrypt.genSalt(10);
+            updateData.passwordHash = await bcrypt.hash(password, salt);
+        }
+
+        await tx.update(schema.users).set(updateData).where(eq(schema.users.id, id));
+
+        // Update machines
+        await tx.delete(schema.userMachines).where(eq(schema.userMachines.userId, id));
+        if (machineIds && machineIds.length > 0) {
+            await tx.insert(schema.userMachines).values(
+                machineIds.map((mid: string) => ({ userId: id, machineId: mid }))
+            );
+        }
+        return { ok: true };
+    });
+  }
+
+  @Post('users/delete')
+  async deleteUser(@Body() body: { id: string }) {
+    await this.db.delete(schema.users).where(eq(schema.users.id, body.id));
+    return { ok: true };
   }
 
   // --- ANSWER KEYS ---

@@ -22,28 +22,38 @@ class ScannerService:
         for d in [self.upload_dir, self.success_dir, self.error_dir]:
             d.mkdir(parents=True, exist_ok=True)
 
-    def process_new_file(self, file_path: Path, db: Session, school_id: str, machine_id: str):
+    def process_new_file(self, file_path: Path, db: Session, machine_id: str, school_id: str = None):
         """
         Process a single image file, save to DB, and move to success/error folder.
-        Uses SHA-256 hash for filenames to prevent local collisions.
+        Validates extracted school ID against expected context to catch student typos.
         """
         try:
             # 1. Run OMR
             result = omr_service.process_scan(file_path)
             sha = result["original_sha"]
+            extracted_data = result["data"]
             
+            # 2. VALIDATE SCHOOL IDENTIFICATION
+            # If student bubbled a different school ID than what the machine/operator expects
+            extracted_school_id = extracted_data.get("student_info", {}).get("school_id", {}).get("answer")
+            review_required = result["review_required"]
+            
+            if school_id and extracted_school_id and str(school_id) != str(extracted_school_id):
+                logger.warning(f"⚠️ School Mismatch Detected! Expected: {school_id}, Paper: {extracted_school_id}")
+                review_required = True # Force review for potential typo
+
             # Use SHA as the filename to match cloud naming and prevent collisions
             unique_filename = f"{sha}{file_path.suffix}"
             target_path = self.success_dir / unique_filename
 
-            # 2. Persist to DB
+            # 3. Persist to DB
             db_scan = Scan(
                 file_name=unique_filename,
                 file_path=str(target_path),
                 original_sha=sha,
                 confidence=result["confidence"],
-                review_required=result["review_required"],
-                raw_data=result["data"],
+                review_required=review_required,
+                raw_data=extracted_data,
                 process_status="success",
                 school_id=school_id,
                 machine_id=machine_id
@@ -52,7 +62,7 @@ class ScannerService:
             db.commit()
             db.refresh(db_scan)
             
-            # 3. Move file (Using copy + remove or just move to ensure it's preserved in success)
+            # 4. Move file
             shutil.move(str(file_path), str(target_path))
             
             return db_scan
@@ -74,7 +84,6 @@ class ScannerService:
                 file_name=error_filename,
                 file_path=str(error_path),
                 process_status="error",
-                school_id=school_id,
                 machine_id=machine_id
             )
             db.add(error_scan)

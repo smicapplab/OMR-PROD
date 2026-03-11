@@ -15,38 +15,17 @@ async function main() {
   // 1. Get Region IDs
   const regions = await db.select().from(schema.regions);
   const findId = (name: string) => regions.find(r => r.name === name)?.id;
+  const findByCode = (code: string) => regions.find(r => r.code === code)?.id;
 
-  // 2. Comprehensive School List (NCR, Region III, Region VII, Region XI)
+  // 2. Comprehensive School List
   const schoolsToInsert = [
-    // NCR - Manila
-    { name: 'Manila Science High School', code: '305312', regionId: findId('NCR'), division: 'Manila', address: 'Taft Ave, Ermita, Manila' },
-    { name: 'Dr. Juan G. Nolasco High School', code: '305288', regionId: findId('NCR'), division: 'Manila', address: 'Tondo, Manila' },
-    { name: 'Tondo High School', code: '305291', regionId: findId('NCR'), division: 'Manila', address: 'Tondo, Manila' },
-    { name: 'Manuel L. Quezon High School', code: '305297', regionId: findId('NCR'), division: 'Manila', address: 'Sampaloc, Manila' },
+    { name: 'Manila Science High School', code: '305312', regionId: findId('NCR'), division: 'Manila', address: 'Taft Ave, Manila' },
+    { name: 'Philippine Science HS (Main)', code: '300401', regionId: findId('NCR'), division: 'Quezon City', address: 'Agham Road, QC' },
+    { name: 'Test School Alpha', code: '777888', regionId: findId('NCR'), division: 'Manila', address: 'Test Site 1' },
+    { name: 'Test School Beta', code: '636340', regionId: findId('NCR'), division: 'Manila', address: 'Test Site 2' },
     
-    // NCR - Quezon City
-    { name: 'Philippine Science HS (Main)', code: '300401', regionId: findId('NCR'), division: 'Quezon City', address: 'Agham Road, Diliman, QC' },
-    { name: 'Ateneo de Manila Univ. (HS)', code: '406364', regionId: findId('NCR'), division: 'Quezon City', address: 'Katipunan Ave, QC' },
-    { name: 'Quezon City Science High School', code: '305371', regionId: findId('NCR'), division: 'Quezon City', address: 'Bago Bantay, QC' },
-    { name: 'Batasan Hills National HS', code: '305364', regionId: findId('NCR'), division: 'Quezon City', address: 'Batasan Hills, QC' },
-    
-    // Region III - Bulacan
-    { name: 'Bulacan State Univ. (Lab HS)', code: '600034', regionId: findId('Region III'), division: 'Malolos City', address: 'Guinhawa, Malolos' },
-    { name: 'Marcelo H. del Pilar National HS', code: '300741', regionId: findId('Region III'), division: 'Malolos City', address: 'Malolos, Bulacan' },
-    { name: 'San Miguel National High School', code: '300761', regionId: findId('Region III'), division: 'Bulacan', address: 'San Miguel, Bulacan' },
-    
-    // Region VII - Cebu
-    { name: 'Cebu City National Science HS', code: '302941', regionId: findId('Region VII'), division: 'Cebu City', address: 'Salvador St, Labangon' },
-    { name: 'Abellana National School', code: '302931', regionId: findId('Region VII'), division: 'Cebu City', address: 'Osmeña Blvd, Cebu City' },
-    { name: 'University of San Carlos (HS)', code: '404312', regionId: findId('Region VII'), division: 'Cebu City', address: 'P. Del Rosario St' },
-    
-    // Region XI - Davao
-    { name: 'Davao City National High School', code: '304364', regionId: findId('Region XI'), division: 'Davao City', address: 'F. Torres St, Davao City' },
-    { name: 'Philippine Science HS (SMC)', code: '300402', regionId: findId('Region XI'), division: 'Davao City', address: 'Tugbok, Davao City' },
-    { name: 'Daniel R. Aguinaldo National HS', code: '304365', regionId: findId('Region XI'), division: 'Davao City', address: 'Matina, Davao City' },
-
     // More generated schools to trigger pagination
-    ...Array.from({ length: 20 }).map((_, i) => ({
+    ...Array.from({ length: 15 }).map((_, i) => ({
         name: `Public School Instance ${i + 1}`,
         code: `900${100 + i}`,
         regionId: findId('NCR'),
@@ -66,14 +45,13 @@ async function main() {
   const pass = await bcrypt.hash('password123', salt);
 
   const [msSci] = await db.select().from(schema.schools).where(eq(schema.schools.code, '305312')).limit(1);
-  const [phiSci] = await db.select().from(schema.schools).where(eq(schema.schools.code, '300401')).limit(1);
+  const [tsAlpha] = await db.select().from(schema.schools).where(eq(schema.schools.code, '777888')).limit(1);
+  const [tsBeta] = await db.select().from(schema.schools).where(eq(schema.schools.code, '636340')).limit(1);
 
   const testUsers = [
     { email: 'auditor@omr-prod.gov.ph', firstName: 'Arthur', lastName: 'Auditor', userType: 'NATIONAL_AUDITOR', visibilityScope: 'NATIONAL', scopeValue: 'ALL' },
-    { email: 'ncr.monitor@omr-prod.gov.ph', firstName: 'Nora', lastName: 'NCR', userType: 'DEPED_MONITOR', visibilityScope: 'REGIONAL', scopeValue: 'NCR' },
-    { email: 'manila.monitor@omr-prod.gov.ph', firstName: 'Manny', lastName: 'Manila', userType: 'DEPED_MONITOR', visibilityScope: 'DIVISION', scopeValue: 'Manila' },
-    { email: 'msci.admin@omr-prod.gov.ph', firstName: 'Admin', lastName: 'MSci', userType: 'SCHOOL_ADMIN', schoolId: msSci.id, visibilityScope: 'SCHOOL', scopeValue: msSci.id },
-    { email: 'psci.op@omr-prod.gov.ph', firstName: 'Operator', lastName: 'PSci', userType: 'EDGE_OPERATOR', schoolId: phiSci.id, visibilityScope: 'SCHOOL', scopeValue: phiSci.id },
+    { email: 'monitor.ncr@omr-prod.gov.ph', firstName: 'Nora', lastName: 'NCR', userType: 'DEPED_MONITOR', visibilityScope: 'REGIONAL', scopeValue: findByCode('NCR') },
+    { email: 'admin.777@omr-prod.gov.ph', firstName: 'Admin', lastName: '777', userType: 'SCHOOL_ADMIN', schoolId: tsAlpha.id, visibilityScope: 'SCHOOL', scopeValue: tsAlpha.id },
     { email: 'operator1@mshs.edu.ph', firstName: 'MSHS', lastName: 'Operator 1', userType: 'EDGE_OPERATOR', schoolId: msSci.id, visibilityScope: 'SCHOOL', scopeValue: msSci.id }
   ];
 
@@ -92,12 +70,53 @@ async function main() {
   }).onConflictDoNothing().returning();
 
   if (devMachine) {
-    await db.insert(schema.machineAssignments).values({
-        machineId: devMachine.id,
-        scope: 'SCHOOL',
-        scopeValue: msSci.id
-    });
-    console.log('✅ MACHINE-00001 pre-authorized for MSHS');
+    // Clear old assignments if any (for repeated runs)
+    await db.delete(schema.machineAssignments).where(eq(schema.machineAssignments.machineId, devMachine.id));
+    
+    await db.insert(schema.machineAssignments).values([
+        { machineId: devMachine.id, scope: 'SCHOOL', scopeValue: msSci.id },
+        { machineId: devMachine.id, scope: 'SCHOOL', scopeValue: tsAlpha.id },
+        { machineId: devMachine.id, scope: 'SCHOOL', scopeValue: tsBeta.id }
+    ]);
+    
+    // Explicitly link operator1 to MACHINE-00001
+    const [op1] = await db.select().from(schema.users).where(eq(schema.users.email, 'operator1@mshs.edu.ph')).limit(1);
+    if (op1) {
+        await db.insert(schema.userMachines).values({
+            userId: op1.id,
+            machineId: devMachine.id
+        }).onConflictDoNothing();
+    }
+    
+    console.log('✅ MACHINE-00001 pre-authorized for multiple schools and personnel');
+  }
+
+  // 5. Generate 150+ Dummy Scans for Dashboard Testing
+  console.log('Generating 150+ Scans for Global Stream testing...');
+  const dummyScans = Array.from({ length: 155 }).map((_, i) => ({
+    machineId: 'MACHINE-00001',
+    schoolId: i % 2 === 0 ? tsAlpha.id : tsBeta.id,
+    fileName: `test_scan_${i}.png`,
+    originalSha: `fake_sha_${i}_${Date.now()}`,
+    status: 'success',
+    confidence: 0.85 + (Math.random() * 0.1),
+    reviewRequired: i % 10 === 0,
+    totalScore: 30 + Math.floor(Math.random() * 10),
+    maxScore: 40,
+    extracted_data: {
+        student_info: {
+            first_name: { answer: `Student_${i}` },
+            last_name: { answer: `Doe` },
+            lrn: { answer: `100000000${i}` }
+        }
+    },
+    createdAt: new Date(Date.now() - (i * 1000 * 60)) // Space them out by minutes
+  }));
+
+  // Batch insert for performance
+  for (let i = 0; i < dummyScans.length; i += 50) {
+    const batch = dummyScans.slice(i, i + 50);
+    await db.insert(schema.scans).values(batch).onConflictDoNothing();
   }
 
   console.log('--- ✅ Demo Seeding Complete ---');

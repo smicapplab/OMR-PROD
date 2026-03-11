@@ -29,8 +29,8 @@ class ScanHandler(FileSystemEventHandler):
             db_scan = scanner_service.process_new_file(
                 file_path,
                 db,
-                school_id=settings.DEFAULT_SCHOOL_ID,
-                machine_id=settings.MACHINE_ID
+                machine_id=settings.MACHINE_ID,
+                school_id=settings.DEFAULT_SCHOOL_ID
             )
             logger.info(f"✅ Processed {file_path.name} (ID: {db_scan.id})")
         except Exception as e:

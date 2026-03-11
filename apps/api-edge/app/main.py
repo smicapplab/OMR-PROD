@@ -53,7 +53,6 @@ def format_scan(scan):
         "reviewRequired": scan.review_required,
         "isManuallyEdited": scan.is_manually_edited,
         "rawData": scan.raw_data,
-        "schoolId": scan.school_id,
         "machineId": scan.machine_id,
         "createdAt": scan.created_at.isoformat() if scan.created_at else None,
         "updatedAt": scan.updated_at.isoformat() if scan.updated_at else None,
@@ -107,7 +106,7 @@ async def update_scan(scan_id: int, payload: dict, db: Session = Depends(get_db)
         user_id=user.id, scan_id=scan_id, action="SCAN_CORRECTION",
         status_after="pending_approval",
         details={"old_data": old_data, "new_data": payload.get("raw_data")},
-        machine_id=settings.MACHINE_ID, school_id=scan.school_id
+        machine_id=settings.MACHINE_ID
     )
     db.add(log)
     db.commit()
@@ -127,7 +126,7 @@ async def approve_scan(scan_id: int, db: Session = Depends(get_db), user = Depen
     log = ActivityLog(
         user_id=user.id, scan_id=scan_id, action="SCAN_APPROVAL",
         status_after="success", details={"scan_id": scan_id},
-        machine_id=settings.MACHINE_ID, school_id=scan.school_id
+        machine_id=settings.MACHINE_ID
     )
     db.add(log)
     db.commit()

@@ -2,10 +2,15 @@
 
 import { useState } from "react";
 import { useAuth } from "@/app/context/AuthContext";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Monitor, Loader2, Eye, EyeOff } from "lucide-react";
 
 export default function LoginPage() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
     const { login } = useAuth();
@@ -17,60 +22,84 @@ export default function LoginPage() {
         try {
             await login(email, password);
         } catch (err) {
-            setError("Invalid credentials. Please try again.");
+            setError("Authentication failed. Please verify your credentials.");
         } finally {
             setIsSubmitting(false);
         }
     };
 
     return (
-        <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
-            <div className="w-full max-w-md space-y-8">
-                <div>
-                    <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-gray-900">
-                        OMR Edge Console
-                    </h2>
-                    <p className="mt-2 text-center text-sm text-gray-600">
-                        Sign in to manage scans for this machine
-                    </p>
-                </div>
-                <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-                    <div className="-space-y-px rounded-md shadow-sm">
-                        <div>
-                            <input
+        <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-12">
+            <Card className="w-full max-w-md shadow-xl rounded-3xl border-none">
+                <CardHeader className="space-y-4 text-center pt-10 pb-6">
+                    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-600 shadow-lg shadow-indigo-100">
+                        <Monitor className="h-6 w-6 text-white" />
+                    </div>
+                    <div className="space-y-1">
+                        <CardTitle className="text-2xl font-black tracking-tight text-slate-900">Edge Console</CardTitle>
+                        <CardDescription className="text-slate-500 font-medium">Local OMR Capture & Verification</CardDescription>
+                    </div>
+                </CardHeader>
+                <CardContent className="px-10 pb-12">
+                    <form onSubmit={handleSubmit} className="space-y-5">
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Operator Email</label>
+                            <Input
                                 type="email"
-                                required
+                                placeholder="operator@school.edu.ph"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                className="relative block w-full rounded-t-md border-0 py-1.5 px-3 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:z-10 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-                                placeholder="Email address"
-                            />
-                        </div>
-                        <div>
-                            <input
-                                type="password"
                                 required
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                className="relative block w-full rounded-b-md border-0 py-1.5 px-3 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:z-10 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-                                placeholder="Password"
+                                className="h-12 rounded-xl border-slate-200 bg-slate-50/50 focus:bg-white transition-all shadow-none"
                             />
                         </div>
-                    </div>
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Security Key</label>
+                            <div className="relative">
+                                <Input
+                                    type={showPassword ? "text" : "password"}
+                                    placeholder="••••••••"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    required
+                                    className="h-12 rounded-xl border-slate-200 bg-slate-50/50 focus:bg-white transition-all shadow-none pr-10"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                                >
+                                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                </button>
+                            </div>
+                        </div>
 
-                    {error && <p className="text-sm text-red-600">{error}</p>}
+                        {error && <p className="text-xs font-bold text-rose-500 text-center">{error}</p>}
 
-                    <div>
-                        <button
-                            type="submit"
+                        <Button 
+                            type="submit" 
                             disabled={isSubmitting}
-                            className="group relative flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-50"
+                            className="w-full h-12 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all active:scale-95 shadow-lg shadow-indigo-100"
                         >
-                            {isSubmitting ? "Signing in..." : "Sign in"}
-                        </button>
+                            {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : "Verify Identity"}
+                        </Button>
+                    </form>
+
+                    <div className="mt-8 pt-6 border-t border-slate-100 space-y-4">
+                        <p className="text-[10px] leading-relaxed text-slate-400 font-medium text-center uppercase tracking-wider">
+                            <span className="text-slate-900 font-black block mb-1">Security Warning</span>
+                            This is a restricted governmental information system. Access is granted only to authorized personnel for official business purposes. Unauthorized access, attempt, or use is strictly prohibited and may be subject to criminal and/or civil penalties under applicable laws.
+                        </p>
+                        <p className="text-[9px] text-slate-400 text-center italic">
+                            All activities on this system are monitored and recorded. By logging in, you acknowledge your understanding of these terms and consent to such monitoring.
+                        </p>
+                        <div className="flex justify-center gap-4 pt-2">
+                            <button className="text-[10px] font-black uppercase text-indigo-600 hover:underline">Terms of Service</button>
+                            <button className="text-[10px] font-black uppercase text-indigo-600 hover:underline">Privacy Policy</button>
+                        </div>
                     </div>
-                </form>
-            </div>
+                </CardContent>
+            </Card>
         </div>
     );
 }

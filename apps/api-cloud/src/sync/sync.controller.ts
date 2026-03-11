@@ -1,5 +1,5 @@
-import { Controller, Get, Post, Param, Body, Inject, UnauthorizedException, NotFoundException, Headers } from '@nestjs/common';
-import { eq, and, or, inArray } from 'drizzle-orm';
+import { Controller, Get, Post, Param, Body, Inject, UnauthorizedException, NotFoundException, Headers, Req } from '@nestjs/common';
+import { eq, and, or, inArray, desc, sql, count } from 'drizzle-orm';
 import * as schema from '@omr-prod/database';
 import { SyncScanDto } from './dto/sync-scan.dto';
 import { EnrollMachineDto } from './dto/enroll-machine.dto';
@@ -68,32 +68,38 @@ export class SyncController {
         .set({ lastHeartbeatAt: new Date() })
         .where(eq(schema.machines.id, machine.id));
 
-    // 3. RESOLVE SCHOOL ID (Resilient Lookup)
-    // The edge might send a UUID (which changes on reset) or a stable School Code
+    // 3. RESOLVE SCHOOL ID (Permissive / Best-Effort)
+    // We trust the machine is authorized. We only resolve the ID to satisfy DB constraints.
     const inputSchoolId = body.school_id;
-    if (!inputSchoolId) throw new UnauthorizedException('Missing school identification');
+    let schoolId: string | null = null;
 
-    let resolvedSchool;
-    
-    // Attempt lookup by UUID first
-    if (inputSchoolId.length === 36) { // Basic UUID length check
-        [resolvedSchool] = await this.db.select().from(schema.schools)
-            .where(eq(schema.schools.id, inputSchoolId)).limit(1);
+    // Try to find the current UUID for this school (by ID or Code)
+    if (inputSchoolId) {
+        const [resolved] = await this.db.select().from(schema.schools)
+            .where(or(
+                inputSchoolId.length === 36 ? eq(schema.schools.id, inputSchoolId) : sql`false`,
+                eq(schema.schools.code, inputSchoolId)
+            )).limit(1);
+        if (resolved) schoolId = resolved.id;
     }
 
-    // If not found by UUID, lookup by stable School Code
-    if (!resolvedSchool) {
-        [resolvedSchool] = await this.db.select().from(schema.schools)
-            .where(eq(schema.schools.code, inputSchoolId)).limit(1);
+    // Fallback: If no school found, use the machine's first school assignment
+    if (!schoolId) {
+        const [assignment] = await this.db.select().from(schema.machineAssignments)
+            .where(and(
+                eq(schema.machineAssignments.machineId, machine.id),
+                eq(schema.machineAssignments.scope, 'SCHOOL')
+            )).limit(1);
+        
+        if (assignment) {
+            schoolId = assignment.scopeValue;
+            console.log(`ℹ️ Unrecognized school in payload. Defaulting to machine assignment: ${schoolId}`);
+        }
     }
 
-    if (!resolvedSchool) {
-        console.error(`❌ Sync Rejected: School [${inputSchoolId}] not found in National Registry.`);
-        throw new NotFoundException(`School [${inputSchoolId}] not found`);
+    if (!schoolId) {
+        throw new UnauthorizedException('Machine has no authorized school assignments to fall back to.');
     }
-
-    const schoolId = resolvedSchool.id;
-    console.log(`✅ Syncing for School: ${resolvedSchool.name} (${schoolId})`);
 
     // --- GRADING LOGIC ---
     const studentAnswers = body.raw_data?.answers || {};
@@ -172,22 +178,53 @@ export class SyncController {
   }
 
   @Get('stats')
-  async getGlobalStats() {
-    const scansResult = await this.db.select().from(schema.scans);
-    const totalScans = scansResult.length;
-    const reviewRequired = scansResult.filter((s: any) => s.reviewRequired).length;
+  async getGlobalStats(@Req() req: any) {
+    const user = req.user; // Injected by JwtAuthGuard
     
-    const recentScans = await this.db.select()
-        .from(schema.scans)
-        .orderBy(schema.scans.createdAt)
-        .limit(10);
+    // Base queries
+    let totalQuery = this.db.select({ value: count() }).from(schema.scans);
+    let reviewQuery = this.db.select({ value: count() }).from(schema.scans).where(eq(schema.scans.reviewRequired, true));
+    let streamQuery = this.db.select().from(schema.scans);
+
+    // Apply Filters based on RBAC
+    if (user && user.visibilityScope !== 'NATIONAL') {
+        if (user.visibilityScope === 'SCHOOL') {
+            const sId = user.scopeValue;
+            totalQuery = totalQuery.where(eq(schema.scans.schoolId, sId));
+            reviewQuery = reviewQuery.where(and(eq(schema.scans.reviewRequired, true), eq(schema.scans.schoolId, sId)));
+            streamQuery = streamQuery.where(eq(schema.scans.schoolId, sId));
+        } else if (user.visibilityScope === 'REGIONAL') {
+            const rId = user.scopeValue;
+            // Join schools to filter by region
+            const regionSchools = this.db.select({ id: schema.schools.id }).from(schema.schools).where(eq(schema.schools.regionId, rId));
+            
+            totalQuery = totalQuery.where(inArray(schema.scans.schoolId, regionSchools));
+            reviewQuery = reviewQuery.where(and(eq(schema.scans.reviewRequired, true), inArray(schema.scans.schoolId, regionSchools)));
+            streamQuery = streamQuery.where(inArray(schema.scans.schoolId, regionSchools));
+        }
+    }
+
+    const [totalCountResult] = await totalQuery;
+    const [reviewCountResult] = await reviewQuery;
+    const recentScans = await streamQuery.orderBy(desc(schema.scans.createdAt)).limit(20);
+
+    // Fetch school names for the stream
+    const schoolIds = [...new Set(recentScans.map((s: any) => s.schoolId))];
+    let schools: any[] = [];
+    if (schoolIds.length > 0) {
+        schools = await this.db.select({ id: schema.schools.id, name: schema.schools.name })
+            .from(schema.schools)
+            .where(inArray(schema.schools.id, schoolIds));
+    }
+    const schoolMap = Object.fromEntries(schools.map(s => [s.id, s.name]));
 
     return {
-        totalScans,
-        reviewRequired,
+        totalScans: Number(totalCountResult.value),
+        reviewRequired: Number(reviewCountResult.value),
         recentScans: recentScans.map((s: any) => ({
             id: s.id,
             schoolId: s.schoolId,
+            schoolName: schoolMap[s.schoolId] || 'Unknown',
             machineId: s.machineId,
             totalScore: s.totalScore,
             maxScore: s.maxScore,
@@ -205,11 +242,9 @@ export class SyncController {
     @Param('machineId') machineId: string,
     @Headers('x-machine-secret') machineSecret: string
   ) {
-    console.log(`🔍 Operator Pull Request`);
-    console.log(`   - Machine ID: ${machineId}`);
-    console.log(`   - Secret Received: [${machineSecret || 'MISSING'}]`);
+    console.log(`🔍 Operator Pull: Machine=${machineId}`);
 
-    // Also verify machine and secret here
+    // 1. Verify machine
     const [machine] = await this.db.select()
         .from(schema.machines)
         .where(and(
@@ -220,39 +255,19 @@ export class SyncController {
         .limit(1);
 
     if (!machine) {
-        console.error(`❌ Authorization Failed for Machine: ${machineId}. Secret provided: ${machineSecret}`);
+        console.error(`❌ Authorization Failed for Machine: ${machineId}`);
         throw new UnauthorizedException('Machine not enrolled, inactive, or invalid secret');
     }
 
-    console.log(`✅ Machine Authorized: ${machine.machineId} (${machine.id})`);
+    console.log(`✅ Machine Authorized: ${machine.machineId}`);
 
-    const assignments = await this.db.select().from(schema.machineAssignments)
-        .where(eq(schema.machineAssignments.machineId, machine.id));
-
-    if (assignments.length === 0) return [];
-
-    const schoolIds = assignments.filter((a: any) => a.scope === 'SCHOOL').map((a: any) => a.scopeValue);
-    const regionIds = assignments.filter((a: any) => a.scope === 'REGION').map((a: any) => a.scopeValue);
-
-    const conditions = [];
-
-    if (schoolIds.length > 0) {
-        conditions.push(inArray(schema.users.schoolId, schoolIds));
-    }
-
-    if (regionIds.length > 0) {
-        // Find schools in these regions
-        const schoolsInRegions = await this.db.select({ id: schema.schools.id }).from(schema.schools)
-            .where(inArray(schema.schools.regionId, regionIds));
-        const regionSchoolIds = schoolsInRegions.map((s: any) => s.id);
-        if (regionSchoolIds.length > 0) {
-            conditions.push(inArray(schema.users.schoolId, regionSchoolIds));
-        }
-    }
-
-    if (conditions.length === 0) return [];
-
-    const operators = await this.db.select().from(schema.users).where(or(...conditions));
+    // 2. Get users explicitly assigned to THIS machine
+    const assignedUsers = await this.db.select()
+        .from(schema.users)
+        .innerJoin(schema.userMachines, eq(schema.users.id, schema.userMachines.userId))
+        .where(eq(schema.userMachines.machineId, machine.id));
+    
+    const operators = assignedUsers.map((r: any) => r.users);
 
     return operators.map((user: any) => ({
       id: user.id,

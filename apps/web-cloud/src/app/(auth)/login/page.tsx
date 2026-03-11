@@ -84,6 +84,20 @@ export default function LoginPage() {
                             {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : "Access Portal"}
                         </Button>
                     </form>
+
+                    <div className="mt-8 pt-6 border-t border-slate-100 space-y-4">
+                        <p className="text-[10px] leading-relaxed text-slate-400 font-medium text-center uppercase tracking-wider">
+                            <span className="text-slate-900 font-black block mb-1">Security Warning</span>
+                            This is a restricted governmental information system. Access is granted only to authorized personnel for official business purposes. Unauthorized access, attempt, or use is strictly prohibited and may be subject to criminal and/or civil penalties under applicable laws.
+                        </p>
+                        <p className="text-[9px] text-slate-400 text-center italic">
+                            All activities on this system are monitored and recorded. By logging in, you acknowledge your understanding of these terms and consent to such monitoring.
+                        </p>
+                        <div className="flex justify-center gap-4 pt-2">
+                            <button className="text-[10px] font-black uppercase text-indigo-600 hover:underline">Terms of Service</button>
+                            <button className="text-[10px] font-black uppercase text-indigo-600 hover:underline">Privacy Policy</button>
+                        </div>
+                    </div>
                 </CardContent>
             </Card>
         </div>

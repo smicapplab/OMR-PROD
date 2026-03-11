@@ -3,14 +3,6 @@ from app.core.database import Base
 import datetime
 import uuid as uuid_pkg
 
-# Junction table for Multi-school operators
-user_schools = Table(
-    "user_schools",
-    Base.metadata,
-    Column("user_id", String, ForeignKey("users.id"), primary_key=True),
-    Column("school_id", String, primary_key=True),
-)
-
 class User(Base):
     __tablename__ = "users"
 
@@ -40,6 +32,5 @@ class ActivityLog(Base):
     details = Column(JSON) 
     
     machine_id = Column(String, index=True)
-    school_id = Column(String, index=True)
     
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
