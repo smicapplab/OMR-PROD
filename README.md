@@ -19,71 +19,69 @@ A production-grade, distributed Optical Mark Recognition (OMR) system designed f
 
 ---
 
-## 🔐 Security & Visibility Matrix (RBAC)
+## 🔐 Security & Visibility Matrix (Detailed RBAC)
 
-The system enforces strict data boundaries based on the user's assigned **Visibility Scope**.
+The system enforces strict data boundaries and functional privileges based on the user's assigned **Role** and **Visibility Scope**.
 
-| Role | Visibility Scope | Data Access | Key Capabilities |
+| Role | Visibility Scope | Data Access Rights | System Privileges |
 | :--- | :--- | :--- | :--- |
-| **SUPER_ADMIN** | `NATIONAL` | Full nationwide access. | Manage Registry, Approve Appliances, Reset System. |
-| **NATIONAL_AUDITOR**| `NATIONAL` | All nationwide scans. | Read-only access to all audit logs and grading details. |
-| **DEPED_MONITOR** | `REGIONAL` | Assigned Region only. | Read-only analytics and sync stream for their region. |
-| **SCHOOL_ADMIN** | `SCHOOL` | Assigned School(s). | Review/Approve bubble corrections; Manage local ops. |
-| **EDGE_OPERATOR** | `APPLIANCE` | Local machine only. | Capture papers, verify bubble confidence, file corrections. |
+| **SUPER_ADMIN** | `NATIONAL` | **Full Read/Write**: Access to all nationwide records, scans, and master images. | Manage institutional registries, approve appliances, provision all users, modify answer keys, and finalize all QA queues. |
+| **NATIONAL_AUDITOR**| `NATIONAL` | **Full Read-Only**: Access to all nationwide records and the complete forensic audit trail. | View-only access to all registries and queues. Cannot modify data, approve corrections, or change system configuration. |
+| **DEPED_MONITOR** | `REGIONAL` / `SCHOOL` | **Role-Filtered Read-Only**: Access to analytics and records for assigned Region(s) or School(s). | Monitor sync progress, view student scores, and track regional performance. Cannot edit bubbles or manage personnel. |
+| **SCHOOL_ADMIN** | `SCHOOL` | **Institutional Read/Write**: Access only to students assigned to their specific institution. | Review/Approve field corrections, manage local operators, and oversee the institutional sync status. Access restricted to their home school. |
+| **EDGE_OPERATOR** | `APPLIANCE` | **Physical Local Access**: Access only to scans captured on the specific physical unit they are logged into. | Perform OMR scans, verify bubble confidence, and file manual data corrections. Cannot access the National Hub directly. |
+
+### Scoping Summary:
+*   **National Personnel**: See the "Global Stream" (unfiltered).
+*   **Regional/Division Personnel**: See the "Regional Stream" (filtered by geographic boundaries).
+*   **Institutional Personnel**: See the "School Stream" (filtered by school code).
+*   **Field Personnel**: Bound to the **Appliance Identity**.
 
 ---
 
 ## 📟 Appliance Lifecycle (The Circle of Trust)
 
-To ensure system integrity, every Edge Appliance must be authorized through a formal "knocking" process.
-
 ### 1. Self-Registration (The Knock)
-On the Edge Appliance:
+New hardware must request access. On the Edge Appliance:
 ```bash
-# Register the machine name (e.g. MSHS-BOX-01)
 python enroll.py http://cloud-hub-address:4000
 ```
-The machine receives a unique **Machine Secret**, stored securely in its local environment. The record is created as `PENDING` in the Cloud.
+This generates a unique **Machine Secret** and creates a `PENDING` record in the National Hub.
 
 ### 2. National Approval (The Key)
-1. A National Admin locates the machine in the **Appliance Registry**.
-2. The Admin clicks **Approve & Deploy**, assigning the machine to its authorized Schools or Regions.
-3. Status moves to `ACTIVE`.
+A `SUPER_ADMIN` reviews the request in the **Appliance Registry**, verifies the physical serial number, and clicks **Approve & Deploy**, assigning the unit to its authorized Schools/Regions.
 
 ### 3. State Synchronization (The Feedback)
-Every 30 seconds, the Edge performs a heartbeat sync:
-*   **Upload**: Pushes new scans and local **Activity Logs** (audit trails).
-*   **Download**: Pulls **Resolutions** (HQ decisions). If HQ approves a correction, the Edge locks the local record and clears the "Pending" flags.
+Every 30 seconds, the Edge performs a heartbeat:
+*   **Upload**: Pushes new scans and **Activity Logs** (local audit trails).
+*   **Download**: Pulls **HQ Resolutions**. If HQ approves a correction, the Edge locks the local record and clears the "Pending" status.
 
 ---
 
 ## 📡 Data Integrity & QA Workflows
 
 ### Orphaned Paper Workflow
-The Cloud Hub **never assumes** institutional identity. If a student bubbles an invalid School Code or the machine services multiple schools:
-1.  The scan is accepted but marked as `orphaned`.
-2.  It is routed to the **Correction Queue** for National QA review.
-3.  QA manually assigns the record to the correct school based on student metadata.
+If a student bubbles an invalid School Code, the Cloud Hub accepts the data but marks it as `orphaned`. 
+*   **Correction Queue**: Orphaned scans are held for manual school assignment by National QA.
+*   **Audit**: Every institutional assignment is permanently logged in the **Audit History**.
 
 ### Side-by-Side Validation
-Any manual correction filed by an Edge Operator is automatically flagged for HQ verification:
-*   **Interface**: Side-by-side comparison of **Original OMR** vs. **Field Correction**.
-*   **Reference**: High-resolution zoomable/pannable official master scan provided as visual evidence.
-*   **Finality**: Once HQ "Commits," the record is re-graded using the authoritative Grading Service.
+Manual field corrections are automatically flagged for HQ verification:
+*   **Interface**: Side-by-side comparison of **Original Capture** vs. **Field Correction**.
+*   **Reference**: Access to the high-resolution **Official Master Scan** as visual proof.
+*   **Finality**: HQ "Commit" triggers the **Authoritative Grading Service** for immediate score recalculation.
 
 ---
 
 ## 🛠 Developer Operations
 
 ### Workspace Management
-This is an **npm workspace**. To initialize the environment:
 ```bash
-npm install
-npm run build
+npm install && npm run build
 ```
 
 ### Database Reset (Local Testing)
-**Cloud Hub (Postgres)**: Wipes the DB, pushes schema, seeds NCR/R-IV-A, test schools, and Super Admin.
+**Cloud Hub (Postgres)**: Wipes DB, pushes schema, seeds NCR/R4A, test schools, and Super Admin.
 ```bash
 ./scripts/reset-db-demo.sh
 ```
@@ -97,4 +95,4 @@ npm run build
 *   **National Admin**: `admin@omr-prod.gov.ph` / `admin-secure-password`
 *   **Regional Monitor**: `monitor.ncr@omr-prod.gov.ph` / `password123`
 *   **School Admin**: `admin.777@omr-prod.gov.ph` / `password123`
-*   **Edge Operator**: `operator1@mshs.edu.ph` / `password123` (Assigned to MACHINE-00001)
+*   **Edge Operator**: `operator1@mshs.edu.ph` / `password123` (Linked to MACHINE-00001)
