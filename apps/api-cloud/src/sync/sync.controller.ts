@@ -157,14 +157,25 @@ export class SyncController {
     
     for (const log of scanCorrections) {
         const [scan] = await this.db.select().from(schema.scans).where(eq(schema.scans.originalSha, log.details?.sha)).limit(1);
+        
         if (scan) {
+            // Update the scan to be flagged for review and stage the new data
+            await this.db.update(schema.scans)
+                .set({
+                    pending_data: log.details?.new_data,
+                    reviewRequired: true,
+                    updatedAt: new Date()
+                })
+                .where(eq(schema.scans.id, scan.id));
+
+            // Record the audit trail
             await this.db.insert(schema.correctionLogs).values({
                 scanId: scan.id,
                 action: 'BUBBLE_CORRECTION',
                 oldData: log.details?.old_data,
                 newData: log.details?.new_data,
-                reason: `Edge Sync: ${log.details?.reason || 'Manual Correction'}`,
-                status: 'pending', // Field corrections start as pending for HQ review
+                reason: `Field Correction Sync: ${log.details?.reason || 'Manual Correction'}`,
+                status: 'pending',
                 createdAt: new Date(log.created_at)
             }).onConflictDoNothing();
         }

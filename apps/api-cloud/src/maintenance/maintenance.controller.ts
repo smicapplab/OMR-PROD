@@ -14,13 +14,17 @@ export class MaintenanceController {
     private readonly gradingService: GradingService,
   ) {}
 
-  private async validateAdmin(req: any, write = false) {
+  private async validateUser(req: any) {
     const authHeader = req.headers.authorization;
     if (!authHeader) throw new UnauthorizedException();
     const token = authHeader.split(' ')[1];
     const user = await this.authService.verifyToken(token);
-    
     if (!user) throw new UnauthorizedException();
+    return user;
+  }
+
+  private async validateAdmin(req: any, write = false) {
+    const user = await this.validateUser(req);
     if (user.visibilityScope !== 'NATIONAL') {
         throw new ForbiddenException('Access restricted to National Level personnel');
     }
@@ -33,7 +37,7 @@ export class MaintenanceController {
   // --- REGIONS ---
   @Get('regions')
   async listRegions(@Req() req: any) {
-    await this.validateAdmin(req);
+    await this.validateUser(req);
     return this.db.select().from(schema.regions).orderBy(schema.regions.name);
   }
 
@@ -55,6 +59,7 @@ export class MaintenanceController {
     @Query('search') search: string = '',
     @Req() req: any
   ) {
+    await this.validateUser(req);
     const l = parseInt(limit);
     const o = parseInt(offset);
 
@@ -99,7 +104,7 @@ export class MaintenanceController {
   // --- MACHINES ---
   @Get('machines')
   async listMachines(@Req() req: any) {
-    await this.validateAdmin(req);
+    await this.validateUser(req);
     const machines = await this.db.select().from(schema.machines);
     const assignments = await this.db.select().from(schema.machineAssignments);
     

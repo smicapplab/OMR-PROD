@@ -31,8 +31,27 @@ async function main() {
     console.log(`ℹ️ Super Admin already exists.`);
   }
 
-  // 2. Add System Maintenance Roles (Standard roles for all schools)
-  // ... roles logic if needed
+  // 2. Add Official Answer Keys (2026-V1)
+  console.log('Seeding Official 2026-V1 Answer Keys...');
+  const subjects = ['math', 'english', 'science', 'filipino', 'ap'];
+  
+  for (const subject of subjects) {
+    const perfectAnswers: any = {};
+    for (let i = 1; i <= 40; i++) {
+        // Pattern: A, B, C, D, A...
+        perfectAnswers[i] = ['A', 'B', 'C', 'D'][(i - 1) % 4];
+    }
+
+    await db.insert(schema.answerKeys).values({
+        examName: "National Admission Test",
+        subject: subject,
+        version: "2026-V1",
+        answers: perfectAnswers,
+    }).onConflictDoNothing();
+  }
+  console.log(`✅ Provisioned ${subjects.length} subject keys.`);
+
+  // 3. Add System Maintenance Roles
 
   console.log('--- ✅ Essential Seeding Complete ---');
   process.exit(0);

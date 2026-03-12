@@ -92,6 +92,16 @@ async function main() {
     console.log('✅ MACHINE-00001 pre-authorized for multiple schools and personnel');
   }
 
+  // 5. Create a PENDING machine for demonstration
+  console.log('Provisioning PENDING machine for demo...');
+  await db.insert(schema.machines).values({
+    machineId: 'MACHINE-DEMO-PENDING',
+    status: 'pending',
+    secret: 'pending-secret-xyz',
+    hostname: 'demo-unauthorized-box',
+    ipAddress: '192.168.1.50'
+  }).onConflictDoNothing();
+
   console.log('--- ✅ Demo Seeding Complete ---');
   process.exit(0);
 }
