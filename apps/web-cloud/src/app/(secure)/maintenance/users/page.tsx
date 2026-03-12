@@ -30,7 +30,7 @@ interface UserData {
 
 interface MachineData { id: string; machineId: string; }
 interface RegionData { id: string; name: string; code: string; }
-interface SchoolData { id: string; name: string; regionId: string; }
+interface SchoolData { id: string; name: string; regionId: string; code: string; }
 
 const ROLE_LABELS: Record<string, string> = {
     'SUPER_ADMIN': 'National Admin',
