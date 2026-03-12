@@ -15,6 +15,7 @@ def run_sync_loop(interval_seconds: int = 30):
     
     while True:
         db = SessionLocal()
+        try:
             # 1. Pull latest operators/config from cloud
             sync_service.pull_operators(db)
             
