@@ -18,6 +18,7 @@
     "isolatedModules": true,
     "moduleResolution": "Node",
     "baseUrl": ".",
+    "ignoreDeprecations": "6.0",
     "paths": {
       "@omr-prod/database": ["../../packages/database/src"],
       "@omr-prod/database/*": ["../../packages/database/src/*"],
