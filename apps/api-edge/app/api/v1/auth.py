@@ -41,7 +41,10 @@ async def login(
             "email": user.email,
             "firstName": user.first_name,
             "lastName": user.last_name,
-            "userType": user.user_type
+            "userType": user.user_type,
+            "isActive": user.is_active,
+            "visibilityScope": "SCHOOL",
+            "scopeValue": getattr(user, 'school_id', None)
         }
     }
 
@@ -79,4 +82,17 @@ async def get_me(request: Request, db: Session = Depends(get_db)):
     
     user_id = payload.get("sub")
     user = db.query(User).filter(User.id == user_id).first()
-    return user
+    if not user:
+        raise HTTPException(status_code=401, detail="User not found")
+    
+    return {
+        "DEBUG_VERSION": "2026-03-26_v2",
+        "id": user.id,
+        "email": user.email,
+        "firstName": user.first_name,
+        "lastName": user.last_name,
+        "userType": user.user_type,
+        "isActive": user.is_active,
+        "visibilityScope": "SCHOOL",
+        "scopeValue": getattr(user, 'school_id', None)
+    }

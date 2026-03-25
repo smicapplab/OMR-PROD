@@ -12,7 +12,7 @@ class User(Base):
     first_name = Column(String)
     last_name = Column(String)
     is_active = Column(Boolean, default=True)
-    user_type = Column(String, default="SCHOOL_OPERATOR")
+    user_type = Column(String, default="EDGE_OPERATOR")
     
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)

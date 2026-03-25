@@ -50,6 +50,8 @@ export default function DashboardPage() {
     const API_URL = process.env.NEXT_PUBLIC_API_URL;
     const observerTarget = useRef(null);
 
+    console.log({ user })
+
     const loadScans = useCallback(async (isInitial = true) => {
         if (isInitial) setIsLoading(true);
         else setIsFetchingMore(true);
