@@ -6,28 +6,21 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Save, Loader2 } from "lucide-react";
 import { apiFetch } from "@/lib/api";
+import { CloudScan, OMRRawData } from "@omr-prod/contracts";
 
-import { BubbleEditorProps, OMRRawData } from "./types";
 import { StudentProfile } from "./StudentProfile";
 import { ExaminationResponses } from "./ExaminationResponses";
-import { OMRTextInput } from "./OMRTextInput";
-import { LucideIcon } from "lucide-react";
 
-interface StudentProfileProps {
-    localData: OMRRawData;
-    onUpdateField: (path: string[], val: string | string[]) => void;
-    onUpdateText: (path: string[], val: string) => void;
+interface BubbleEditorProps {
+    scan: CloudScan & { rawData: OMRRawData };
+    isOpen: boolean;
+    onClose: () => void;
+    onSaved: () => void;
+    mode?: "direct" | "pending"; // Support tiered approval
 }
 
-interface CollapsibleSectionProps {
-    title: string;
-    icon?: LucideIcon;
-    onUpdateField: (path: string[], val: string | string[]) => void;
-    onUpdateText: (path: string[], val: string) => void;
-}
-
-export function BubbleEditor({ scan, isOpen, onClose, onSaved }: BubbleEditorProps) {
-    const [localData, setLocalData] = useState<OMRRawData>(structuredClone(scan.rawData));
+export function BubbleEditor({ scan, isOpen, onClose, onSaved, mode = "pending" }: BubbleEditorProps) {
+    const [localData, setLocalData] = useState<OMRRawData | null>(null);
     const [isSaving, setIsSaving] = useState(false);
 
     // Sync state when scan prop changes
@@ -40,11 +33,20 @@ export function BubbleEditor({ scan, isOpen, onClose, onSaved }: BubbleEditorPro
     const subjects = useMemo(() => Object.keys(localData?.answers || {}), [localData]);
 
     const handleSave = async () => {
+        if (!localData) return;
         setIsSaving(true);
         try {
-            await apiFetch(`/api/v1/scans/${scan.id}`, {
-                method: "PATCH",
-                body: JSON.stringify({ raw_data: localData, review_required: false }),
+            const endpoint = mode === "direct" 
+                ? "/api/v1/maintenance/scans/update-authoritative" 
+                : "/api/v1/maintenance/scans/correct-bubbles";
+
+            await apiFetch(endpoint, {
+                method: "POST",
+                body: JSON.stringify({ 
+                    scanId: scan.id, 
+                    correctedData: localData,
+                    reason: "Manual correction via Exam Records"
+                }),
             });
             onSaved();
             onClose();
@@ -55,8 +57,10 @@ export function BubbleEditor({ scan, isOpen, onClose, onSaved }: BubbleEditorPro
         }
     };
 
-    const handleUpdateField = (path: string[], val: string | string[]) => {
+    const handleUpdateField = (path: string[], val: any) => {
+        if (!localData) return;
         const newData = { ...localData };
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         let current: any = newData.student_info;
         for (let i = 0; i < path.length - 1; i++) {
             current = current[path[i]];
@@ -67,7 +71,9 @@ export function BubbleEditor({ scan, isOpen, onClose, onSaved }: BubbleEditorPro
     };
 
     const handleUpdateTextField = (path: string[], val: string) => {
+        if (!localData) return;
         const newData = { ...localData };
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         let current: any = newData.student_info;
         for (let i = 0; i < path.length; i++) current = current[path[i]];
         
@@ -75,29 +81,56 @@ export function BubbleEditor({ scan, isOpen, onClose, onSaved }: BubbleEditorPro
         current.is_manual = true;
         
         const details = current.details?.digits ? current.details.digits : current.details;
-        const colKeys = Object.keys(details)
-            .filter(k => !isNaN(Number(k)))
-            .sort((a, b) => Number(a) - Number(b));
-            
-        colKeys.forEach((colIdx, i) => {
-            const char = val[i] || null;
-            if (char && details[colIdx].scores && details[colIdx].scores[char] !== undefined) {
-                details[colIdx].selected = char;
-            } else {
-                details[colIdx].selected = null;
-            }
-        });
+        if (details) {
+            const colKeys = Object.keys(details)
+                .filter(k => !isNaN(Number(k)))
+                .sort((a, b) => Number(a) - Number(b));
+                
+            colKeys.forEach((colIdx, i) => {
+                const char = val[i] || null;
+                if (char && details[colIdx].scores && details[colIdx].scores[char] !== undefined) {
+                    details[colIdx].selected = char;
+                } else {
+                    details[colIdx].selected = null;
+                }
+            });
+        }
         
         setLocalData({ ...newData });
     };
 
-    const handleUpdateAnswer = (subject: string, qNum: string, choice: string | null) => {
+    const handleUpdateBubble = (path: string[], choice: string | null, colIdx: string) => {
+        if (!localData) return;
         const newData = { ...localData };
-        if (!newData.answers[subject]) return;
-        newData.answers[subject][qNum].answer = choice;
-        newData.answers[subject][qNum].is_manual = true;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        let current: any = newData.student_info;
+        for (let i = 0; i < path.length; i++) current = current[path[i]];
+        
+        const details = current.details?.digits ? current.details.digits : current.details;
+        if (details) {
+            details[colIdx].selected = details[colIdx].selected === choice ? null : choice;
+            
+            const chars = Object.keys(details)
+                .filter(k => !isNaN(Number(k)))
+                .sort((a, b) => Number(a) - Number(b))
+                .map(k => details[k].selected || " ");
+            
+            current.answer = chars.join("").trim();
+            current.is_manual = true;
+        }
         setLocalData({ ...newData });
     };
+
+    const handleUpdateAnswer = (subject: string, qNum: string, choice: string | null) => {
+        if (!localData) return;
+        const newData = { ...localData };
+        const qData = newData.answers[subject][qNum];
+        qData.answer = qData.answer === choice ? null : choice;
+        qData.is_manual = true;
+        setLocalData({ ...newData });
+    };
+
+    if (!localData) return null;
 
     return (
         <Sheet open={isOpen} onOpenChange={onClose}>
@@ -107,7 +140,9 @@ export function BubbleEditor({ scan, isOpen, onClose, onSaved }: BubbleEditorPro
                         <div className="h-8 w-8 rounded-lg bg-indigo-600 flex items-center justify-center">
                             <Save className="h-4 w-4 text-white" />
                         </div>
-                        <SheetTitle className="text-xl font-bold text-slate-900 uppercase tracking-tight">Data Correction</SheetTitle>
+                        <SheetTitle className="text-xl font-bold text-slate-900 uppercase tracking-tight">
+                            {mode === "direct" ? "Authoritative Edit" : "Request Correction"}
+                        </SheetTitle>
                     </div>
                 </SheetHeader>
 
@@ -129,6 +164,7 @@ export function BubbleEditor({ scan, isOpen, onClose, onSaved }: BubbleEditorPro
                                 <StudentProfile 
                                     localData={localData} 
                                     onUpdateField={handleUpdateField} 
+                                    onUpdateBubble={handleUpdateBubble}
                                     onUpdateText={handleUpdateTextField}
                                 />
                             </TabsContent>
@@ -145,7 +181,7 @@ export function BubbleEditor({ scan, isOpen, onClose, onSaved }: BubbleEditorPro
                         <Button variant="outline" className="flex-1 h-11 rounded-xl border-slate-200 font-bold" onClick={onClose}>Discard</Button>
                         <Button className="flex-2 h-11 bg-indigo-600 hover:bg-indigo-700 shadow-xl shadow-indigo-100 rounded-xl gap-3 font-bold uppercase tracking-wider transition-all active:scale-95" onClick={handleSave} disabled={isSaving}>
                             {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                            Verify & Commit
+                            {mode === "direct" ? "Update Authoritative" : "Submit for Approval"}
                         </Button>
                     </div>
                 </SheetFooter>

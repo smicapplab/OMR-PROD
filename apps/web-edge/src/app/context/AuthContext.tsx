@@ -23,9 +23,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Attempt to restore session on load
         async function restore() {
             try {
+                // Pre-fetch refresh to populate accessToken in memory
+                // This avoids the initial 401 log from apiFetch('/me')
+                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/refresh`, {
+                    method: 'POST',
+                    credentials: 'include',
+                });
+                if (res.ok) {
+                    const { accessToken: newToken } = await res.json();
+                    setAccessToken(newToken);
+                }
+
                 const data = await apiFetch<User>("/api/v1/auth/me");
                 setUser(data);
-            } catch {
+            } catch (err) {
+                console.error("Restore session failed:", err);
                 setUser(null);
             } finally {
                 setIsLoading(false);
@@ -50,7 +62,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } catch {}
         setAccessToken(null);
         setUser(null);
-        router.push("/login");
+        router.push("/");
     };
 
     return (

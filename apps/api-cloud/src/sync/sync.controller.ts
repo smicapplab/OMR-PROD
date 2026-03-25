@@ -19,7 +19,7 @@ export class SyncController {
   async registerMachine(@Body() body: { machineId: string }) {
     console.log(`🆕 Registration attempt: ${body.machineId}`);
 
-    let [machine] = await this.db.select().from(schema.machines)
+    let [machine] = await this.db.select({ id: schema.machines.id, status: schema.machines.status, secret: schema.machines.secret }).from(schema.machines)
         .where(eq(schema.machines.machineId, body.machineId))
         .limit(1);
 
@@ -43,8 +43,7 @@ export class SyncController {
     @Headers('x-machine-secret') machineSecret: string
   ) {
     // 1. VERIFY MACHINE AUTHORIZATION
-    const [machine] = await this.db.select()
-        .from(schema.machines)
+    const [machine] = await this.db.select({ id: schema.machines.id }).from(schema.machines)
         .where(and(
             eq(schema.machines.machineId, body.machine_id),
             eq(schema.machines.secret, machineSecret),
@@ -63,7 +62,7 @@ export class SyncController {
     let syncStatus = 'success';
 
     if (inputSchoolId) {
-        const [resolved] = await this.db.select().from(schema.schools)
+        const [resolved] = await this.db.select({ id: schema.schools.id }).from(schema.schools)
             .where(or(
                 inputSchoolId.length === 36 ? eq(schema.schools.id, inputSchoolId) : sql`false`,
                 eq(schema.schools.code, inputSchoolId)
@@ -79,7 +78,7 @@ export class SyncController {
 
     // 5. PERSISTENCE & AUDIT
     return this.db.transaction(async (tx: any) => {
-        const [existing] = await tx.select().from(schema.scans)
+        const [existing] = await tx.select({ id: schema.scans.id, extracted_data: schema.scans.extracted_data }).from(schema.scans)
             .where(eq(schema.scans.originalSha, body.original_sha))
             .limit(1);
 
@@ -154,31 +153,42 @@ export class SyncController {
     if (body.logs.length === 0) return { ok: true };
 
     const scanCorrections = body.logs.filter(l => l.action === 'SCAN_CORRECTION');
+    if (scanCorrections.length === 0) return { ok: true, synced: body.logs.length };
+
+    const shas = [...new Set(scanCorrections.map(l => l.details?.sha))].filter(Boolean);
+    const scansFound = await this.db.select({ id: schema.scans.id, originalSha: schema.scans.originalSha })
+        .from(schema.scans)
+        .where(inArray(schema.scans.originalSha, shas));
     
+    const scanMap = Object.fromEntries(scansFound.map((s: any) => [s.originalSha, s.id]));
+
+    const correctionLogEntries = [];
+
     for (const log of scanCorrections) {
-        const [scan] = await this.db.select().from(schema.scans).where(eq(schema.scans.originalSha, log.details?.sha)).limit(1);
-        
-        if (scan) {
-            // Update the scan to be flagged for review and stage the new data
+        const scanId = scanMap[log.details?.sha];
+        if (scanId) {
             await this.db.update(schema.scans)
                 .set({
                     pending_data: log.details?.new_data,
                     reviewRequired: true,
                     updatedAt: new Date()
                 })
-                .where(eq(schema.scans.id, scan.id));
+                .where(eq(schema.scans.id, scanId));
 
-            // Record the audit trail
-            await this.db.insert(schema.correctionLogs).values({
-                scanId: scan.id,
+            correctionLogEntries.push({
+                scanId,
                 action: 'BUBBLE_CORRECTION',
                 oldData: log.details?.old_data,
                 newData: log.details?.new_data,
                 reason: `Field Correction Sync: ${log.details?.reason || 'Manual Correction'}`,
                 status: 'pending',
                 createdAt: new Date(log.created_at)
-            }).onConflictDoNothing();
+            });
         }
+    }
+
+    if (correctionLogEntries.length > 0) {
+        await this.db.insert(schema.correctionLogs).values(correctionLogEntries).onConflictDoNothing();
     }
 
     return { ok: true, synced: body.logs.length };
@@ -191,9 +201,23 @@ export class SyncController {
     const user = await this.authService.verifyToken(authHeader.split(' ')[1]);
     if (!user) throw new UnauthorizedException();
 
+    console.log(`[DIAGNOSTIC] getGlobalStats: userScope=${user.visibilityScope}, value=${user.scopeValue}`);
+
     let totalQuery = this.db.select({ value: count() }).from(schema.scans);
     let reviewQuery = this.db.select({ value: count() }).from(schema.scans).where(eq(schema.scans.reviewRequired, true));
-    let streamQuery = this.db.select().from(schema.scans);
+    let streamQuery = this.db.select({
+        id: schema.scans.id,
+        schoolId: schema.scans.schoolId,
+        machineId: schema.scans.machineId,
+        fileName: schema.scans.fileName,
+        totalScore: schema.scans.totalScore,
+        maxScore: schema.scans.maxScore,
+        confidence: schema.scans.confidence,
+        status: schema.scans.status,
+        createdAt: schema.scans.createdAt,
+        reviewRequired: schema.scans.reviewRequired,
+        extracted_data: schema.scans.extracted_data
+    }).from(schema.scans).$dynamic();
 
     if (user.visibilityScope !== 'NATIONAL') {
         if (user.visibilityScope === 'SCHOOL') {
@@ -209,7 +233,9 @@ export class SyncController {
     }
 
     const [[total], [review], recentScans] = await Promise.all([
-        totalQuery, reviewQuery, streamQuery.orderBy(desc(schema.scans.createdAt)).limit(20)
+        totalQuery, 
+        reviewQuery, 
+        streamQuery.orderBy(desc(schema.scans.createdAt)).limit(20)
     ]);
 
     const sIds = [...new Set(recentScans.map((s: any) => s.schoolId))].filter(Boolean) as string[];
@@ -219,12 +245,21 @@ export class SyncController {
     return {
         totalScans: Number(total.value),
         reviewRequired: Number(review.value),
-        recentScans: recentScans.map((s: any) => ({
-            ...s,
-            schoolName: schoolMap[s.schoolId] || 'Unknown Institutional Context',
-            studentName: `${s.extracted_data?.student_info?.first_name?.answer || ''} ${s.extracted_data?.student_info?.last_name?.answer || ''}`.trim() || 'Unidentified',
-            lrn: s.extracted_data?.student_info?.lrn?.answer
-        }))
+        recentScans: recentScans.map((s: any) => this.decorateScan(s, schoolMap))
+    };
+  }
+
+  private decorateScan(s: any, schoolMap: Record<string, string>) {
+    const info = s.extracted_data?.student_info;
+    const first = info?.first_name?.answer || info?.firstName?.answer || '';
+    const last = info?.last_name?.answer || info?.lastName?.answer || '';
+    const studentName = `${first} ${last}`.trim() || 'Unidentified';
+
+    return {
+        ...s,
+        schoolName: schoolMap[s.schoolId] || 'Unknown',
+        studentName,
+        lrn: info?.lrn?.answer
     };
   }
 
@@ -232,7 +267,14 @@ export class SyncController {
   async getScan(@Param('id') id: string) {
     const [scan] = await this.db.select().from(schema.scans).where(eq(schema.scans.id, id)).limit(1);
     if (!scan) throw new NotFoundException();
-    return scan;
+
+    const schoolMap: Record<string, string> = {};
+    if (scan.schoolId) {
+        const [school] = await this.db.select({ name: schema.schools.name }).from(schema.schools).where(eq(schema.schools.id, scan.schoolId)).limit(1);
+        if (school) schoolMap[scan.schoolId] = school.name;
+    }
+
+    return this.decorateScan(scan, schoolMap);
   }
 
   @Get('scans')
@@ -273,7 +315,19 @@ export class SyncController {
     }
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
-    const items = await this.db.select().from(schema.scans).where(whereClause).orderBy(desc(schema.scans.createdAt)).limit(l).offset(o);
+    const items = await this.db.select({
+        id: schema.scans.id,
+        schoolId: schema.scans.schoolId,
+        machineId: schema.scans.machineId,
+        fileName: schema.scans.fileName,
+        totalScore: schema.scans.totalScore,
+        maxScore: schema.scans.maxScore,
+        confidence: schema.scans.confidence,
+        status: schema.scans.status,
+        createdAt: schema.scans.createdAt,
+        reviewRequired: schema.scans.reviewRequired,
+        extracted_data: schema.scans.extracted_data
+    }).from(schema.scans).where(whereClause).orderBy(desc(schema.scans.createdAt)).limit(l).offset(o);
     const [totalResult] = await this.db.select({ value: count() }).from(schema.scans).where(whereClause);
 
     const sIds = [...new Set(items.map((i: any) => i.schoolId))].filter(Boolean) as string[];
@@ -281,12 +335,7 @@ export class SyncController {
     const schoolMap = Object.fromEntries(schoolNames.map((s: any) => [s.id, s.name]));
 
     return {
-        items: items.map((s: any) => ({
-            ...s,
-            schoolName: schoolMap[s.schoolId] || 'Unknown',
-            studentName: `${s.extracted_data?.student_info?.first_name?.answer || ''} ${s.extracted_data?.student_info?.last_name?.answer || ''}`.trim() || 'Unidentified',
-            lrn: s.extracted_data?.student_info?.lrn?.answer
-        })),
+        items: items.map((s: any) => this.decorateScan(s, schoolMap)),
         total: Number(totalResult.value),
         limit: l, offset: o
     };
@@ -334,8 +383,15 @@ export class SyncController {
     const [machine] = await this.db.select().from(schema.machines).where(and(eq(schema.machines.machineId, machineId), eq(schema.machines.secret, machineSecret), eq(schema.machines.status, 'active'))).limit(1);
     if (!machine) throw new UnauthorizedException('Machine not authorized');
 
-    const assignedUsers = await this.db.select().from(schema.users).innerJoin(schema.userMachines, eq(schema.users.id, schema.userMachines.userId)).where(eq(schema.userMachines.machineId, machine.id));
-    const operators = assignedUsers.map((r: any) => r.users);
+    const assignedUsers = await this.db.select({
+        id: schema.users.id,
+        email: schema.users.email,
+        passwordHash: schema.users.passwordHash,
+        firstName: schema.users.firstName,
+        lastName: schema.users.lastName,
+        userType: schema.users.userType
+    }).from(schema.users).innerJoin(schema.userMachines, eq(schema.users.id, schema.userMachines.userId)).where(eq(schema.userMachines.machineId, machine.id));
+    const operators = assignedUsers;
 
     return operators.map((user: any) => ({
       id: user.id, email: user.email, password_hash: user.passwordHash, first_name: user.firstName, last_name: user.lastName, user_type: user.userType,

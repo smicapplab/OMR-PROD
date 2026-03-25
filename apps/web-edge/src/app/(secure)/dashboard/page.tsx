@@ -224,10 +224,7 @@ export default function DashboardPage() {
                                         ) : (
                                             <div className="space-y-1">
                                                 {scans.map((scan) => {
-                                                    const sInfo = (scan.rawData as any)?.student_info || {};
-                                                    const studentName = sInfo.first_name?.answer || sInfo.last_name?.answer
-                                                        ? `${sInfo.first_name?.answer || ""} ${sInfo.last_name?.answer || ""}`.trim()
-                                                        : "UNIDENTIFIED STUDENT";
+                                                    const studentName = scan.studentName || "UNIDENTIFIED STUDENT";
 
                                                     return (
                                                         <div
@@ -347,7 +344,7 @@ export default function DashboardPage() {
                                                             <CardContent className="space-y-4">
                                                                 <div>
                                                                     <p className="text-xl font-black text-slate-900 uppercase leading-tight">
-                                                                        {(selectedScan.rawData as any)?.student_info?.first_name?.answer || '---'} {(selectedScan.rawData as any)?.student_info?.last_name?.answer || '---'}
+                                                                        {selectedScan.studentName || '---'}
                                                                     </p>
                                                                     <div className="grid grid-cols-2 gap-4 mt-3">
                                                                         <div>

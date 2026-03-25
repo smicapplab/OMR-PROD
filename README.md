@@ -73,6 +73,21 @@ Manual field corrections are automatically flagged for HQ verification:
 
 ---
 
+## 🚀 Recent Modernization & Optimizations
+
+We recently completed a systematic upgrade of the OMR-PROD codebase to improve stability, transparency, and performance.
+
+### 🛠️ Key Improvements:
+- **Harmonized Audit Trail**: Ported the premium Edge ActivityLog Slider and recursive delta-comparison logic to the Cloud Hub, ensuring a unified forensic experience.
+- **Backend Performance**: 
+  - Resolved **N+1 query patterns** in sync and search endpoints.
+  - Refined **SELECT statements** to fetch only necessary summary fields, reducing bandwidth for large JSONB datasets.
+  - Implemented **Batch Insertion** for high-volume activity logs.
+- **Runtime Reliability**: Fixed critical date-parsing bugs and payload mismatches (`createdAt` vs `created_at`) across the Python/TypeScript bridge.
+- **Full TypeScript Adoption**: Systematic removal of legacy `any` types and unused variables across the monorepo for improved maintainability.
+
+---
+
 ## 🛠 Developer Operations
 
 ### Workspace Management
@@ -92,7 +107,7 @@ npm install && npm run build
 ```
 
 ### Default Test Credentials
-*   **National Admin**: `admin@omr-prod.gov.ph` / `admin-secure-password`
+*   **National Admin**: `admin@omr-prod.gov.ph` / `password123`
 *   **Regional Monitor**: `monitor.ncr@omr-prod.gov.ph` / `password123`
 *   **School Admin**: `admin.777@omr-prod.gov.ph` / `password123`
 *   **Edge Operator**: `operator1@mshs.edu.ph` / `password123` (Linked to MACHINE-00001)

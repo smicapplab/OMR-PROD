@@ -26,7 +26,7 @@ async def login(
 
     # Set refresh token in HttpOnly cookie
     response.set_cookie(
-        key="omr_refresh",
+        key="omr_edge_refresh",
         value=refresh_token,
         httponly=True,
         secure=False, # Set to True in production with HTTPS
@@ -50,7 +50,7 @@ async def refresh(
     request: Request,
     db: Session = Depends(get_db)
 ):
-    refresh_token = request.cookies.get("omr_refresh")
+    refresh_token = request.cookies.get("omr_edge_refresh")
     if not refresh_token:
         raise HTTPException(status_code=401, detail="Missing refresh token")
 

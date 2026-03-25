@@ -4,7 +4,7 @@ import { CheckCircle2 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { OMRRawData } from "./types";
+import { OMRRawData } from "@omr-prod/contracts";
 import { CollapsibleSection } from "./CollapsibleSection";
 
 interface ExaminationResponsesProps {

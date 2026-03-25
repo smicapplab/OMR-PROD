@@ -108,7 +108,7 @@ export default function CorrectionQueue() {
                     <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tight leading-none mb-1">Orphaned Records</h2>
                     <p className="text-sm text-slate-500 font-medium italic">Review scans with invalid institutional identification and map them to the correct school.</p>
                 </div>
-                <Badge variant="outline" className="bg-amber-50 text-amber-600 border-amber-100 font-black px-4 py-1 rounded-full uppercase text-[10px]">
+                <Badge variant="outline" className="bg-amber-50 text-amber-600 border-amber-100 font-bold px-4 py-1 rounded-full uppercase text-[10px]">
                     {scans.length} Issues Found
                 </Badge>
             </div>
@@ -120,8 +120,8 @@ export default function CorrectionQueue() {
                         <Table>
                             <TableHeader className="bg-slate-50/50">
                                 <TableRow className="border-slate-100">
-                                    <TableHead className="text-[9px] font-black uppercase text-slate-400 h-12">Extracted Info</TableHead>
-                                    <TableHead className="pr-8 text-right text-[9px] font-black uppercase text-slate-400 h-12">Action</TableHead>
+                                    <TableHead className="text-[9px] font-bold uppercase text-slate-400 h-12">Extracted Info</TableHead>
+                                    <TableHead className="pr-8 text-right text-[9px] font-bold uppercase text-slate-400 h-12">Action</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -133,19 +133,19 @@ export default function CorrectionQueue() {
                                             <div className="space-y-1">
                                                 <div className="flex items-center gap-1.5">
                                                     <User className="h-3 w-3 text-slate-400" />
-                                                    <span className="text-[10px] font-black text-slate-600 uppercase">
+                                                    <span className="text-[10px] font-bold text-slate-600 uppercase">
                                                         {s.extracted_data?.student_info?.first_name?.answer || '---'} {s.extracted_data?.student_info?.last_name?.answer || '---'}
                                                     </span>
                                                 </div>
                                                 <div className="flex items-center gap-2">
                                                     <div className="flex items-center gap-1.5 opacity-70">
                                                         <HelpCircle className="h-2.5 w-2.5 text-amber-500" />
-                                                        <span className="text-[9px] font-black text-amber-600 uppercase italic bg-amber-50 px-1.5 rounded">
+                                                        <span className="text-[9px] font-semibold text-amber-600 uppercase italic bg-amber-50 px-1.5 rounded">
                                                             BAD ID: {s.extracted_data?.student_info?.school_id?.answer || 'MISSING'}
                                                         </span>
                                                     </div>
                                                     <span className="text-slate-200 text-[8px]">•</span>
-                                                    <span className="text-[9px] text-slate-300 font-bold uppercase tracking-tighter">{new Date(s.createdAt).toLocaleString()}</span>
+                                                    <span className="text-[9px] text-slate-300 font-medium uppercase tracking-tighter">{new Date(s.createdAt).toLocaleString()}</span>
                                                 </div>
                                             </div>
                                         </TableCell>
@@ -153,7 +153,7 @@ export default function CorrectionQueue() {
                                             <Button 
                                                 variant="ghost" 
                                                 onClick={() => setSelectedScan(s)}
-                                                className="h-8 rounded-lg font-black text-[10px] uppercase text-indigo-600 hover:bg-indigo-50 gap-2"
+                                                className="h-8 rounded-lg font-bold text-[10px] uppercase text-indigo-600 hover:bg-indigo-50 gap-2"
                                             >
                                                 Assign <ArrowRight className="h-3 w-3" />
                                             </Button>
@@ -175,11 +175,11 @@ export default function CorrectionQueue() {
                         <Card className="rounded-3xl border-none shadow-xl ring-1 ring-slate-100 bg-white sticky top-10 overflow-hidden">
                             <div className="h-2 bg-indigo-600 w-full" />
                             <CardHeader>
-                                <CardTitle className="text-lg font-black flex items-center gap-2">
+                                <CardTitle className="text-lg font-bold flex items-center gap-2">
                                     <School className="h-5 w-5 text-indigo-600" />
                                     Assign Institution
                                 </CardTitle>
-                                <CardDescription className="text-[10px] uppercase font-black tracking-widest text-slate-400">
+                                <CardDescription className="text-[10px] uppercase font-bold tracking-widest text-slate-400">
                                     Scan ID: {selectedScan.id.substring(0,8)}
                                 </CardDescription>
                             </CardHeader>
@@ -197,7 +197,7 @@ export default function CorrectionQueue() {
                                         </div>
                                         <div className="relative">
                                             <select 
-                                                className="h-10 pl-8 pr-4 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-bold outline-none appearance-none min-w-[120px]"
+                                                className="h-10 pl-8 pr-4 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-medium outline-none appearance-none min-w-[120px]"
                                                 value={regionFilter}
                                                 onChange={e => setRegionFilter(e.target.value)}
                                             >
@@ -220,8 +220,8 @@ export default function CorrectionQueue() {
                                                         isSelected ? "bg-indigo-600 border-indigo-600 text-white shadow-lg" : "bg-white border-slate-100 text-slate-600 hover:border-indigo-200"
                                                     )}
                                                 >
-                                                    <span className="text-[10px] font-black uppercase leading-tight mb-1">{s.name}</span>
-                                                    <span className={cn("text-[9px] font-bold font-mono uppercase tracking-widest", isSelected ? "text-indigo-200" : "text-slate-400")}>
+                                                    <span className="text-[10px] font-bold uppercase leading-tight mb-1">{s.name}</span>
+                                                    <span className={cn("text-[9px] font-medium font-mono uppercase tracking-widest", isSelected ? "text-indigo-200" : "text-slate-400")}>
                                                         CODE: {s.code}
                                                     </span>
                                                     {isSelected && <CheckCircle2 className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5" />}
@@ -232,11 +232,11 @@ export default function CorrectionQueue() {
                                 </div>
 
                                 <div className="flex gap-3">
-                                    <Button variant="outline" onClick={() => setSelectedScan(null)} className="flex-1 h-12 rounded-xl font-black text-xs uppercase text-slate-400">Cancel</Button>
+                                    <Button variant="outline" onClick={() => setSelectedScan(null)} className="flex-1 h-12 rounded-xl font-bold text-xs uppercase text-slate-400">Cancel</Button>
                                     <Button 
                                         onClick={handleAssign} 
                                         disabled={!targetSchoolId || isSubmitting}
-                                        className="flex-2 h-12 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-black text-xs uppercase shadow-lg shadow-indigo-100"
+                                        className="flex-2 h-12 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs uppercase shadow-lg shadow-indigo-100"
                                     >
                                         {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Finalize Assignment"}
                                     </Button>

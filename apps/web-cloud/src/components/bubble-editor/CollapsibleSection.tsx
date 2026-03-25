@@ -1,11 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { LucideIcon, ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight } from "lucide-react";
 
 interface CollapsibleSectionProps {
     title: string;
-    icon?: LucideIcon;
+    icon?: any;
     children: React.ReactNode;
     defaultOpen?: boolean;
 }

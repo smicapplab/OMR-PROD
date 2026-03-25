@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { ZoomIn, ZoomOut, RotateCcw, Maximize, Grip } from "lucide-react";
+import { ZoomIn, ZoomOut, RotateCcw, Maximize } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ZoomableImageProps {

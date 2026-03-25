@@ -26,6 +26,7 @@ export interface Scan {
     reviewRequired: boolean;
     isManuallyEdited: boolean;
     rawData: any; // We'll keep any for the complex nested OMR object for now
+    studentName?: string;
     imageUrl?: string;
     createdAt: string;
     updatedAt: string;
@@ -34,16 +35,21 @@ export interface Scan {
 }
 
 export interface AuditLog {
-    id: number;
-    scanId: number;
+    id: string | number;
+    scanId: string | number;
     action: string;
-    operator: string;
+    operator?: string;
+    userName?: string;
+    userEmail?: string;
+    fileName?: string;
+    reason?: string;
+    status?: string;
+    statusBefore?: string;
+    statusAfter?: string;
     details: {
         old_data: any;
         new_data: any;
     };
-    statusBefore?: string;
-    statusAfter?: string;
     createdAt: string;
 }
 
@@ -61,4 +67,10 @@ export interface CloudScan {
     reviewRequired: boolean;
     studentName?: string;
     lrn?: string;
+    extracted_data?: any;
+    pending_data?: any;
+    gradingDetails?: any;
+    fileUrl?: string;
 }
+
+export * from './omr';

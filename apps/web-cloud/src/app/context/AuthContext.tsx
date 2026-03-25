@@ -50,7 +50,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } catch {}
         setAccessToken(null);
         setUser(null);
-        router.push("/login");
+        router.push("/");
     };
 
     return (

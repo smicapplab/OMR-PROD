@@ -56,7 +56,8 @@ def format_scan(scan):
         "machineId": scan.machine_id,
         "createdAt": scan.created_at.isoformat() if scan.created_at else None,
         "updatedAt": scan.updated_at.isoformat() if scan.updated_at else None,
-        "imageUrl": f"{image_base}/{scan.file_name}"
+        "imageUrl": f"{image_base}/{scan.file_name}",
+        "studentName": get_student_name(scan.raw_data)
     }
 
 app.mount("/images/success", StaticFiles(directory="success"), name="success_images")
@@ -67,17 +68,50 @@ app.include_router(auth.router, prefix=f"{settings.API_V1_STR}/auth", tags=["aut
 async def root():
     return {"message": "OMR Edge API running", "machine_id": settings.MACHINE_ID}
 
+def get_student_name(data):
+    if not data or not isinstance(data, dict):
+        return "UNIDENTIFIED STUDENT"
+    info = data.get("student_info", {})
+    first = info.get("first_name", {}).get("answer") or info.get("firstName", {}).get("answer") or ""
+    last = info.get("last_name", {}).get("answer") or info.get("lastName", {}).get("answer") or ""
+    name = f"{first} {last}".strip()
+    return name if name else "UNIDENTIFIED STUDENT"
+
 @app.get(f"{settings.API_V1_STR}/scans")
 async def list_scans(skip: int = 0, limit: int = 50, search: str = None, db: Session = Depends(get_db)):
     from app.models.scan import Scan
-    query = db.query(Scan)
+    # Optimization: Only select necessary fields. Include raw_data to calculate name but exclude from final payload.
+    query = db.query(
+        Scan.id, Scan.file_name, Scan.original_sha, Scan.sync_status, 
+        Scan.process_status, Scan.confidence, Scan.review_required, 
+        Scan.is_manually_edited, Scan.machine_id, Scan.created_at, Scan.updated_at,
+        Scan.raw_data
+    )
     if search:
         st = f"%{search}%"
         query = query.filter(or_(Scan.file_name.ilike(st), Scan.raw_data.cast(String).ilike(st)))
+    
     total = query.count()
     items = query.order_by(Scan.created_at.desc()).offset(skip).limit(limit).all()
+    
     return {
-        "items": [format_scan(i) for i in items],
+        "items": [
+            {
+                "id": i.id,
+                "fileName": i.file_name,
+                "originalSha": i.original_sha,
+                "syncStatus": i.sync_status,
+                "processStatus": i.process_status,
+                "confidence": i.confidence,
+                "reviewRequired": i.review_required,
+                "isManuallyEdited": i.is_manually_edited,
+                "machineId": i.machine_id,
+                "createdAt": i.created_at.isoformat() if i.created_at else None,
+                "updatedAt": i.updated_at.isoformat() if i.updated_at else None,
+                "imageUrl": f"{'/images/success' if i.process_status != 'error' else '/images/error'}/{i.file_name}",
+                "studentName": get_student_name(i.raw_data)
+            } for i in items
+        ],
         "total": total, "skip": skip, "limit": limit
     }
 
@@ -149,7 +183,7 @@ async def get_scan_logs(scan_id: int, db: Session = Depends(get_db)):
             "id": log.ActivityLog.id,
             "action": log.ActivityLog.action,
             "status_after": log.ActivityLog.status_after,
-            "created_at": log.ActivityLog.created_at.isoformat(),
+            "createdAt": log.ActivityLog.created_at.isoformat(),
             "operator": f"{log.User.first_name} {log.User.last_name}",
             "details": log.ActivityLog.details
         } for log in logs

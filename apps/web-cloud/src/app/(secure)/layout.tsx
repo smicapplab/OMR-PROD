@@ -25,7 +25,7 @@ export default function SecureLayout({ children }: { children: React.ReactNode }
 
     useEffect(() => {
         if (!isLoading && !user) {
-            router.push("/login");
+            router.push("/");
         }
     }, [user, isLoading, router]);
 
@@ -33,7 +33,7 @@ export default function SecureLayout({ children }: { children: React.ReactNode }
         <div className="h-screen w-screen flex items-center justify-center bg-slate-50">
             <div className="flex flex-col items-center gap-4">
                 <div className="h-12 w-12 rounded-2xl bg-indigo-600 animate-pulse shadow-lg shadow-indigo-100" />
-                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Synchronizing Vault...</p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-slate-400">Synchronizing Vault...</p>
             </div>
         </div>
     );
@@ -62,8 +62,8 @@ export default function SecureLayout({ children }: { children: React.ReactNode }
             <aside className="w-64 border-r bg-white flex flex-col shrink-0 z-30">
                 <div className="p-6 border-b">
                     <div className="flex items-center gap-3">
-                        <div className="h-9 w-9 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-bold italic shadow-lg shadow-indigo-100">O</div>
-                        <span className="font-black text-slate-900 tracking-tighter text-lg">National Hub</span>
+                        <div className="h-9 w-9 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-semibold italic shadow-lg shadow-indigo-100">O</div>
+                        <span className="font-bold text-slate-900 tracking-tighter text-lg">National Hub</span>
                     </div>
                 </div>
                 
@@ -73,7 +73,7 @@ export default function SecureLayout({ children }: { children: React.ReactNode }
                             key={item.name}
                             href={item.disabled ? "#" : item.href}
                             className={cn(
-                                "flex w-full items-center justify-between px-4 py-3 text-sm font-bold rounded-xl transition-all group",
+                                "flex w-full items-center justify-between px-4 py-3 text-sm font-semibold rounded-xl transition-all group",
                                 pathname === item.href 
                                     ? "bg-indigo-50 text-indigo-700 shadow-sm" 
                                     : "text-slate-400 hover:bg-slate-50",
@@ -93,9 +93,9 @@ export default function SecureLayout({ children }: { children: React.ReactNode }
                     <div className="p-4 bg-slate-900 rounded-2xl text-white shadow-xl">
                         <div className="flex items-center gap-2 mb-1.5 opacity-80">
                             <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
-                            <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">Security Link Active</p>
+                            <p className="text-[9px] font-bold text-indigo-400 uppercase tracking-widest">Security Link Active</p>
                         </div>
-                        <p className="text-[11px] font-bold uppercase tracking-tighter">Enterprise v1.0.4</p>
+                        <p className="text-[11px] font-semibold uppercase tracking-tighter">Enterprise v1.0.4</p>
                     </div>
                 </div>
             </aside>
@@ -114,11 +114,11 @@ export default function SecureLayout({ children }: { children: React.ReactNode }
 
                     <div className="flex items-center gap-4">
                         <div className="text-right">
-                            <p className="text-sm font-black text-slate-900 leading-none mb-1">{user.firstName} {user.lastName}</p>
-                            <Badge className="bg-indigo-50 text-indigo-600 border-none text-[9px] font-black uppercase h-4 px-1.5">{user.userType}</Badge>
+                            <p className="text-sm font-bold text-slate-900 leading-none mb-1">{user.firstName} {user.lastName}</p>
+                            <Badge className="bg-indigo-50 text-indigo-600 border-none text-[9px] font-bold uppercase h-4 px-1.5">{user.userType}</Badge>
                         </div>
                         <Avatar className="h-10 w-10 border-2 border-white shadow-sm ring-1 ring-slate-100">
-                            <AvatarFallback className="bg-indigo-100 text-indigo-700 font-bold text-xs uppercase">
+                            <AvatarFallback className="bg-indigo-100 text-indigo-700 font-semibold text-xs uppercase">
                                 {user.firstName?.[0]}{user.lastName?.[0]}
                             </AvatarFallback>
                         </Avatar>

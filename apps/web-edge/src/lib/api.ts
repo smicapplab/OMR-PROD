@@ -89,7 +89,12 @@ export async function apiFetch<T>(
 
     if (res.status === 401 && init.retry !== false) {
         const newToken = await refreshAccessToken()
-        if (!newToken) throw new Error('Unauthorized')
+        if (!newToken) {
+            if (typeof window !== 'undefined' && window.location.pathname !== '/') {
+                window.location.href = '/'
+            }
+            throw new Error('Unauthorized')
+        }
 
         const retryHeaders = buildHeaders(init.headers, newToken, !!init.body)
         const retryRes = await fetch(`${API_URL}${path}`, {

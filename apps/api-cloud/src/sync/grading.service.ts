@@ -13,7 +13,8 @@ export class GradingService {
    * Calculates scores and generates detailed right/wrong breakdown.
    */
   async gradeScan(rawData: any, version: string = '2026-V1') {
-    const studentAnswers = rawData?.answers || {};
+    // rawData might be { answers: { math: ... } } OR { math: ... }
+    const studentAnswers = rawData?.answers || rawData || {};
     const gradingDetails: any = {};
     let totalScore = 0;
     let maxPossibleScore = 0;

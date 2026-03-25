@@ -2,7 +2,7 @@
 
 import { Heart, School, GraduationCap } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { OMRRawData } from "./types";
+import { OMRRawData } from "@omr-prod/contracts";
 import { CollapsibleSection } from "./CollapsibleSection";
 import { CategoricalSelect } from "./CategoricalSelect";
 import { SimpleToggle } from "./SimpleToggle";
@@ -11,11 +11,12 @@ import { OMRTextInput } from "./OMRTextInput";
 
 interface StudentProfileProps {
     localData: OMRRawData;
-    onUpdateField: (path: string[], val: string | string[]) => void;
+    onUpdateField: (path: string[], val: any) => void;
+    onUpdateBubble: (path: string[], choice: string | null, colIdx: string) => void;
     onUpdateText: (path: string[], val: string) => void;
 }
 
-export function StudentProfile({ localData, onUpdateField, onUpdateText }: StudentProfileProps) {
+export function StudentProfile({ localData, onUpdateField, onUpdateBubble, onUpdateText }: StudentProfileProps) {
     if (!localData?.student_info) return null;
 
     const years = Array.from({ length: 100 }, (_, i) => (2000 + i).toString());

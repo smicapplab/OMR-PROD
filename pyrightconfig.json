@@ -1,0 +1,9 @@
+{
+  "executionEnvironments": [
+    {
+      "root": "apps/api-edge",
+      "venvPath": "apps/api-edge",
+      "venv": ".venv"
+    }
+  ]
+}

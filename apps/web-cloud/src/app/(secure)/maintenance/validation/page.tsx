@@ -2,13 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api";
-import { 
-    AlertCircle, CheckCircle2, Loader2, ArrowRight, User, Clock, ShieldAlert
-} from "lucide-react";
+import { Loader2, ArrowRight } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { 
-    Table, TableBody, TableCell, TableHead, TableHeader, TableRow 
+import {
+    Table, TableBody, TableCell, TableHead, TableHeader, TableRow
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -50,7 +48,7 @@ export default function ValidationQueue() {
                     <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tight leading-none mb-1">Data Correction Queue</h2>
                     <p className="text-sm text-slate-500 font-medium italic">Verify human-initiated bubble corrections and resolve capture ambiguities from the field.</p>
                 </div>
-                <Badge variant="outline" className="bg-rose-50 text-rose-600 border-rose-100 font-black px-4 py-1 rounded-full uppercase text-[10px]">
+                <Badge variant="outline" className="bg-rose-50 text-rose-600 border-rose-100 font-bold px-4 py-1 rounded-full uppercase text-[10px]">
                     {scans.length} Pending Actions
                 </Badge>
             </div>
@@ -59,9 +57,9 @@ export default function ValidationQueue() {
                 <Table>
                     <TableHeader className="bg-slate-50/50">
                         <TableRow className="border-slate-100">
-                            <TableHead className="text-[9px] font-black uppercase text-slate-400 h-12">Student Context</TableHead>
-                            <TableHead className="text-[9px] font-black uppercase text-slate-400 h-12">Capture Quality</TableHead>
-                            <TableHead className="pr-8 text-right text-[9px] font-black uppercase text-slate-400 h-12">Action</TableHead>
+                            <TableHead className="text-[9px] font-bold uppercase text-slate-400 h-12">Student Context</TableHead>
+                            <TableHead className="text-[9px] font-bold uppercase text-slate-400 h-12">Capture Quality</TableHead>
+                            <TableHead className="pr-8 text-right text-[9px] font-bold uppercase text-slate-400 h-12">Action</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -71,26 +69,26 @@ export default function ValidationQueue() {
                             <TableRow key={s.id} className="hover:bg-slate-50/30 transition-colors border-slate-50">
                                 <TableCell className="pl-8 py-5">
                                     <div className="flex flex-col">
-                                        <span className="font-black text-slate-700 text-[11px] uppercase">
+                                        <span className="font-bold text-slate-700 text-[11px] uppercase">
                                             {s.extracted_data?.student_info?.first_name?.answer || '---'} {s.extracted_data?.student_info?.last_name?.answer || '---'}
                                         </span>
                                         <div className="flex items-center gap-2 mt-1">
-                                            <span className="text-[9px] text-indigo-500 font-bold uppercase tracking-widest">LRN: {s.extracted_data?.student_info?.lrn?.answer || '---'}</span>
+                                            <span className="text-[9px] text-indigo-500 font-medium uppercase tracking-widest">LRN: {s.extracted_data?.student_info?.lrn?.answer || '---'}</span>
                                             <span className="text-slate-200 text-[8px]">•</span>
-                                            <span className="text-[9px] text-slate-400 font-bold uppercase tracking-tighter">{new Date(s.createdAt).toLocaleString()}</span>
+                                            <span className="text-[9px] text-slate-400 font-medium uppercase tracking-tighter">{new Date(s.createdAt).toLocaleString()}</span>
                                         </div>
                                     </div>
                                 </TableCell>
                                 <TableCell>
-                                    <Badge className={cn("text-[9px] font-black uppercase h-5 px-2 border-none", s.confidence < 0.7 ? "bg-rose-50 text-rose-600" : "bg-amber-50 text-amber-600")}>
+                                    <Badge className={cn("text-[9px] font-bold uppercase h-5 px-2 border-none", s.confidence < 0.7 ? "bg-rose-50 text-rose-600" : "bg-amber-50 text-amber-600")}>
                                         {(s.confidence * 100).toFixed(1)}% Match
                                     </Badge>
                                 </TableCell>
                                 <TableCell className="pr-8 text-right">
                                     <Link href={`/maintenance/validation/${s.id}`}>
-                                        <Button 
-                                            variant="outline" 
-                                            className="h-9 rounded-xl font-black text-[10px] uppercase border-slate-200 text-indigo-600 hover:bg-indigo-50 hover:border-indigo-100 gap-2 px-4"
+                                        <Button
+                                            variant="outline"
+                                            className="h-9 rounded-xl font-bold text-[10px] uppercase border-slate-200 text-indigo-600 hover:bg-indigo-50"
                                         >
                                             Verify Data <ArrowRight className="h-3 w-3" />
                                         </Button>

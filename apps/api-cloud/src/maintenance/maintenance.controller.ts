@@ -366,7 +366,7 @@ export class MaintenanceController {
   @Post('scans/approve-correction')
   async approveCorrection(@Body() body: any, @Req() req: any) {
     const qaUser = await this.validateAdmin(req, true);
-    const { scanId, decision } = body; 
+    const { scanId, decision, selectedItems } = body; 
     let { logId } = body;
 
     return this.db.transaction(async (tx: any) => {
@@ -387,11 +387,23 @@ export class MaintenanceController {
         }
 
         // --- APPROVED: USE GRADING SERVICE ---
-        const { totalScore, maxPossibleScore, gradingDetails } = await this.gradingService.gradeScan(scan.pending_data);
+        let finalData = scan.pending_data;
+
+        // If specific items were selected, merge only those into existing data
+        if (selectedItems && Array.isArray(selectedItems)) {
+            finalData = JSON.parse(JSON.stringify(scan.extracted_data));
+            for (const path of selectedItems) {
+                const [subject, qNum] = path.split('.');
+                if (!finalData[subject]) finalData[subject] = {};
+                finalData[subject][qNum] = scan.pending_data[subject]?.[qNum];
+            }
+        }
+
+        const { totalScore, maxPossibleScore, gradingDetails } = await this.gradingService.gradeScan(finalData);
 
         await tx.update(schema.scans)
             .set({ 
-                extracted_data: scan.pending_data,
+                extracted_data: finalData,
                 pending_data: null,
                 gradingDetails: gradingDetails,
                 totalScore: totalScore,
@@ -403,7 +415,10 @@ export class MaintenanceController {
 
         if (logId) {
             await tx.update(schema.correctionLogs)
-                .set({ status: 'approved' })
+                .set({ 
+                    status: 'approved',
+                    newData: finalData // Log what was actually approved
+                })
                 .where(eq(schema.correctionLogs.id, logId));
         }
 
@@ -411,28 +426,90 @@ export class MaintenanceController {
     });
   }
 
+  @Post('scans/update-authoritative')
+  async updateAuthoritative(@Body() body: any, @Req() req: any) {
+    const user = await this.validateUser(req);
+    // Only SUPER_ADMIN and DEPED_MONITOR can do direct authoritative updates
+    if (user.userType !== 'SUPER_ADMIN' && user.userType !== 'DEPED_MONITOR') {
+        throw new ForbiddenException('Direct authoritative updates are restricted to Administrators and Monitors');
+    }
+
+    const { scanId, correctedData, reason } = body;
+
+    return this.db.transaction(async (tx: any) => {
+        const [scan] = await tx.select().from(schema.scans).where(eq(schema.scans.id, scanId)).limit(1);
+        if (!scan) throw new NotFoundException();
+
+        // 1. Grade the new data
+        const { totalScore, maxPossibleScore, gradingDetails } = await this.gradingService.gradeScan(correctedData);
+
+        // 2. Update the scan immediately
+        await tx.update(schema.scans)
+            .set({ 
+                extracted_data: correctedData,
+                pending_data: null, // Clear any pending data if it exists
+                gradingDetails: gradingDetails,
+                totalScore: totalScore,
+                maxScore: maxPossibleScore,
+                reviewRequired: false,
+                updatedAt: new Date()
+            })
+            .where(eq(schema.scans.id, scanId));
+
+        // 3. Log as an automatically approved correction
+        await tx.insert(schema.correctionLogs).values({
+            scanId,
+            userId: user.id,
+            action: 'AUTHORITATIVE_UPDATE',
+            oldData: scan.extracted_data,
+            newData: correctedData,
+            reason: reason || 'Direct Authoritative Update',
+            status: 'approved'
+        });
+
+        return { ok: true, score: totalScore };
+    });
+  }
+
   // --- GLOBAL AUDIT TRAIL ---
   @Get('audit-trail')
-  async getAuditTrail(@Req() req: any) {
-    await this.validateAdmin(req);
+  async getAuditTrail(@Query('scanId') scanId: string, @Req() req: any) {
+    await this.validateUser(req);
+
+    const conditions = [];
+    if (scanId) conditions.push(eq(schema.correctionLogs.scanId, scanId));
+
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
     
+    console.log(`[DEBUG audit-trail] scanId=${scanId}, conditions=${conditions.length}`);
+
     const logs = await this.db.select({
         id: schema.correctionLogs.id,
         action: schema.correctionLogs.action,
         status: schema.correctionLogs.status,
         createdAt: schema.correctionLogs.createdAt,
         reason: schema.correctionLogs.reason,
-        userName: sql`${schema.users.firstName} || ' ' || ${schema.users.lastName}`,
+        oldData: schema.correctionLogs.oldData,
+        newData: schema.correctionLogs.newData,
+        userName: sql`COALESCE(${schema.users.firstName} || ' ' || ${schema.users.lastName}, 'SYSTEM')`,
         userEmail: schema.users.email,
         fileName: schema.scans.fileName,
         scanId: schema.scans.id
     })
     .from(schema.correctionLogs)
-    .innerJoin(schema.users, eq(schema.correctionLogs.userId, schema.users.id))
+    .leftJoin(schema.users, eq(schema.correctionLogs.userId, schema.users.id))
     .innerJoin(schema.scans, eq(schema.correctionLogs.scanId, schema.scans.id))
+    .where(whereClause)
     .orderBy(desc(schema.correctionLogs.createdAt))
     .limit(100);
 
-    return logs;
+    console.log(`[DEBUG audit-trail] returning ${logs.length} items`);
+    return logs.map((log: any) => ({
+      ...log,
+      details: {
+        old_data: log.oldData,
+        new_data: log.newData
+      }
+    }));
   }
 }

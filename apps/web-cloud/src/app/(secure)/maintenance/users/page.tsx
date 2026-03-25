@@ -199,26 +199,26 @@ export default function UsersManagement() {
                         <CardContent>
                             <form onSubmit={handleSave} className="space-y-5">
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Official Credentials</label>
+                                    <label className="text-[10px] font-bold uppercase text-slate-400 tracking-widest ml-1">Official Credentials</label>
                                     <Input placeholder="email@omr-prod.gov.ph" value={email} onChange={e => setEmail(e.target.value)} required className="h-11 rounded-xl" />
                                     <Input type="password" placeholder={editingUser ? "Leave blank to keep current" : "Secure Password"} value={password} onChange={e => setPassword(e.target.value)} required={!editingUser} className="h-11 rounded-xl" />
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">First Name</label>
+                                        <label className="text-[10px] font-bold uppercase text-slate-400 tracking-widest ml-1">First Name</label>
                                         <Input placeholder="Juan" value={firstName} onChange={e => setFirstName(e.target.value)} required className="h-11 rounded-xl" />
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Last Name</label>
+                                        <label className="text-[10px] font-bold uppercase text-slate-400 tracking-widest ml-1">Last Name</label>
                                         <Input placeholder="Dela Cruz" value={lastName} onChange={e => setLastName(e.target.value)} required className="h-11 rounded-xl" />
                                     </div>
                                 </div>
 
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Assigned Role</label>
+                                    <label className="text-[10px] font-bold uppercase text-slate-400 tracking-widest ml-1">Assigned Role</label>
                                     <select 
-                                        className="w-full h-11 px-3 bg-white border border-slate-200 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900"
+                                        className="w-full h-11 px-3 bg-white border border-slate-200 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900"
                                         value={userType}
                                         onChange={e => {
                                             const role = e.target.value;
@@ -239,13 +239,13 @@ export default function UsersManagement() {
                                 {userType === 'EDGE_OPERATOR' && (
                                     <div className="space-y-3 p-4 bg-slate-100 rounded-2xl animate-in fade-in slide-in-from-top-2">
                                         <div className="flex items-center justify-between">
-                                            <label className="text-[10px] font-black uppercase text-slate-500 flex items-center gap-1.5"><Monitor className="h-3 w-3" /> Authorize Appliances</label>
-                                            <Badge variant="outline" className="text-[8px] font-black bg-white">{selectedMachineIds.length} Linked</Badge>
+                                            <label className="text-[10px] font-bold uppercase text-slate-500 flex items-center gap-1.5"><Monitor className="h-3 w-3" /> Authorize Appliances</label>
+                                            <Badge variant="outline" className="text-[8px] font-bold bg-white">{selectedMachineIds.length} Linked</Badge>
                                         </div>
                                         <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto">
                                             {machines.map(m => (
                                                 <button key={m.id} type="button" onClick={() => setSelectedMachineIds(prev => prev.includes(m.id) ? prev.filter(id => id !== m.id) : [...prev, m.id])}
-                                                    className={cn("px-2 py-2 rounded-xl border text-[10px] font-bold transition-all truncate", selectedMachineIds.includes(m.id) ? "bg-indigo-600 border-indigo-600 text-white shadow-md" : "bg-white border-slate-200 text-slate-600 hover:border-indigo-200")}>
+                                                    className={cn("px-2 py-2 rounded-xl border text-[10px] font-semibold transition-all truncate", selectedMachineIds.includes(m.id) ? "bg-indigo-600 border-indigo-600 text-white shadow-md" : "bg-white border-slate-200 text-slate-600 hover:border-indigo-200")}>
                                                     {m.machineId}
                                                 </button>
                                             ))}
@@ -257,14 +257,14 @@ export default function UsersManagement() {
                                 {(userType === 'SCHOOL_ADMIN' || userType === 'DEPED_MONITOR') && (
                                     <div className="space-y-4 p-4 bg-slate-100 rounded-2xl animate-in fade-in slide-in-from-top-2">
                                         <div className="space-y-3">
-                                            <label className="text-[10px] font-black uppercase text-slate-500 flex items-center gap-1.5">
+                                            <label className="text-[10px] font-bold uppercase text-slate-500 flex items-center gap-1.5">
                                                 {userType === 'SCHOOL_ADMIN' ? <School className="h-3 w-3" /> : <Globe className="h-3 w-3" />}
                                                 Authority Scoping
                                             </label>
                                             {userType === 'DEPED_MONITOR' && (
                                                 <div className="flex gap-2 p-1 bg-white rounded-xl border border-slate-200">
-                                                    <button type="button" onClick={() => { setVisibilityScope('REGIONAL'); setMultiScopeValues([]); }} className={cn("flex-1 py-2 text-[10px] font-black uppercase rounded-lg transition-all", visibilityScope === 'REGIONAL' ? "bg-indigo-600 text-white shadow-sm" : "text-slate-400")}>By Region</button>
-                                                    <button type="button" onClick={() => { setVisibilityScope('SCHOOL'); setMultiScopeValues([]); }} className={cn("flex-1 py-2 text-[10px] font-black uppercase rounded-lg transition-all", visibilityScope === 'SCHOOL' ? "bg-indigo-600 text-white shadow-sm" : "text-slate-400")}>By School</button>
+                                                    <button type="button" onClick={() => { setVisibilityScope('REGIONAL'); setMultiScopeValues([]); }} className={cn("flex-1 py-2 text-[10px] font-bold uppercase rounded-lg transition-all", visibilityScope === 'REGIONAL' ? "bg-indigo-600 text-white shadow-sm" : "text-slate-400")}>By Region</button>
+                                                    <button type="button" onClick={() => { setVisibilityScope('SCHOOL'); setMultiScopeValues([]); }} className={cn("flex-1 py-2 text-[10px] font-bold uppercase rounded-lg transition-all", visibilityScope === 'SCHOOL' ? "bg-indigo-600 text-white shadow-sm" : "text-slate-400")}>By School</button>
                                                 </div>
                                             )}
                                         </div>
@@ -277,7 +277,7 @@ export default function UsersManagement() {
                                                 </div>
                                                 {(visibilityScope === 'SCHOOL' || userType === 'SCHOOL_ADMIN') && (
                                                     <div className="relative">
-                                                        <select className="h-9 pl-7 pr-2 bg-white border border-slate-200 rounded-xl text-[10px] font-bold min-w-[100px] outline-none focus:ring-2 focus:ring-indigo-500 appearance-none" value={selectedRegionFilter} onChange={e => setSelectedRegionFilter(e.target.value)}>
+                                                        <select className="h-9 pl-7 pr-2 bg-white border border-slate-200 rounded-xl text-[10px] font-medium min-w-[100px] outline-none focus:ring-2 focus:ring-indigo-500 appearance-none" value={selectedRegionFilter} onChange={e => setSelectedRegionFilter(e.target.value)}>
                                                             <option value="ALL">All Regions</option>
                                                             {regions.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
                                                         </select>
@@ -298,7 +298,7 @@ export default function UsersManagement() {
                                                                 else toggleMultiValue(item.id);
                                                             }}
                                                             className={cn("w-full px-3 py-2 rounded-lg border text-left transition-all relative overflow-hidden", isSelected ? "bg-indigo-50 border-indigo-600 text-indigo-700 shadow-sm" : "bg-white border-slate-100 text-slate-600 hover:border-slate-200")}>
-                                                            <span className="text-[10px] font-bold uppercase truncate block pr-6">{item.name}</span>
+                                                            <span className="text-[10px] font-semibold uppercase truncate block pr-6">{item.name}</span>
                                                             {isSelected && <Check className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-indigo-600" />}
                                                         </button>
                                                     );
@@ -312,10 +312,10 @@ export default function UsersManagement() {
                                 {/* --- ACTION BUTTONS --- */}
                                 <div className="flex items-center gap-2 py-2">
                                     <input type="checkbox" checked={isActive} onChange={e => setIsActive(e.target.checked)} id="isActive" className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
-                                    <label htmlFor="isActive" className="text-[10px] font-black uppercase text-slate-600 cursor-pointer tracking-widest">Account is Active</label>
+                                    <label htmlFor="isActive" className="text-[10px] font-bold uppercase text-slate-600 cursor-pointer tracking-widest">Account is Active</label>
                                 </div>
 
-                                <Button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl h-12 font-bold shadow-lg shadow-indigo-100 mt-2" disabled={isSubmitting}>
+                                <Button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl h-12 font-semibold shadow-lg shadow-indigo-100 mt-2" disabled={isSubmitting}>
                                     {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : (editingUser ? "Update Registry" : "Deploy Credentials")}
                                 </Button>
                             </form>
@@ -330,10 +330,10 @@ export default function UsersManagement() {
                             <Table>
                                 <TableHeader className="bg-slate-50/50">
                                     <TableRow className="border-slate-100">
-                                        <TableHead className="pl-8 text-[9px] font-black uppercase text-slate-400 h-12">Personnel</TableHead>
-                                        <TableHead className="text-[9px] font-black uppercase text-slate-400 h-12">Authority & Scope</TableHead>
-                                        <TableHead className="text-[9px] font-black uppercase text-slate-400 h-12">Status</TableHead>
-                                        <TableHead className="pr-8 text-right text-[9px] font-black uppercase text-slate-400 h-12">Actions</TableHead>
+                                        <TableHead className="pl-8 text-[9px] font-bold uppercase text-slate-400 h-12">Personnel</TableHead>
+                                        <TableHead className="text-[9px] font-bold uppercase text-slate-400 h-12">Authority & Scope</TableHead>
+                                        <TableHead className="text-[9px] font-bold uppercase text-slate-400 h-12">Status</TableHead>
+                                        <TableHead className="pr-8 text-right text-[9px] font-bold uppercase text-slate-400 h-12">Actions</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -344,25 +344,25 @@ export default function UsersManagement() {
                                             <TableCell className="pl-8 py-5">
                                                 <div className="flex items-center gap-3">
                                                     <Avatar className="h-10 w-10 border-2 border-white shadow-sm">
-                                                        <AvatarFallback className="bg-slate-100 text-slate-600 text-xs font-black uppercase">
+                                                        <AvatarFallback className="bg-slate-100 text-slate-600 text-xs font-bold uppercase">
                                                             {u.firstName?.[0]}{u.lastName?.[0]}
                                                         </AvatarFallback>
                                                     </Avatar>
                                                     <div className="flex flex-col">
-                                                        <span className="font-black text-slate-900 text-sm leading-none mb-1">{u.firstName} {u.lastName}</span>
-                                                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">{u.email}</span>
+                                                        <span className="font-bold text-slate-900 text-sm leading-none mb-1">{u.firstName} {u.lastName}</span>
+                                                        <span className="text-[10px] text-slate-400 font-medium uppercase tracking-tighter">{u.email}</span>
                                                     </div>
                                                 </div>
                                             </TableCell>
                                             <TableCell>
                                                 <div className="flex flex-col gap-1">
                                                     <Badge variant="outline" className={cn(
-                                                        "text-[9px] font-black uppercase h-5 px-2 border-none shadow-sm w-fit",
+                                                        "text-[9px] font-bold uppercase h-5 px-2 border-none shadow-sm w-fit",
                                                         u.userType === 'SUPER_ADMIN' ? "bg-slate-900 text-white" : "bg-indigo-50 text-indigo-600"
                                                     )}>
                                                         {ROLE_LABELS[u.userType] || u.userType}
                                                     </Badge>
-                                                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1">
+                                                    <span className="text-[9px] font-medium text-slate-400 uppercase tracking-widest flex items-center gap-1">
                                                         {u.visibilityScope === 'NATIONAL' ? <Globe className="h-2.5 w-2.5" /> : u.visibilityScope === 'REGIONAL' ? <Map className="h-2.5 w-2.5" /> : <School className="h-2.5 w-2.5" />}
                                                         {u.visibilityScope} Authority
                                                     </span>
@@ -371,7 +371,7 @@ export default function UsersManagement() {
                                             <TableCell>
                                                 <div className="flex items-center gap-1.5">
                                                     <div className={cn("h-1.5 w-1.5 rounded-full", u.isActive ? "bg-emerald-500" : "bg-rose-500")}></div>
-                                                    <span className="text-[9px] font-black text-slate-500 uppercase">{u.isActive ? "Active" : "Disabled"}</span>
+                                                    <span className="text-[9px] font-bold text-slate-500 uppercase">{u.isActive ? "Active" : "Disabled"}</span>
                                                 </div>
                                             </TableCell>
                                             <TableCell className="pr-8 text-right">
@@ -388,7 +388,7 @@ export default function UsersManagement() {
 
                         {/* Pagination Footer */}
                         <div className="p-4 border-t bg-slate-50/30 flex items-center justify-between">
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-4">
+                            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest pl-4">
                                 Page {currentPage} of {totalPages || 1} <span className="mx-2 opacity-30">•</span> {total} Personnel
                             </p>
                             <div className="flex gap-2 pr-4">

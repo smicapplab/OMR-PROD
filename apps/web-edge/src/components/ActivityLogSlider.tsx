@@ -45,7 +45,7 @@ export function ActivityLogSlider({ scanId, isOpen, onClose }: ActivityLogSlider
 
     const getDeltas = (details: AuditLog["details"]) => {
         const deltas: Delta[] = [];
-        
+
         const compare = (oldObj: any, newObj: any, currentPath: string = "") => {
             if (!oldObj || !newObj) return;
 
@@ -63,19 +63,19 @@ export function ActivityLogSlider({ scanId, isOpen, onClose }: ActivityLogSlider
                     const oldArr = Array.isArray(oldVal) ? oldVal : (oldVal ? [oldVal] : []);
                     const oldSorted = [...oldArr].sort();
                     const newSorted = [...newVal].sort();
-                    
+
                     if (JSON.stringify(oldSorted) !== JSON.stringify(newSorted)) {
-                        deltas.push({ 
-                            path: currentPath || "Metadata", 
-                            from: oldSorted, 
+                        deltas.push({
+                            path: currentPath || "Metadata",
+                            from: oldSorted,
                             to: newSorted,
                             type: 'array'
                         });
                     }
                 } else if (newVal !== oldVal) {
-                    deltas.push({ 
-                        path: currentPath || "Field", 
-                        from: String(oldVal ?? '-'), 
+                    deltas.push({
+                        path: currentPath || "Field",
+                        from: String(oldVal ?? '-'),
                         to: String(newVal ?? '-'),
                         type: 'string'
                     });
@@ -100,8 +100,8 @@ export function ActivityLogSlider({ scanId, isOpen, onClose }: ActivityLogSlider
             return (
                 <div className="flex flex-wrap gap-1 mt-1">
                     {val.length > 0 ? val.map((item, i) => (
-                        <Badge 
-                            key={i} 
+                        <Badge
+                            key={i}
                             className={cn(
                                 "text-[9px] px-1.5 h-auto py-0.5 border-none uppercase whitespace-normal text-left max-w-full font-bold",
                                 variant === 'from' ? "bg-rose-100 text-rose-700" : "bg-emerald-100 text-emerald-700"
@@ -126,7 +126,7 @@ export function ActivityLogSlider({ scanId, isOpen, onClose }: ActivityLogSlider
     return (
         <Sheet open={isOpen} onOpenChange={onClose}>
             <SheetContent side="right" className="sm:max-w-md w-full bg-white border-l p-0 flex flex-col h-full shadow-2xl overflow-hidden outline-none">
-                <SheetHeader className="p-4 border-b bg-slate-50 flex-shrink-0 text-slate-900">
+                <SheetHeader className="p-4 border-b bg-slate-50 shrink-0 text-slate-900">
                     <div className="flex items-center gap-3">
                         <div className="h-9 w-9 rounded-lg bg-indigo-600 flex items-center justify-center shadow-md">
                             <History className="h-4 w-4 text-white" />
@@ -163,11 +163,13 @@ export function ActivityLogSlider({ scanId, isOpen, onClose }: ActivityLogSlider
                                                 )}>
                                                     {log.action === 'SCAN_CORRECTION' ? <Save className="h-3.5 w-3.5" /> : <ThumbsUp className="h-3.5 w-3.5" />}
                                                 </div>
-                                                
+
                                                 <div className="flex flex-1 flex-col gap-0.5 pt-0.5 min-w-0">
                                                     <div className="flex items-center justify-between">
                                                         <span className="text-[10px] font-black uppercase text-slate-900">{log.action.replace('_', ' ')}</span>
-                                                        <span className="text-[8px] font-bold text-slate-400">{new Date(log.createdAt).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
+                                                        <span className="text-[8px] font-bold text-slate-400">
+                                                            {log.createdAt ? new Date(log.createdAt.replace(' ', 'T')).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : 'Unknown Time'}
+                                                        </span>
                                                     </div>
                                                     <p className="text-[10px] text-slate-500 flex items-center gap-1 font-medium mb-2">
                                                         <UserCircle className="h-3 w-3 text-slate-300" />
@@ -190,7 +192,7 @@ export function ActivityLogSlider({ scanId, isOpen, onClose }: ActivityLogSlider
                                                             ))}
                                                         </div>
                                                     )}
-                                                    
+
                                                     <div className="flex items-center justify-between px-1">
                                                         <span className="text-[8px] font-bold text-slate-300 uppercase tracking-widest text-right w-full">
                                                             State: {log.statusAfter?.replace('_', ' ') || 'OK'}

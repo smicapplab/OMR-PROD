@@ -1,5 +1,10 @@
 {
   "typescript.tsdk": "node_modules/typescript/lib",
+  "python.defaultInterpreterPath": "apps/api-edge/.venv/bin/python",
+  "python.analysis.autoImportCompletions": true,
+  "python.analysis.extraPaths": [
+    "apps/api-edge"
+  ],
   "css.lint.unknownAtRules": "ignore",
   "scss.lint.unknownAtRules": "ignore"
 }
