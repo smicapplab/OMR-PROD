@@ -47,8 +47,8 @@ export default function ValidationQueue() {
         <div className="flex-1 p-10 space-y-10 max-w-7xl mx-auto overflow-y-auto h-screen pb-32">
             <div className="flex items-center justify-between">
                 <div className="space-y-1">
-                    <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tight leading-none mb-1 text-indigo-600">Validation Queue</h2>
-                    <p className="text-sm text-slate-500 font-medium">Verify human-initiated data corrections and resolve capture ambiguities.</p>
+                    <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tight leading-none mb-1">Data Correction Queue</h2>
+                    <p className="text-sm text-slate-500 font-medium italic">Verify human-initiated bubble corrections and resolve capture ambiguities from the field.</p>
                 </div>
                 <Badge variant="outline" className="bg-rose-50 text-rose-600 border-rose-100 font-black px-4 py-1 rounded-full uppercase text-[10px]">
                     {scans.length} Pending Actions
@@ -59,7 +59,6 @@ export default function ValidationQueue() {
                 <Table>
                     <TableHeader className="bg-slate-50/50">
                         <TableRow className="border-slate-100">
-                            <TableHead className="pl-8 text-[9px] font-black uppercase text-slate-400 h-12">Capture metadata</TableHead>
                             <TableHead className="text-[9px] font-black uppercase text-slate-400 h-12">Student Context</TableHead>
                             <TableHead className="text-[9px] font-black uppercase text-slate-400 h-12">Capture Quality</TableHead>
                             <TableHead className="pr-8 text-right text-[9px] font-black uppercase text-slate-400 h-12">Action</TableHead>
@@ -72,20 +71,14 @@ export default function ValidationQueue() {
                             <TableRow key={s.id} className="hover:bg-slate-50/30 transition-colors border-slate-50">
                                 <TableCell className="pl-8 py-5">
                                     <div className="flex flex-col">
-                                        <span className="font-black text-slate-900 text-xs uppercase">{s.fileName}</span>
-                                        <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">{s.machineId}</span>
-                                        <span className="text-[9px] text-slate-300 mt-1 flex items-center gap-1">
-                                            <Clock className="h-2.5 w-2.5" />
-                                            {new Date(s.createdAt).toLocaleString()}
-                                        </span>
-                                    </div>
-                                </TableCell>
-                                <TableCell>
-                                    <div className="flex flex-col">
                                         <span className="font-black text-slate-700 text-[11px] uppercase">
                                             {s.extracted_data?.student_info?.first_name?.answer || '---'} {s.extracted_data?.student_info?.last_name?.answer || '---'}
                                         </span>
-                                        <span className="text-[9px] text-indigo-500 font-bold uppercase tracking-widest">LRN: {s.extracted_data?.student_info?.lrn?.answer || '---'}</span>
+                                        <div className="flex items-center gap-2 mt-1">
+                                            <span className="text-[9px] text-indigo-500 font-bold uppercase tracking-widest">LRN: {s.extracted_data?.student_info?.lrn?.answer || '---'}</span>
+                                            <span className="text-slate-200 text-[8px]">•</span>
+                                            <span className="text-[9px] text-slate-400 font-bold uppercase tracking-tighter">{new Date(s.createdAt).toLocaleString()}</span>
+                                        </div>
                                     </div>
                                 </TableCell>
                                 <TableCell>
@@ -107,7 +100,7 @@ export default function ValidationQueue() {
                         )) : (
                             <TableRow>
                                 <TableCell colSpan={4} className="h-60 text-center text-slate-400 italic font-medium uppercase tracking-widest text-[10px]">
-                                    System clean. No pending validations.
+                                    No pending corrections detected. All human-initiated changes have been resolved or synchronized.
                                 </TableCell>
                             </TableRow>
                         )}

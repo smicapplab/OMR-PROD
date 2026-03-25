@@ -6,7 +6,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { apiFetch } from "@/lib/api";
 import { History, UserCircle, Save, ArrowRight, ShieldCheck, Loader2, ThumbsUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
+import { cn, formatOMRYear } from "@/lib/utils";
 import { AuditLog } from "@omr-prod/contracts";
 
 interface Delta {
@@ -50,8 +50,14 @@ export function ActivityLogSlider({ scanId, isOpen, onClose }: ActivityLogSlider
             if (!oldObj || !newObj) return;
 
             if (newObj.hasOwnProperty('answer')) {
-                const oldVal = oldObj.answer;
-                const newVal = newObj.answer;
+                let oldVal = oldObj.answer;
+                let newVal = newObj.answer;
+
+                // Format if it's a year field
+                if (currentPath.toLowerCase().includes('year')) {
+                    oldVal = formatOMRYear(oldVal);
+                    newVal = formatOMRYear(newVal);
+                }
 
                 if (Array.isArray(newVal)) {
                     const oldArr = Array.isArray(oldVal) ? oldVal : (oldVal ? [oldVal] : []);

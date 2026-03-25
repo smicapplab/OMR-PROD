@@ -87,7 +87,7 @@ export default function ExamRecords() {
         <div className="flex-1 p-10 space-y-8 max-w-7xl mx-auto overflow-y-auto h-screen pb-32">
             <div className="flex items-center justify-between">
                 <div className="space-y-1">
-                    <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tight leading-none mb-1 text-indigo-600">Exam Records</h2>
+                    <h2 className="text-3xl font-black text-indigo-600 uppercase tracking-tight leading-none mb-1">Exam Records</h2>
                     <p className="text-sm text-slate-500 font-medium italic">Authoritative global capture ledger and grading archives.</p>
                 </div>
                 <Badge variant="outline" className="bg-slate-900 text-white border-none font-black px-4 py-1.5 rounded-full uppercase text-[10px]">
@@ -144,7 +144,6 @@ export default function ExamRecords() {
                 <Table>
                     <TableHeader className="bg-slate-50/50">
                         <TableRow className="border-slate-100">
-                            <TableHead className="text-[9px] font-black uppercase text-slate-400 pl-8 h-12">Capture Metadata</TableHead>
                             <TableHead className="text-[9px] font-black uppercase text-slate-400 h-12">Examinee</TableHead>
                             <TableHead className="text-[9px] font-black uppercase text-slate-400 h-12">Performance</TableHead>
                             <TableHead className="text-[9px] font-black uppercase text-slate-400 h-12">Chain of Custody</TableHead>
@@ -158,20 +157,13 @@ export default function ExamRecords() {
                         ) : scans.length > 0 ? scans.map((s) => (
                             <TableRow key={s.id} className="hover:bg-slate-50/30 transition-colors border-slate-50">
                                 <TableCell className="pl-8 py-5">
-                                    <div className="flex items-center gap-3">
-                                        <div className="h-10 w-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 border border-slate-100">
-                                            <FileText className="h-5 w-5" />
-                                        </div>
-                                        <div className="flex flex-col">
-                                            <span className="font-black text-slate-900 text-xs uppercase leading-none mb-1">{s.fileName.split('.').shift()}</span>
-                                            <span className="text-[9px] text-slate-400 font-bold">{new Date(s.createdAt).toLocaleString()}</span>
-                                        </div>
-                                    </div>
-                                </TableCell>
-                                <TableCell>
                                     <div className="flex flex-col">
                                         <span className="font-black text-slate-700 text-[11px] uppercase">{s.studentName}</span>
-                                        <span className="text-[9px] text-indigo-500 font-bold uppercase tracking-widest opacity-70 italic">LRN: {s.lrn || '---'}</span>
+                                        <div className="flex items-center gap-2 mt-1">
+                                            <span className="text-[9px] text-indigo-500 font-bold uppercase tracking-widest opacity-70 italic">LRN: {s.lrn || '---'}</span>
+                                            <span className="text-slate-200 text-[8px]">•</span>
+                                            <span className="text-[9px] text-slate-400 font-bold uppercase tracking-tighter">{new Date(s.createdAt).toLocaleString()}</span>
+                                        </div>
                                     </div>
                                 </TableCell>
                                 <TableCell>

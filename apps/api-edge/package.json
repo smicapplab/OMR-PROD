@@ -1,0 +1,9 @@
+{
+  "name": "api-edge",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "bash -c 'source .venv/bin/activate && python3 run_edge.py'",
+    "start": "bash -c 'source .venv/bin/activate && python3 run_edge.py'"
+  }
+}

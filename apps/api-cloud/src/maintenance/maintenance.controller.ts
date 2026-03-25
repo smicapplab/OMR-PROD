@@ -1,5 +1,5 @@
 import { Controller, Get, Post, Body, Inject, Query, Req, UnauthorizedException, ForbiddenException, NotFoundException } from '@nestjs/common';
-import { eq, sql, desc, and } from 'drizzle-orm';
+import { eq, sql, desc, and, inArray } from 'drizzle-orm';
 import * as schema from '@omr-prod/database';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
@@ -305,10 +305,32 @@ export class MaintenanceController {
   // --- BUBBLE CORRECTION & VALIDATION QUEUE ---
   @Get('scans/pending-review')
   async listPendingReview(@Req() req: any) {
-    await this.validateAdmin(req);
-    return this.db.select().from(schema.scans)
-        .where(eq(schema.scans.reviewRequired, true))
+    const user = await this.validateUser(req);
+    console.log(`🔍 [PENDING REVIEW] User: ${user.email}, Role: ${user.userType}, Scope: ${user.visibilityScope}`);
+    
+    if (user.userType === 'SUPER_ADMIN') {
+        const results = await this.db.select().from(schema.scans)
+            .where(eq(schema.scans.reviewRequired, true))
+            .orderBy(desc(schema.scans.createdAt));
+        console.log(`✅ [PENDING REVIEW] Found ${results.length} records for SUPER_ADMIN`);
+        return results;
+    }
+
+    const conditions = [eq(schema.scans.reviewRequired, true)];
+
+    if (user.visibilityScope === 'SCHOOL') {
+        conditions.push(eq(schema.scans.schoolId, user.scopeValue));
+    } else if (user.visibilityScope === 'REGIONAL') {
+        const regionSchools = this.db.select({ id: schema.schools.id }).from(schema.schools).where(eq(schema.schools.regionId, user.scopeValue));
+        conditions.push(inArray(schema.scans.schoolId, regionSchools));
+    }
+
+    const results = await this.db.select().from(schema.scans)
+        .where(and(...conditions))
         .orderBy(desc(schema.scans.createdAt));
+    
+    console.log(`✅ [PENDING REVIEW] Found ${results.length} records for ${user.visibilityScope} scope`);
+    return results;
   }
 
   @Post('scans/correct-bubbles')

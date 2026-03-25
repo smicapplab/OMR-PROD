@@ -31,6 +31,19 @@ def seed():
         else:
             print(f"ℹ️ Local operator {user_email} already exists.")
 
+        # Add operator1@mshs.edu.ph for parity with cloud demo
+        op_email = "operator1@mshs.edu.ph"
+        if not db.query(User).filter(User.email == op_email).first():
+            db.add(User(
+                email=op_email,
+                password_hash=pwd_context.hash("password123"),
+                first_name="MSHS",
+                last_name="Operator 1",
+                user_type="SCHOOL_OPERATOR"
+            ))
+            db.commit()
+            print(f"✅ Created MSHS operator: {op_email}")
+
     except Exception as e:
         print(f"❌ Seeding failed: {e}")
     finally:

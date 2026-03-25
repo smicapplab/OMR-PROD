@@ -5,22 +5,22 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { useAuth } from "@/app/context/AuthContext";
 import { apiFetch } from "@/lib/api";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
-import { 
-    Search, Loader2, LogOut, CheckCircle2, 
-    Database, ShieldCheck, FileText, 
-    RefreshCcw, ChevronRight, History, XCircle, 
+import {
+    Search, Loader2, LogOut, CheckCircle2,
+    Database, ShieldCheck, FileText,
+    RefreshCcw, ChevronRight, History, XCircle,
     ThumbsUp
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { cn } from "@/lib/utils";
+import { cn, formatOMRYear } from "@/lib/utils";
 import { ZoomableImage } from "@/components/ZoomableImage";
-import { BubbleEditor } from "@/components/BubbleEditor";
 import { ActivityLogSlider } from "@/components/ActivityLogSlider";
 import { Button } from "@/components/ui/button";
 import { Scan } from "@omr-prod/contracts";
+import { BubbleEditor } from "@/components/bubble-editor";
 
 interface PaginatedResponse {
     items: Scan[];
@@ -31,22 +31,22 @@ interface PaginatedResponse {
 
 export default function DashboardPage() {
     const { user, logout } = useAuth();
-    
+
     const [scans, setScans] = useState<Scan[]>([]);
     const [totalScans, setTotalScans] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
     const [isFetchingMore, setIsFetchingMore] = useState(false);
-    
+
     const [selectedScanId, setSelectedScanId] = useState<number | null>(null);
     const [selectedScan, setSelectedScan] = useState<Scan | null>(null);
     const [isDetailLoading, setIsDetailScanLoading] = useState(false);
-    
+
     const [isEditorOpen, setIsEditorOpen] = useState(false);
     const [isLogOpen, setIsLogOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
     const skipRef = useRef(0);
     const LIMIT = 30;
-    
+
     const API_URL = process.env.NEXT_PUBLIC_API_URL;
     const observerTarget = useRef(null);
 
@@ -75,7 +75,7 @@ export default function DashboardPage() {
             } else {
                 setScans(prev => [...prev, ...items]);
             }
-            
+
             setTotalScans(data?.total || 0);
             skipRef.current = currentSkip + items.length;
         } catch (err) {
@@ -141,7 +141,7 @@ export default function DashboardPage() {
     }, [selectedScanId]);
 
     const getStatusColor = (status: string) => {
-        switch(status) {
+        switch (status) {
             case 'success': return 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20';
             case 'synced': return 'bg-blue-500/10 text-blue-600 border-blue-500/20';
             case 'pending': return 'bg-amber-500/10 text-amber-600 border-amber-500/20';
@@ -153,7 +153,7 @@ export default function DashboardPage() {
     return (
         <div className="flex h-screen bg-slate-50/50 overflow-hidden font-sans text-slate-900">
             <div className="flex flex-1 flex-col overflow-hidden">
-                
+
                 <header className="flex h-16 items-center justify-between border-b bg-white px-8 z-20">
                     <div className="flex items-center gap-4">
                         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-600 shadow-lg shadow-indigo-200">
@@ -195,15 +195,15 @@ export default function DashboardPage() {
                                     </div>
                                     <Badge variant="outline" className="font-mono text-[10px]">{totalScans}</Badge>
                                 </div>
-                                
+
                                 <div className="px-6 mb-4">
                                     <div className="relative group">
                                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300 group-focus-within:text-indigo-500 transition-colors" />
-                                        <input 
-                                            type="text" 
+                                        <input
+                                            type="text"
                                             value={searchQuery}
                                             onChange={(e) => setSearchQuery(e.target.value)}
-                                            placeholder="Search name or LRN..." 
+                                            placeholder="Search name or LRN..."
                                             className="w-full pl-10 pr-4 py-2 bg-slate-50 border-transparent border focus:border-indigo-100 focus:bg-white rounded-xl text-sm outline-none transition-all"
                                         />
                                         {searchQuery && (
@@ -225,18 +225,18 @@ export default function DashboardPage() {
                                             <div className="space-y-1">
                                                 {scans.map((scan) => {
                                                     const sInfo = (scan.rawData as any)?.student_info || {};
-                                                    const studentName = sInfo.first_name?.answer || sInfo.last_name?.answer 
+                                                    const studentName = sInfo.first_name?.answer || sInfo.last_name?.answer
                                                         ? `${sInfo.first_name?.answer || ""} ${sInfo.last_name?.answer || ""}`.trim()
                                                         : "UNIDENTIFIED STUDENT";
 
                                                     return (
-                                                        <div 
+                                                        <div
                                                             key={scan.id}
                                                             onClick={() => setSelectedScanId(scan.id)}
                                                             className={cn(
                                                                 "group relative flex flex-col p-4 rounded-2xl cursor-pointer transition-all border-2",
-                                                                selectedScanId === scan.id 
-                                                                    ? "bg-white border-indigo-600 shadow-md translate-x-1" 
+                                                                selectedScanId === scan.id
+                                                                    ? "bg-white border-indigo-600 shadow-md translate-x-1"
                                                                     : "bg-transparent border-transparent hover:bg-slate-50"
                                                             )}
                                                         >
@@ -309,7 +309,7 @@ export default function DashboardPage() {
                                                                 <div className="h-8 w-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600 font-bold text-xs">Ai</div>
                                                                 <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em]">Extraction Intelligence</h3>
                                                             </div>
-                                                            <button 
+                                                            <button
                                                                 onClick={() => setIsLogOpen(true)}
                                                                 className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 transition-all"
                                                             >
@@ -326,7 +326,7 @@ export default function DashboardPage() {
                                                                 </div>
                                                                 <p className="text-xs text-purple-600/80 leading-relaxed font-medium">This record has manual corrections. A supervisor must verify the changes before they are synced to the cloud.</p>
                                                                 {(user?.userType === 'SUPER_ADMIN' || user?.userType === 'SCHOOL_ADMIN') && (
-                                                                    <Button 
+                                                                    <Button
                                                                         onClick={handleApprove}
                                                                         className="w-full bg-purple-600 hover:bg-purple-700 text-white rounded-xl h-9 gap-2 text-xs font-bold"
                                                                     >
@@ -365,7 +365,7 @@ export default function DashboardPage() {
                                                                         <div className="col-span-2">
                                                                             <label className="text-[9px] font-black text-slate-400 uppercase">Birthdate</label>
                                                                             <p className="text-xs font-bold text-slate-700">
-                                                                                {(selectedScan.rawData as any)?.student_info?.birth_month?.answer || '--'} {(selectedScan.rawData as any)?.student_info?.birth_day?.answer || '--'}, {(selectedScan.rawData as any)?.student_info?.birth_year?.answer || '----'}
+                                                                                {(selectedScan.rawData as any)?.student_info?.birth_month?.answer || '--'} {(selectedScan.rawData as any)?.student_info?.birth_day?.answer || '--'}, {formatOMRYear((selectedScan.rawData as any)?.student_info?.birth_year?.answer) || '----'}
                                                                             </p>
                                                                         </div>
                                                                     </div>
@@ -376,7 +376,7 @@ export default function DashboardPage() {
                                                         <div className="space-y-4">
                                                             <div className="flex items-center justify-between">
                                                                 <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Audit Timeline</h4>
-                                                                <button 
+                                                                <button
                                                                     onClick={() => setIsLogOpen(true)}
                                                                     className="text-[10px] font-black text-indigo-600 uppercase tracking-tighter underline underline-offset-4 hover:text-indigo-800"
                                                                 >
@@ -408,14 +408,14 @@ export default function DashboardPage() {
                                                         <div className="space-y-4">
                                                             <div className="flex items-center justify-between">
                                                                 <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Exam Modules</h4>
-                                                                <button 
+                                                                <button
                                                                     onClick={() => setIsEditorOpen(true)}
                                                                     className="text-[10px] font-black text-indigo-600 uppercase tracking-tighter underline underline-offset-4 hover:text-indigo-800 transition-colors"
                                                                 >
                                                                     Adjust Bubbles
                                                                 </button>
                                                             </div>
-                                                            
+
                                                             <div className="grid grid-cols-1 gap-2">
                                                                 {Object.keys((selectedScan.rawData as any)?.answers || {}).map(subject => (
                                                                     <div key={subject} className="flex items-center justify-between bg-white border border-slate-100 p-3.5 rounded-xl shadow-sm">
@@ -448,10 +448,10 @@ export default function DashboardPage() {
             </div>
 
             {selectedScan && (
-                <BubbleEditor 
-                    scan={selectedScan} 
-                    isOpen={isEditorOpen} 
-                    onClose={() => setIsEditorOpen(false)} 
+                <BubbleEditor
+                    scan={selectedScan}
+                    isOpen={isEditorOpen}
+                    onClose={() => setIsEditorOpen(false)}
                     onSaved={() => {
                         loadScans(true);
                         refreshDetail();
@@ -459,7 +459,7 @@ export default function DashboardPage() {
                 />
             )}
 
-            <ActivityLogSlider 
+            <ActivityLogSlider
                 scanId={selectedScanId}
                 isOpen={isLogOpen}
                 onClose={() => setIsLogOpen(false)}

@@ -43,8 +43,8 @@ export default function SecureLayout({ children }: { children: React.ReactNode }
     const allNavItems = [
         { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, scopes: ['NATIONAL', 'REGIONAL', 'DIVISION', 'SCHOOL'] },
         { name: "Exam Records", href: "/scans", icon: FileCheck, scopes: ['NATIONAL', 'REGIONAL', 'DIVISION', 'SCHOOL'] },
-        { name: "Validation Queue", href: "/maintenance/validation", icon: ShieldCheck, scopes: ['NATIONAL', 'SCHOOL'] },
-        { name: "Correction Queue", href: "/maintenance/orphaned", icon: AlertTriangle, scopes: ['NATIONAL'] },
+        { name: "Data Correction Queue", href: "/maintenance/validation", icon: ShieldCheck, scopes: ['NATIONAL', 'SCHOOL'] },
+        { name: "Orphaned Records", href: "/maintenance/orphaned", icon: AlertTriangle, scopes: ['NATIONAL'] },
         { name: "Audit History", href: "/maintenance/history", icon: History, scopes: ['NATIONAL'] },
         { name: "Institutions", href: "/maintenance/schools", icon: School, scopes: ['NATIONAL'] },
         { name: "Edge Appliances", href: "/maintenance/machines", icon: Monitor, scopes: ['NATIONAL'] },

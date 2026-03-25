@@ -101,8 +101,8 @@ export default function ValidationDetail({ params }: { params: Promise<{ id: str
         </div>
     );
 
-    const originalAnswers = scan.extracted_data.answers;
-    const proposedAnswers = scan.pending_data?.answers || originalAnswers;
+    const originalAnswers = scan.extracted_data;
+    const proposedAnswers = scan.pending_data || originalAnswers;
     const isOrphaned = scan.status === 'orphaned';
 
     return (

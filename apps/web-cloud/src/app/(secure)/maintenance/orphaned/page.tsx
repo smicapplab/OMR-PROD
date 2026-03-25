@@ -105,8 +105,8 @@ export default function CorrectionQueue() {
         <div className="flex-1 p-10 space-y-10 max-w-7xl mx-auto overflow-y-auto h-screen pb-32">
             <div className="flex items-center justify-between">
                 <div className="space-y-1">
-                    <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tight leading-none mb-1">Correction Queue</h2>
-                    <p className="text-sm text-slate-500 font-medium">Review and assign orphaned papers with invalid institutional identification.</p>
+                    <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tight leading-none mb-1">Orphaned Records</h2>
+                    <p className="text-sm text-slate-500 font-medium italic">Review scans with invalid institutional identification and map them to the correct school.</p>
                 </div>
                 <Badge variant="outline" className="bg-amber-50 text-amber-600 border-amber-100 font-black px-4 py-1 rounded-full uppercase text-[10px]">
                     {scans.length} Issues Found
@@ -120,7 +120,6 @@ export default function CorrectionQueue() {
                         <Table>
                             <TableHeader className="bg-slate-50/50">
                                 <TableRow className="border-slate-100">
-                                    <TableHead className="pl-8 text-[9px] font-black uppercase text-slate-400 h-12">Scanned Paper</TableHead>
                                     <TableHead className="text-[9px] font-black uppercase text-slate-400 h-12">Extracted Info</TableHead>
                                     <TableHead className="pr-8 text-right text-[9px] font-black uppercase text-slate-400 h-12">Action</TableHead>
                                 </TableRow>
@@ -131,13 +130,6 @@ export default function CorrectionQueue() {
                                 ) : scans.length > 0 ? scans.map((s) => (
                                     <TableRow key={s.id} className={cn("transition-colors border-slate-50", selectedScan?.id === s.id ? "bg-amber-50/50" : "hover:bg-slate-50/30")}>
                                         <TableCell className="pl-8 py-5">
-                                            <div className="flex flex-col">
-                                                <span className="font-bold text-slate-900 text-xs uppercase">{s.fileName}</span>
-                                                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">Captured by: {s.machineId}</span>
-                                                <span className="text-[9px] text-slate-300 mt-1">{new Date(s.createdAt).toLocaleString()}</span>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell>
                                             <div className="space-y-1">
                                                 <div className="flex items-center gap-1.5">
                                                     <User className="h-3 w-3 text-slate-400" />
@@ -145,11 +137,15 @@ export default function CorrectionQueue() {
                                                         {s.extracted_data?.student_info?.first_name?.answer || '---'} {s.extracted_data?.student_info?.last_name?.answer || '---'}
                                                     </span>
                                                 </div>
-                                                <div className="flex items-center gap-1.5">
-                                                    <HelpCircle className="h-3 w-3 text-amber-400" />
-                                                    <span className="text-[10px] font-black text-amber-600 uppercase italic bg-amber-50 px-1.5 rounded">
-                                                        BAD ID: {s.extracted_data?.student_info?.school_id?.answer || 'MISSING'}
-                                                    </span>
+                                                <div className="flex items-center gap-2">
+                                                    <div className="flex items-center gap-1.5 opacity-70">
+                                                        <HelpCircle className="h-2.5 w-2.5 text-amber-500" />
+                                                        <span className="text-[9px] font-black text-amber-600 uppercase italic bg-amber-50 px-1.5 rounded">
+                                                            BAD ID: {s.extracted_data?.student_info?.school_id?.answer || 'MISSING'}
+                                                        </span>
+                                                    </div>
+                                                    <span className="text-slate-200 text-[8px]">•</span>
+                                                    <span className="text-[9px] text-slate-300 font-bold uppercase tracking-tighter">{new Date(s.createdAt).toLocaleString()}</span>
                                                 </div>
                                             </div>
                                         </TableCell>
@@ -240,7 +236,7 @@ export default function CorrectionQueue() {
                                     <Button 
                                         onClick={handleAssign} 
                                         disabled={!targetSchoolId || isSubmitting}
-                                        className="flex-[2] h-12 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-black text-xs uppercase shadow-lg shadow-indigo-100"
+                                        className="flex-2 h-12 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-black text-xs uppercase shadow-lg shadow-indigo-100"
                                     >
                                         {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Finalize Assignment"}
                                     </Button>
