@@ -50,7 +50,7 @@ class SyncService:
                 if not user:
                     user = User(id=op["id"], email=op["email"])
                     db.add(user)
-                user.password_hash = op["password_hash"]
+                # user.password_hash = op["password_hash"] # REMOVED (C-2)
                 user.first_name = op.get("first_name")
                 user.last_name = op.get("last_name")
                 user.user_type = op.get("user_type", "SCHOOL_OPERATOR")
@@ -91,6 +91,7 @@ class SyncService:
             logger.info(f"📤 Pushing {len(logs)} activity logs...")
             
             payload = {
+                "machine_id": settings.MACHINE_ID,
                 "logs": [
                     {
                         "id": l.id,
@@ -126,9 +127,9 @@ class SyncService:
                 scan = db.query(Scan).filter(Scan.original_sha == sha).first()
                 if scan and scan.process_status == "pending_approval":
                     # HQ has resolved it!
-                    scan.process_status = "success"
+                    scan.process_status = "hq_resolved"
                     scan.review_required = False
-                    scan.is_manually_edited = False # Clear flag as it's now authoritative
+                    scan.is_manually_edited = False # Clear flag as HQ data is now authoritative
                     updated_count += 1
             
             if updated_count > 0:

@@ -1,7 +1,7 @@
 import { Injectable, UnauthorizedException, Inject } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import * as schema from '@omr-prod/database';
 
 @Injectable()
@@ -12,7 +12,12 @@ export class AuthService {
   ) {}
 
   async validateUser(email: string, pass: string): Promise<any> {
-    const [user] = await this.db.select().from(schema.users).where(eq(schema.users.email, email)).limit(1);
+    const [user] = await this.db.select().from(schema.users)
+      .where(and(
+        eq(schema.users.email, email),
+        eq(schema.users.isActive, true)
+      ))
+      .limit(1);
     if (user && await bcrypt.compare(pass, user.passwordHash)) {
       const { passwordHash, ...result } = user;
       return result;
@@ -51,10 +56,32 @@ export class AuthService {
   async refresh(token: string) {
     try {
       const payload = this.jwtService.verify(token);
-      if (payload.type !== 'refresh') throw new UnauthorizedException();
+      if (payload.type !== 'refresh') throw new UnauthorizedException('Invalid token type');
 
-      const [user] = await this.db.select().from(schema.users).where(eq(schema.users.id, payload.sub)).limit(1);
-      if (!user) throw new UnauthorizedException();
+      // 1. Fetch all tokens for this user
+      const dbTokens = await this.db.select().from(schema.refreshTokens)
+        .where(eq(schema.refreshTokens.userId, payload.sub));
+
+      // 2. Find the matching token hash
+      let matchedToken: any = null;
+      for (const t of dbTokens) {
+        if (await bcrypt.compare(token, t.tokenHash)) {
+          matchedToken = t;
+          break;
+        }
+      }
+
+      if (!matchedToken || matchedToken.expiresAt < new Date()) {
+        throw new UnauthorizedException('Token revoked or expired');
+      }
+
+      const [user] = await this.db.select().from(schema.users)
+        .where(and(eq(schema.users.id, payload.sub), eq(schema.users.isActive, true)))
+        .limit(1);
+      if (!user) throw new UnauthorizedException('User no longer active');
+
+      // 3. Optional: Revoke the used refresh token (Rotation)
+      await this.db.delete(schema.refreshTokens).where(eq(schema.refreshTokens.id, matchedToken.id));
 
       const newAccessToken = this.jwtService.sign({ 
         sub: user.id, 
@@ -63,16 +90,21 @@ export class AuthService {
       });
 
       return { accessToken: newAccessToken };
-    } catch {
-      throw new UnauthorizedException();
+    } catch (err) {
+      if (err instanceof UnauthorizedException) throw err;
+      throw new UnauthorizedException('Session expired');
     }
   }
 
   async verifyToken(token: string) {
     try {
         const payload = this.jwtService.verify(token);
-        const [user] = await this.db.select().from(schema.users).where(eq(schema.users.id, payload.sub)).limit(1);
-        return user;
+        // Reject non-access tokens (e.g. a refresh token used as an access token)
+        if (payload.type !== 'access') return null;
+        const [user] = await this.db.select().from(schema.users)
+          .where(and(eq(schema.users.id, payload.sub), eq(schema.users.isActive, true)))
+          .limit(1);
+        return user ?? null;
     } catch {
         return null;
     }

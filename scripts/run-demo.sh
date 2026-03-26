@@ -5,6 +5,39 @@
 
 echo "--- 🚀 Preparing OMR-PROD Demo ---"
 
+# ── Secret Auto-Generation ──────────────────────────────────────────────────
+_ensure_secret() {
+  local env_file="$1"
+  local var_name="$2"
+  if [ ! -f "$env_file" ]; then touch "$env_file"; fi
+  local current
+  current=$(grep -E "^${var_name}=" "$env_file" 2>/dev/null | head -1 | cut -d'=' -f2- | tr -d '"' | tr -d "'" | xargs)
+  local is_placeholder=false
+  case "$current" in
+    ""|*"change-me"*|*"your-"*|*"GENERATE_"*|*"secret-key"*|*"dev-"*|*"change-this"*)
+      is_placeholder=true ;;
+  esac
+  if $is_placeholder; then
+    local new_val; new_val=$(openssl rand -hex 32)
+    local tmp; tmp=$(mktemp)
+    grep -vE "^${var_name}=" "$env_file" > "$tmp" 2>/dev/null || true
+    mv "$tmp" "$env_file"
+    echo "${var_name}=\"${new_val}\"" >> "$env_file"
+    echo "  🔑 Generated ${var_name} in ${env_file}"
+  fi
+}
+
+echo ""
+echo "🔐 Checking / generating secrets..."
+_ensure_secret ".env"                    "JWT_SECRET"
+_ensure_secret ".env"                    "JWT_REFRESH_SECRET"
+_ensure_secret ".env"                    "ENROLLMENT_SECRET"
+_ensure_secret "apps/api-cloud/.env"     "JWT_SECRET"
+_ensure_secret "apps/api-edge/.env"      "SECRET_KEY"
+echo "✅ Secrets OK"
+echo ""
+# ─────────────────────────────────────────────────────────────────────────────
+
 # 1. Build all components
 echo "📦 Building project..."
 npm run build

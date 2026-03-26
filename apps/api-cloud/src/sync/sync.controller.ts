@@ -2,8 +2,10 @@ import { Controller, Get, Post, Param, Body, Inject, UnauthorizedException, NotF
 import { eq, and, or, inArray, desc, sql, count } from 'drizzle-orm';
 import * as schema from '@omr-prod/database';
 import { SyncScanDto } from './dto/sync-scan.dto';
+import { SyncLogsDto } from './dto/sync-logs.dto';
 import { EnrollMachineDto } from './dto/enroll-machine.dto';
 import * as crypto from 'crypto';
+import * as bcrypt from 'bcrypt';
 import { AuthService } from '../auth/auth.service';
 import { GradingService } from './grading.service';
 
@@ -19,22 +21,50 @@ export class SyncController {
     async registerMachine(@Body() body: { machineId: string }) {
         console.log(`🆕 Registration attempt: ${body.machineId}`);
 
-        let [machine] = await this.db.select({ id: schema.machines.id, status: schema.machines.status, secret: schema.machines.secret }).from(schema.machines)
+        let [machine] = await this.db.select({ id: schema.machines.id, status: schema.machines.status }).from(schema.machines)
             .where(eq(schema.machines.machineId, body.machineId))
             .limit(1);
 
         if (machine) {
-            return { ok: true, status: machine.status, machineSecret: machine.secret };
+            return { ok: true, status: machine.status, message: 'Machine already registered' };
         }
 
-        const secret = crypto.randomBytes(32).toString('hex');
+        const rawSecret = crypto.randomBytes(32).toString('hex');
+        const salt = await bcrypt.genSalt(10);
+        const hashedSecret = await bcrypt.hash(rawSecret, salt);
+
         await this.db.insert(schema.machines).values({
             machineId: body.machineId,
-            secret: secret,
+            secret: hashedSecret,
             status: 'pending'
         });
 
-        return { ok: true, status: 'pending', machineSecret: secret };
+        // Secret is only returned once during initial registration
+        return { ok: true, status: 'pending', machineSecret: rawSecret };
+    }
+
+    /**
+     * Internal helper to verify machine identity via hashed secret.
+     */
+    private async validateMachine(machineId: string, providedSecret: string) {
+        if (!providedSecret) throw new UnauthorizedException('Machine secret required');
+
+        const [machine] = await this.db.select().from(schema.machines)
+            .where(eq(schema.machines.machineId, machineId))
+            .limit(1);
+
+        if (!machine) throw new UnauthorizedException('Machine not authorized or pending approval');
+        if (machine.status !== 'active') throw new UnauthorizedException('Machine not authorized or pending approval');
+
+        // Robust check for dev: support both bcrypt and plain-text (if not hashed)
+        const isBcrypt = machine.secret?.startsWith('$2');
+        const isMatch = isBcrypt
+            ? await bcrypt.compare(providedSecret, machine.secret)
+            : providedSecret === machine.secret;
+
+        if (!isMatch) throw new UnauthorizedException('Invalid machine secret');
+
+        return machine;
     }
 
     @Post('scans')
@@ -42,16 +72,7 @@ export class SyncController {
         @Body() body: SyncScanDto,
         @Headers('x-machine-secret') machineSecret: string
     ) {
-        // 1. VERIFY MACHINE AUTHORIZATION
-        const [machine] = await this.db.select({ id: schema.machines.id }).from(schema.machines)
-            .where(and(
-                eq(schema.machines.machineId, body.machine_id),
-                eq(schema.machines.secret, machineSecret),
-                eq(schema.machines.status, 'active')
-            ))
-            .limit(1);
-
-        if (!machine) throw new UnauthorizedException('Machine not authorized or pending approval');
+        const machine = await this.validateMachine(body.machine_id, machineSecret);
 
         // 2. LOG HEARTBEAT
         await this.db.update(schema.machines).set({ lastHeartbeatAt: new Date() }).where(eq(schema.machines.id, machine.id));
@@ -73,8 +94,8 @@ export class SyncController {
             syncStatus = 'orphaned';
         }
 
-        // 4. AUTHORITATIVE GRADING
-        const { totalScore, maxPossibleScore, gradingDetails } = await this.gradingService.gradeScan(body.raw_data);
+        // 4. AUTHORITATIVE GRADING — use version from payload if provided (Gap-4)
+        const { totalScore, maxPossibleScore, gradingDetails } = await this.gradingService.gradeScan(body.raw_data, body.version);
 
         // 5. PERSISTENCE & AUDIT
         return this.db.transaction(async (tx: any) => {
@@ -142,13 +163,10 @@ export class SyncController {
 
     @Post('logs')
     async syncActivityLogs(
-        @Body() body: { logs: any[] },
+        @Body() body: SyncLogsDto,
         @Headers('x-machine-secret') machineSecret: string
     ) {
-        const [machine] = await this.db.select().from(schema.machines)
-            .where(and(eq(schema.machines.secret, machineSecret), eq(schema.machines.status, 'active')))
-            .limit(1);
-        if (!machine) throw new UnauthorizedException();
+        await this.validateMachine(body.machine_id, machineSecret);
 
         if (body.logs.length === 0) return { ok: true };
 
@@ -205,6 +223,8 @@ export class SyncController {
 
         let totalQuery = this.db.select({ value: count() }).from(schema.scans);
         let reviewQuery = this.db.select({ value: count() }).from(schema.scans).where(eq(schema.scans.reviewRequired, true));
+        // M-3: Avoid fetching the full extracted_data blob. Project only the name/LRN
+        // fields needed for display using JSONB path extraction.
         let streamQuery = this.db.select({
             id: schema.scans.id,
             schoolId: schema.scans.schoolId,
@@ -216,7 +236,10 @@ export class SyncController {
             status: schema.scans.status,
             createdAt: schema.scans.createdAt,
             reviewRequired: schema.scans.reviewRequired,
-            extracted_data: schema.scans.extracted_data
+            // Inline JSONB projections — no full blob
+            studentFirstName: sql<string>`${schema.scans.extracted_data}->'student_info'->'first_name'->>'answer'`,
+            studentLastName: sql<string>`${schema.scans.extracted_data}->'student_info'->'last_name'->>'answer'`,
+            lrn: sql<string>`${schema.scans.extracted_data}->'student_info'->'lrn'->>'answer'`,
         }).from(schema.scans).$dynamic();
 
         if (user.visibilityScope !== 'NATIONAL') {
@@ -260,23 +283,37 @@ export class SyncController {
     }
 
     private decorateScan(s: any, schoolMap: Record<string, string>) {
+        // Support both full extracted_data blob (detail view) and inline projections (list/stats view)
         const info = s.extracted_data?.student_info;
-        const first = info?.first_name?.answer || info?.firstName?.answer || '';
-        const last = info?.last_name?.answer || info?.lastName?.answer || '';
-        const studentName = `${first} ${last}`.trim() || 'Unidentified';
+        const first = s.studentFirstName || info?.first_name?.answer || info?.firstName?.answer || '';
+        const last = s.studentLastName || info?.last_name?.answer || info?.lastName?.answer || '';
+        const lrn = s.lrn || info?.lrn?.answer || '---';
+        const studentName = (first || last) ? `${first} ${last}`.trim() : 'Unidentified';
+
+        // Don't re-expose the full blob in list/stats responses
+        const { extracted_data: _blob, studentFirstName: _f, studentLastName: _l, ...rest } = s;
 
         return {
-            ...s,
+            ...rest,
             schoolName: schoolMap[s.schoolId] || 'Unknown',
             studentName,
-            lrn: info?.lrn?.answer
+            lrn,
         };
     }
 
     @Get('scans/:id')
-    async getScan(@Param('id') id: string) {
+    async getScan(@Param('id') id: string, @Req() req: any) {
+        // H-4: Require authentication for individual scan access
+        const user = await this.authService.verifyToken(req.headers.authorization?.split(' ')[1]);
+        if (!user) throw new UnauthorizedException();
+
         const [scan] = await this.db.select().from(schema.scans).where(eq(schema.scans.id, id)).limit(1);
         if (!scan) throw new NotFoundException();
+
+        // Scope enforcement: SCHOOL users can only see their own school's scans
+        if (user.visibilityScope === 'SCHOOL' && scan.schoolId !== user.scopeValue) {
+            throw new UnauthorizedException('Access denied');
+        }
 
         const schoolMap: Record<string, string> = {};
         if (scan.schoolId) {
@@ -299,8 +336,9 @@ export class SyncController {
         const user = await this.authService.verifyToken(req.headers.authorization?.split(' ')[1]);
         if (!user) throw new UnauthorizedException();
 
-        const l = parseInt(limit);
-        const o = parseInt(offset);
+        // H-8: Cap limit to prevent full-table dumps
+        const l = Math.min(Math.max(parseInt(limit) || 20, 1), 100);
+        const o = Math.max(parseInt(offset) || 0, 0);
         const conditions = [];
 
         if (user.visibilityScope === 'SCHOOL') conditions.push(eq(schema.scans.schoolId, user.scopeValue));
@@ -335,8 +373,8 @@ export class SyncController {
             confidence: schema.scans.confidence,
             status: schema.scans.status,
             createdAt: schema.scans.createdAt,
-            reviewRequired: schema.scans.reviewRequired,
-            extracted_data: schema.scans.extracted_data
+            reviewRequired: schema.scans.reviewRequired
+            // [OPTIMIZATION]: Exclude extracted_data/pending_data/gradingDetails in list view
         }).from(schema.scans).where(whereClause).orderBy(desc(schema.scans.createdAt)).limit(l).offset(o);
         const [totalResult] = await this.db.select({ value: count() }).from(schema.scans).where(whereClause);
 
@@ -356,16 +394,7 @@ export class SyncController {
         @Param('machineId') machineId: string,
         @Headers('x-machine-secret') machineSecret: string
     ) {
-        // 1. Verify machine
-        const [machine] = await this.db.select().from(schema.machines)
-            .where(and(
-                eq(schema.machines.machineId, machineId),
-                eq(schema.machines.secret, machineSecret),
-                eq(schema.machines.status, 'active')
-            ))
-            .limit(1);
-
-        if (!machine) throw new UnauthorizedException();
+        await this.validateMachine(machineId, machineSecret);
 
         // 2. Fetch recent scan updates for this machine that are finalized
         // We return scans that were updated in the last 24 hours (or just recently resolved)
@@ -390,13 +419,12 @@ export class SyncController {
         @Param('machineId') machineId: string,
         @Headers('x-machine-secret') machineSecret: string
     ) {
-        const [machine] = await this.db.select().from(schema.machines).where(and(eq(schema.machines.machineId, machineId), eq(schema.machines.secret, machineSecret), eq(schema.machines.status, 'active'))).limit(1);
-        if (!machine) throw new UnauthorizedException('Machine not authorized');
+        const machine = await this.validateMachine(machineId, machineSecret);
 
         const assignedUsers = await this.db.select({
             id: schema.users.id,
             email: schema.users.email,
-            passwordHash: schema.users.passwordHash,
+            // passwordHash: schema.users.passwordHash, // REMOVED FOR SECURITY (C-2)
             firstName: schema.users.firstName,
             lastName: schema.users.lastName,
             userType: schema.users.userType
@@ -404,7 +432,7 @@ export class SyncController {
         const operators = assignedUsers;
 
         return operators.map((user: any) => ({
-            id: user.id, email: user.email, password_hash: user.passwordHash, first_name: user.firstName, last_name: user.lastName, user_type: user.userType,
+            id: user.id, email: user.email, first_name: user.firstName, last_name: user.lastName, user_type: user.userType,
         }));
     }
 
@@ -413,10 +441,7 @@ export class SyncController {
         @Param('machineId') machineId: string,
         @Headers('x-machine-secret') machineSecret: string
     ) {
-        const [machine] = await this.db.select().from(schema.machines)
-            .where(and(eq(schema.machines.machineId, machineId), eq(schema.machines.secret, machineSecret), eq(schema.machines.status, 'active')))
-            .limit(1);
-        if (!machine) throw new UnauthorizedException('Machine not authorized');
+        const machine = await this.validateMachine(machineId, machineSecret);
 
         const assignments = await this.db.select().from(schema.machineAssignments).where(eq(schema.machineAssignments.machineId, machine.id));
         if (assignments.length === 0) return [];

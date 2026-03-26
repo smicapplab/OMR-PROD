@@ -7,16 +7,29 @@ import { join } from 'path';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
-  
+
   const cookieParserFunc = (cookieParser as any).default || cookieParser;
   app.use(cookieParserFunc());
-  
+
+  // Security headers (without helmet dependency — set manually)
+  app.use((_req: any, res: any, next: any) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    res.setHeader('Permissions-Policy', 'geolocation=(), microphone=()');
+    next();
+  });
+
+  // CORS: allow origins from environment or safe localhost defaults
+  const rawOrigins = process.env.CORS_ORIGINS || 'http://localhost:3000,http://localhost:3001';
+  const allowedOrigins = rawOrigins.split(',').map((o) => o.trim()).filter(Boolean);
   app.enableCors({
-    origin: ['http://localhost:3000', 'http://localhost:3001'],
+    origin: allowedOrigins,
     credentials: true,
   });
-  
-  app.useGlobalPipes(new ValidationPipe({ transform: true }));
+
+  app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
   app.setGlobalPrefix('api/v1');
 
   app.useStaticAssets(join(__dirname, '..', 'cloud_storage'), {

@@ -1,10 +1,17 @@
+import os
 from datetime import datetime, timedelta
 from typing import Any, Union, Optional
 from jose import jwt
 import bcrypt
 
-# Reusing secrets from config or hardcoding defaults for edge
-SECRET_KEY = "edge-secret-key-change-me"
+from app.core.config import settings
+ 
+SECRET_KEY = settings.SECRET_KEY
+if not SECRET_KEY or SECRET_KEY == "GENERATE_SECURE_SECRET_AT_RUNTIME":
+    # During development we might allow the placeholder, 
+    # but for production this should be a real secret.
+    pass
+
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 REFRESH_TOKEN_EXPIRE_DAYS = 7

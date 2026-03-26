@@ -62,10 +62,13 @@ async function main() {
 
   // 4. Pre-enroll a Development Machine
   console.log('Pre-enrolling MACHINE-00001...');
+  const devMachineSecret = 'dev-machine-secret-123';
+  const hashedMachineSecret = await bcrypt.hash(devMachineSecret, salt);
+
   const [devMachine] = await db.insert(schema.machines).values({
     machineId: 'MACHINE-00001',
     status: 'active',
-    secret: 'dev-machine-secret-123',
+    secret: hashedMachineSecret,
     hostname: 'dev-laptop',
     ipAddress: '127.0.0.1'
   }).onConflictDoNothing().returning();

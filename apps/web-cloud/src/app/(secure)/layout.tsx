@@ -3,8 +3,8 @@
 import { useEffect } from "react";
 import { useAuth } from "@/app/context/AuthContext";
 import { useRouter, usePathname } from "next/navigation";
-import { 
-    LayoutDashboard, Users, School, LogOut, Search, 
+import {
+    LayoutDashboard, Users, School, LogOut,
     BarChart3, ChevronRight,
     FileCheck,
     Globe,
@@ -66,16 +66,17 @@ export default function SecureLayout({ children }: { children: React.ReactNode }
                         <span className="font-bold text-slate-900 tracking-tighter text-lg">National Hub</span>
                     </div>
                 </div>
-                
+
                 <nav className="flex-1 p-4 space-y-1">
                     {navItems.map((item) => (
-                        <Link 
+                        <Link
                             key={item.name}
                             href={item.disabled ? "#" : item.href}
+                            onClick={item.disabled ? (e) => e.preventDefault() : undefined}
                             className={cn(
                                 "flex w-full items-center justify-between px-4 py-3 text-sm font-semibold rounded-xl transition-all group",
-                                pathname === item.href 
-                                    ? "bg-indigo-50 text-indigo-700 shadow-sm" 
+                                pathname === item.href
+                                    ? "bg-indigo-50 text-indigo-700 shadow-sm"
                                     : "text-slate-400 hover:bg-slate-50",
                                 item.disabled && "opacity-40 cursor-not-allowed"
                             )}
@@ -103,13 +104,9 @@ export default function SecureLayout({ children }: { children: React.ReactNode }
             {/* Main Section */}
             <main className="flex-1 flex flex-col overflow-hidden">
                 <header className="h-16 border-b bg-white flex items-center justify-between px-8 shrink-0 z-20">
-                    <div className="flex items-center gap-4 bg-slate-50 px-4 py-2.5 rounded-2xl border border-slate-100 w-96 group focus-within:border-indigo-200 transition-all">
-                        <Search className="h-4 w-4 text-slate-300 group-focus-within:text-indigo-400" />
-                        <input 
-                            type="text" 
-                            placeholder="Global portal search..." 
-                            className="bg-transparent border-none outline-none text-sm w-full font-medium text-slate-900 placeholder:text-slate-300" 
-                        />
+                    <div className="flex items-center gap-2 px-1">
+                        <div className="h-2 w-2 rounded-full bg-indigo-500 animate-pulse" />
+                        <h2 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Systems Overview</h2>
                     </div>
 
                     <div className="flex items-center gap-4">
@@ -122,7 +119,7 @@ export default function SecureLayout({ children }: { children: React.ReactNode }
                                 {user.firstName?.[0]}{user.lastName?.[0]}
                             </AvatarFallback>
                         </Avatar>
-                        <button 
+                        <button
                             onClick={logout}
                             className="p-2.5 hover:bg-rose-50 hover:text-rose-500 rounded-xl text-slate-300 transition-all"
                         >

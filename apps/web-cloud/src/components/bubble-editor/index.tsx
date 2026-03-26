@@ -21,6 +21,7 @@ interface BubbleEditorProps {
 
 export function BubbleEditor({ scan, isOpen, onClose, onSaved, mode = "pending" }: BubbleEditorProps) {
     const [localData, setLocalData] = useState<OMRRawData | null>(null);
+    const [reason, setReason] = useState("");
     const [isSaving, setIsSaving] = useState(false);
 
     // Sync state when scan prop changes
@@ -36,16 +37,16 @@ export function BubbleEditor({ scan, isOpen, onClose, onSaved, mode = "pending" 
         if (!localData) return;
         setIsSaving(true);
         try {
-            const endpoint = mode === "direct" 
-                ? "/api/v1/maintenance/scans/update-authoritative" 
+            const endpoint = mode === "direct"
+                ? "/api/v1/maintenance/scans/update-authoritative"
                 : "/api/v1/maintenance/scans/correct-bubbles";
 
             await apiFetch(endpoint, {
                 method: "POST",
-                body: JSON.stringify({ 
-                    scanId: scan.id, 
+                body: JSON.stringify({
+                    scanId: scan.id,
                     correctedData: localData,
-                    reason: "Manual correction via Exam Records"
+                    reason: reason || "Manual correction via Exam Records"
                 }),
             });
             onSaved();
@@ -76,16 +77,16 @@ export function BubbleEditor({ scan, isOpen, onClose, onSaved, mode = "pending" 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         let current: any = newData.student_info;
         for (let i = 0; i < path.length; i++) current = current[path[i]];
-        
+
         current.answer = val;
         current.is_manual = true;
-        
+
         const details = current.details?.digits ? current.details.digits : current.details;
         if (details) {
             const colKeys = Object.keys(details)
                 .filter(k => !isNaN(Number(k)))
                 .sort((a, b) => Number(a) - Number(b));
-                
+
             colKeys.forEach((colIdx, i) => {
                 const char = val[i] || null;
                 if (char && details[colIdx].scores && details[colIdx].scores[char] !== undefined) {
@@ -95,7 +96,7 @@ export function BubbleEditor({ scan, isOpen, onClose, onSaved, mode = "pending" 
                 }
             });
         }
-        
+
         setLocalData({ ...newData });
     };
 
@@ -105,16 +106,16 @@ export function BubbleEditor({ scan, isOpen, onClose, onSaved, mode = "pending" 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         let current: any = newData.student_info;
         for (let i = 0; i < path.length; i++) current = current[path[i]];
-        
+
         const details = current.details?.digits ? current.details.digits : current.details;
         if (details) {
             details[colIdx].selected = details[colIdx].selected === choice ? null : choice;
-            
+
             const chars = Object.keys(details)
                 .filter(k => !isNaN(Number(k)))
                 .sort((a, b) => Number(a) - Number(b))
                 .map(k => details[k].selected || " ");
-            
+
             current.answer = chars.join("").trim();
             current.is_manual = true;
         }
@@ -161,9 +162,9 @@ export function BubbleEditor({ scan, isOpen, onClose, onSaved, mode = "pending" 
 
                         <div className="flex-1 overflow-hidden">
                             <TabsContent value="student" className="h-full m-0 outline-none">
-                                <StudentProfile 
-                                    localData={localData} 
-                                    onUpdateField={handleUpdateField} 
+                                <StudentProfile
+                                    localData={localData}
+                                    onUpdateField={handleUpdateField}
                                     onUpdateBubble={handleUpdateBubble}
                                     onUpdateText={handleUpdateTextField}
                                 />
@@ -177,12 +178,27 @@ export function BubbleEditor({ scan, isOpen, onClose, onSaved, mode = "pending" 
                 </div>
 
                 <SheetFooter className="p-6 border-t bg-slate-50 shrink-0">
-                    <div className="flex w-full gap-4">
-                        <Button variant="outline" className="flex-1 h-11 rounded-xl border-slate-200 font-bold" onClick={onClose}>Discard</Button>
-                        <Button className="flex-2 h-11 bg-indigo-600 hover:bg-indigo-700 shadow-xl shadow-indigo-100 rounded-xl gap-3 font-bold uppercase tracking-wider transition-all active:scale-95" onClick={handleSave} disabled={isSaving}>
-                            {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                            {mode === "direct" ? "Update Authoritative" : "Submit for Approval"}
-                        </Button>
+                    <div className="flex flex-col w-full gap-4">
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Correction Justification (Mandatory)</label>
+                            <textarea
+                                value={reason}
+                                onChange={(e) => setReason(e.target.value)}
+                                placeholder="e.g., Erased bubble detected but Student clearly marked choice B"
+                                className="w-full h-20 rounded-xl border border-slate-200 bg-white p-3 text-xs focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all resize-none"
+                            />
+                        </div>
+                        <div className="flex w-full gap-4">
+                            <Button variant="outline" className="flex-1 h-11 rounded-xl border-slate-200 font-bold" onClick={onClose}>Discard</Button>
+                            <Button
+                                className="flex-[2] h-11 bg-indigo-600 hover:bg-indigo-700 shadow-xl shadow-indigo-100 rounded-xl gap-3 font-bold uppercase tracking-wider transition-all active:scale-95 disabled:bg-slate-300 disabled:shadow-none"
+                                onClick={handleSave}
+                                disabled={isSaving || !reason.trim()}
+                            >
+                                {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                                {mode === "direct" ? "Update Authoritative" : "Submit for Approval"}
+                            </Button>
+                        </div>
                     </div>
                 </SheetFooter>
             </SheetContent>

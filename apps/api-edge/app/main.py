@@ -7,6 +7,9 @@ from app.core.database import get_db, engine, Base
 from fastapi.staticfiles import StaticFiles
 from app.api.v1 import auth
 from app.core.security import decode_token
+from pydantic import BaseModel
+from typing import Optional, Dict
+
 
 # Initialize database
 from app.models.school import School  # Ensure table is created
@@ -21,11 +24,21 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=settings.allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Security headers middleware
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    return response
 
 async def get_current_user(request: Request, db: Session = Depends(get_db)):
     auth_header = request.headers.get("Authorization")
@@ -33,12 +46,13 @@ async def get_current_user(request: Request, db: Session = Depends(get_db)):
         raise HTTPException(status_code=401, detail="Unauthorized")
     token = auth_header.split(" ")[1]
     payload = decode_token(token)
-    if not payload:
+    # M-1: Reject non-access tokens
+    if not payload or payload.get("type") != "access":
         raise HTTPException(status_code=401, detail="Invalid token")
     from app.models.user import User
-    user = db.query(User).filter(User.id == payload.get("sub")).first()
+    user = db.query(User).filter(User.id == payload.get("sub"), User.is_active == True).first()
     if not user:
-        raise HTTPException(status_code=401, detail="User not found")
+        raise HTTPException(status_code=401, detail="User not found or deactivated")
     return user
 
 def format_scan(scan):
@@ -61,6 +75,11 @@ def format_scan(scan):
         "studentName": get_student_name(scan.raw_data)
     }
 
+# Ensure static directories exist before mounting
+import os
+os.makedirs("success", exist_ok=True)
+os.makedirs("error", exist_ok=True)
+ 
 app.mount("/images/success", StaticFiles(directory="success"), name="success_images")
 app.mount("/images/error", StaticFiles(directory="error"), name="error_images")
 app.include_router(auth.router, prefix=f"{settings.API_V1_STR}/auth", tags=["auth"])
@@ -77,9 +96,14 @@ def get_student_name(data):
     last = info.get("last_name", {}).get("answer") or info.get("lastName", {}).get("answer") or ""
     name = f"{first} {last}".strip()
     return name if name else "UNIDENTIFIED STUDENT"
+ 
+class ScanUpdatePayload(BaseModel):
+    raw_data: Optional[Dict] = None
+    reason: Optional[str] = "Manual correction via Edge Console"
+
 
 @app.get(f"{settings.API_V1_STR}/scans")
-async def list_scans(skip: int = 0, limit: int = 50, search: str = None, db: Session = Depends(get_db)):
+async def list_scans(skip: int = 0, limit: int = 50, search: str = None, db: Session = Depends(get_db), user=Depends(get_current_user)):
     from app.models.scan import Scan
     # Optimization: Only select necessary fields. Include raw_data to calculate name but exclude from final payload.
     query = db.query(
@@ -92,6 +116,8 @@ async def list_scans(skip: int = 0, limit: int = 50, search: str = None, db: Ses
         st = f"%{search}%"
         query = query.filter(or_(Scan.file_name.ilike(st), Scan.raw_data.cast(String).ilike(st)))
     
+    # H-8: Cap limit to prevent full-table dumps
+    limit = max(1, min(limit, 100))
     total = query.count()
     items = query.order_by(Scan.created_at.desc()).offset(skip).limit(limit).all()
     
@@ -117,7 +143,7 @@ async def list_scans(skip: int = 0, limit: int = 50, search: str = None, db: Ses
     }
 
 @app.get(f"{settings.API_V1_STR}/scans/{{scan_id}}")
-async def get_scan(scan_id: int, db: Session = Depends(get_db)):
+async def get_scan(scan_id: int, db: Session = Depends(get_db), user=Depends(get_current_user)):
     from app.models.scan import Scan
     scan = db.query(Scan).filter(Scan.id == scan_id).first()
     if not scan:
@@ -125,10 +151,12 @@ async def get_scan(scan_id: int, db: Session = Depends(get_db)):
     return format_scan(scan)
 
 @app.get(f"{settings.API_V1_STR}/schools")
-async def get_schools(db: Session = Depends(get_db)):
+async def get_schools(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), user=Depends(get_current_user)):
     from app.models.school import School
-    schools = db.query(School).all()
+    limit = max(1, min(limit, 500))
+    schools = db.query(School).offset(skip).limit(limit).all()
     return [{
+
         "id": s.id,
         "name": s.name,
         "code": s.code,
@@ -137,7 +165,7 @@ async def get_schools(db: Session = Depends(get_db)):
     } for s in schools]
 
 @app.get(f"{settings.API_V1_STR}/schools/{{school_id}}")
-async def get_school(school_id: str, db: Session = Depends(get_db)):
+async def get_school(school_id: str, db: Session = Depends(get_db), user=Depends(get_current_user)):
     from app.models.school import School
     from sqlalchemy import or_
     school = db.query(School).filter(or_(School.id == school_id, School.code == school_id)).first()
@@ -152,7 +180,7 @@ async def get_school(school_id: str, db: Session = Depends(get_db)):
     }
 
 @app.patch(f"{settings.API_V1_STR}/scans/{{scan_id}}")
-async def update_scan(scan_id: int, payload: dict, db: Session = Depends(get_db), user = Depends(get_current_user)):
+async def update_scan(scan_id: int, payload: ScanUpdatePayload, db: Session = Depends(get_db), user = Depends(get_current_user)):
     print(f"📥 Received correction for scan {scan_id}")
     from app.models.scan import Scan
     from app.models.user import ActivityLog
@@ -160,22 +188,25 @@ async def update_scan(scan_id: int, payload: dict, db: Session = Depends(get_db)
     if not scan:
         raise HTTPException(status_code=404, detail="Scan not found")
     old_data = scan.raw_data
-    if "raw_data" in payload:
-        scan.raw_data = payload["raw_data"]
+    if payload.raw_data is not None:
+        scan.raw_data = payload.raw_data
         scan.is_manually_edited = True
         scan.process_status = "pending_approval"
         scan.sync_status = "pending"
+    
     log = ActivityLog(
         user_id=user.id, scan_id=scan_id, action="SCAN_CORRECTION",
         status_after="pending_approval",
         details={
             "old_data": old_data, 
-            "new_data": payload.get("raw_data"),
-            "sha": scan.original_sha
+            "new_data": payload.raw_data,
+            "sha": scan.original_sha,
+            "reason": payload.reason
         },
         machine_id=settings.MACHINE_ID,
         is_synced=False
     )
+
     db.add(log)
     db.commit()
     return {"ok": True}
@@ -184,8 +215,10 @@ async def update_scan(scan_id: int, payload: dict, db: Session = Depends(get_db)
 async def approve_scan(scan_id: int, db: Session = Depends(get_db), user = Depends(get_current_user)):
     from app.models.scan import Scan
     from app.models.user import ActivityLog
-    if user.user_type not in ["SUPER_ADMIN", "SCHOOL_ADMIN"]:
-        raise HTTPException(status_code=403, detail="Only supervisors can approve corrections")
+    # H-6: Four-eyes principle — only SUPER_ADMIN can approve at the edge level.
+    # SCHOOL_ADMIN can submit corrections but cannot approve their own (that goes to Cloud QA).
+    if user.user_type != "SUPER_ADMIN":
+        raise HTTPException(status_code=403, detail="Only Super Admins can approve corrections at the edge. School-level corrections are reviewed by the Cloud Hub.")
     scan = db.query(Scan).filter(Scan.id == scan_id).first()
     if not scan:
         raise HTTPException(status_code=404, detail="Scan not found")
@@ -201,7 +234,7 @@ async def approve_scan(scan_id: int, db: Session = Depends(get_db), user = Depen
     return {"ok": True}
 
 @app.get(f"{settings.API_V1_STR}/scans/{{scan_id}}/logs")
-async def get_scan_logs(scan_id: int, db: Session = Depends(get_db)):
+async def get_scan_logs(scan_id: int, db: Session = Depends(get_db), user=Depends(get_current_user)):
     from app.models.user import ActivityLog, User
     logs = db.query(ActivityLog, User).join(User, ActivityLog.user_id == User.id)\
              .filter(ActivityLog.scan_id == scan_id)\

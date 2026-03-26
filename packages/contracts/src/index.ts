@@ -21,7 +21,7 @@ export interface Scan {
     filePath?: string;
     originalSha: string;
     syncStatus: 'pending' | 'synced' | 'error';
-    processStatus: 'pending' | 'success' | 'error' | 'pending_approval';
+    processStatus: 'pending' | 'success' | 'error' | 'pending_approval' | 'hq_resolved';
     confidence: number;
     reviewRequired: boolean;
     isManuallyEdited: boolean;

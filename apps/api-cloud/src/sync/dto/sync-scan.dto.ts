@@ -37,4 +37,9 @@ export class SyncScanDto {
   @IsString()
   @IsOptional()
   proxy_url?: string;
+
+  // Gap-4: Allow edge to specify the exam version so the correct answer key is used
+  @IsString()
+  @IsOptional()
+  version?: string;
 }

@@ -50,6 +50,7 @@ export const scans = pgTable('omr_scans', {
     statusIdx: index('scans_status_idx').on(t.status),
     shaIdx: uniqueIndex('scans_sha_idx').on(t.originalSha),
     machineIdx: index('scans_machine_idx').on(t.machineId),
+    reviewIdx: index('scans_review_required_idx').on(t.reviewRequired),
 }));
 
 export const correctionLogs = pgTable('correction_logs', {
@@ -60,6 +61,6 @@ export const correctionLogs = pgTable('correction_logs', {
     oldData: jsonb('old_data'),
     newData: jsonb('new_data'),
     reason: text('reason'),
-    status: varchar('status', { length: 50 }).notNull().default('approved'), // 'pending' | 'approved' | 'rejected'
+    status: varchar('status', { length: 50 }).notNull().default('pending'), // 'pending' | 'approved' | 'rejected'
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });

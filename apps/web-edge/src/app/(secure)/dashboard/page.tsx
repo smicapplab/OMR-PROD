@@ -9,7 +9,7 @@ import {
     Search, Loader2, LogOut, CheckCircle2,
     Database, ShieldCheck, FileText,
     RefreshCcw, ChevronRight, History, XCircle,
-    ThumbsUp
+    ThumbsUp, Globe
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -31,6 +31,8 @@ interface PaginatedResponse {
 
 export default function DashboardPage() {
     const { user, logout } = useAuth();
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+    const MACHINE_ID = process.env.NEXT_PUBLIC_MACHINE_ID || "MACHINE-00001";
 
     const [scans, setScans] = useState<Scan[]>([]);
     const [totalScans, setTotalScans] = useState(0);
@@ -41,6 +43,7 @@ export default function DashboardPage() {
     const [selectedScan, setSelectedScan] = useState<Scan | null>(null);
     const [isDetailLoading, setIsDetailScanLoading] = useState(false);
     const [resolvedSchoolName, setResolvedSchoolName] = useState<string | null>(null);
+    const [approveError, setApproveError] = useState<string | null>(null);
 
     const [isEditorOpen, setIsEditorOpen] = useState(false);
     const [isLogOpen, setIsLogOpen] = useState(false);
@@ -50,10 +53,8 @@ export default function DashboardPage() {
     const skipRef = useRef(0);
     const LIMIT = 30;
 
-    const API_URL = process.env.NEXT_PUBLIC_API_URL;
     const observerTarget = useRef(null);
 
-    console.log({ user })
 
     const loadScans = useCallback(async (isInitial = true) => {
         if (isInitial) setIsLoading(true);
@@ -101,11 +102,17 @@ export default function DashboardPage() {
 
     const handleApprove = async () => {
         if (!selectedScanId) return;
+        setApproveError(null);
         try {
             await apiFetch(`/api/v1/scans/${selectedScanId}/approve`, { method: "POST" });
             loadScans(true);
             refreshDetail();
-        } catch { alert("Only supervisors can approve"); }
+        } catch (err: any) {
+            const msg = err?.status === 403
+                ? "Only supervisors can approve corrections."
+                : "Approval failed. Please try again.";
+            setApproveError(msg);
+        }
     };
 
     useEffect(() => {
@@ -201,7 +208,7 @@ export default function DashboardPage() {
                             </h1>
                             <div className="flex items-center gap-2">
                                 <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
-                                <p className="text-[10px] text-slate-400 uppercase tracking-widest">Appliance Online • DEV-001</p>
+                                <p className="text-[10px] text-slate-400 uppercase tracking-widest">Appliance Online • {MACHINE_ID}</p>
                             </div>
                         </div>
                     </div>
@@ -360,17 +367,35 @@ export default function DashboardPage() {
                                                                     <span className="text-[11px] uppercase tracking-wider">Awaiting Supervisor Approval</span>
                                                                 </div>
                                                                 <p className="text-xs text-purple-600/80 leading-relaxed ">This record has manual corrections. A supervisor must verify the changes before they are synced to the cloud.</p>
-                                                                {(user?.userType === 'SUPER_ADMIN' || user?.userType === 'SCHOOL_ADMIN') && (
-                                                                    <Button
-                                                                        onClick={handleApprove}
-                                                                        className="w-full bg-purple-600 hover:bg-purple-700 text-white rounded-xl h-9 gap-2 text-xs "
-                                                                    >
-                                                                        <ThumbsUp className="h-3.5 w-3.5" />
-                                                                        Verify & Approve
-                                                                    </Button>
+                                                                {user?.userType === 'SUPER_ADMIN' && (
+                                                                    <div className="flex flex-col gap-2">
+                                                                        <Button
+                                                                            onClick={handleApprove}
+                                                                            className="w-full bg-purple-600 hover:bg-purple-700 text-white rounded-xl h-9 gap-2 text-xs "
+                                                                        >
+                                                                            <ThumbsUp className="h-3.5 w-3.5" />
+                                                                            Verify & Approve
+                                                                        </Button>
+                                                                        {approveError && <p className="text-[10px] text-rose-500 font-bold text-center px-2">{approveError}</p>}
+                                                                    </div>
                                                                 )}
                                                             </div>
                                                         )}
+
+                                                        {/* HQ Resolution Banner (L-NEW-2) */}
+                                                        {selectedScan.processStatus === 'hq_resolved' && (
+                                                            <div className="mb-8 p-4 bg-emerald-50 rounded-2xl border border-emerald-100 flex flex-col gap-2">
+                                                                <div className="flex items-center gap-2 text-emerald-700">
+                                                                    <Globe className="h-4 w-4" />
+                                                                    <span className="text-[11px] font-bold uppercase tracking-wider">Resolved by HQ</span>
+                                                                </div>
+                                                                <p className="text-[11px] text-emerald-600/80 leading-relaxed">
+                                                                    National Hub has provided an authoritative resolution for this record.
+                                                                    Local manual edits have been superseded.
+                                                                </p>
+                                                            </div>
+                                                        )}
+
 
                                                         <Card className="border-none shadow-none bg-slate-50/50 rounded-2xl mb-8">
                                                             <CardHeader className="pb-2">

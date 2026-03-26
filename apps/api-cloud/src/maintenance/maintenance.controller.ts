@@ -61,8 +61,8 @@ export class MaintenanceController {
     @Req() req: any
   ) {
     await this.validateUser(req);
-    const l = parseInt(limit);
-    const o = parseInt(offset);
+    const l = Math.min(Math.max(parseInt(limit) || 10, 1), 200);
+    const o = Math.max(parseInt(offset) || 0, 0);
 
     const conditions = [];
     if (search) {
@@ -144,8 +144,8 @@ export class MaintenanceController {
     @Req() req: any
   ) {
     await this.validateUser(req);
-    const l = parseInt(limit);
-    const o = parseInt(offset);
+    const l = Math.min(Math.max(parseInt(limit) || 10, 1), 200);
+    const o = Math.max(parseInt(offset) || 0, 0);
 
     const conditions = [];
     if (search) {
@@ -157,13 +157,26 @@ export class MaintenanceController {
     }
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-    const machines = await this.db.select().from(schema.machines)
+    // H-7: Exclude the `secret` column — callers must never see hashed secrets
+    const machines = await this.db.select({
+      id: schema.machines.id,
+      machineId: schema.machines.machineId,
+      status: schema.machines.status,
+      lastHeartbeatAt: schema.machines.lastHeartbeatAt,
+      createdAt: schema.machines.createdAt,
+      updatedAt: schema.machines.updatedAt,
+    }).from(schema.machines)
       .where(whereClause)
       .orderBy(schema.machines.machineId)
       .limit(l).offset(o);
 
     const [totalResult] = await this.db.select({ count: sql`count(*)` }).from(schema.machines).where(whereClause);
-    const assignments = await this.db.select().from(schema.machineAssignments);
+    let assignments: any[] = [];
+    if (machines.length > 0) {
+      assignments = await this.db.select()
+        .from(schema.machineAssignments)
+        .where(inArray(schema.machineAssignments.machineId, machines.map((m: any) => m.id)));
+    }
 
     return {
       items: machines.map((m: any) => ({
@@ -212,8 +225,8 @@ export class MaintenanceController {
     @Req() req: any
   ) {
     await this.validateAdmin(req);
-    const l = parseInt(limit);
-    const o = parseInt(offset);
+    const l = Math.min(Math.max(parseInt(limit) || 10, 1), 200);
+    const o = Math.max(parseInt(offset) || 0, 0);
 
     const conditions = [];
     if (search) {
@@ -226,21 +239,33 @@ export class MaintenanceController {
     }
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-    const items = await this.db.select().from(schema.users).where(whereClause).limit(l).offset(o);
-    const userMacs = await this.db.select().from(schema.userMachines);
+    // S-NEW-2: Explicitly exclude sensitive passwordHash column from the select list
+    const items = await this.db.select({
+      id: schema.users.id,
+      email: schema.users.email,
+      userType: schema.users.userType,
+      firstName: schema.users.firstName,
+      lastName: schema.users.lastName,
+      isActive: schema.users.isActive,
+      visibilityScope: schema.users.visibilityScope,
+      scopeValue: schema.users.scopeValue,
+      schoolId: schema.users.schoolId,
+      createdAt: schema.users.createdAt,
+      updatedAt: schema.users.updatedAt,
+    }).from(schema.users).where(whereClause).limit(l).offset(o);
+
+    // L-NEW-1: Fetch user-machine assignments scoped to the current paginated result set
+    let userMacs: any[] = [];
+    if (items.length > 0) {
+      userMacs = await this.db.select()
+        .from(schema.userMachines)
+        .where(inArray(schema.userMachines.userId, items.map((u: any) => u.id)));
+    }
     const [totalResult] = await this.db.select({ count: sql`count(*)` }).from(schema.users).where(whereClause);
 
     return {
       items: items.map((u: any) => ({
-        id: u.id,
-        email: u.email,
-        userType: u.userType,
-        firstName: u.firstName,
-        lastName: u.lastName,
-        isActive: u.isActive,
-        visibilityScope: u.visibilityScope,
-        scopeValue: u.scopeValue,
-        schoolId: u.schoolId,
+        ...u,
         machineIds: userMacs.filter((um: any) => um.userId === u.id).map((um: any) => um.machineId)
       })),
       total: parseInt(totalResult.count),
@@ -254,8 +279,10 @@ export class MaintenanceController {
     await this.validateAdmin(req, true);
     const { email, password, firstName, lastName, userType, schoolId, visibilityScope, scopeValue, machineIds } = body;
 
+    // H-3: Never silently default to a known password. Generate a random one if omitted.
+    const effectivePassword = password || crypto.randomBytes(16).toString('hex');
     const salt = await bcrypt.genSalt(10);
-    const passwordHash = await bcrypt.hash(password || 'password123', salt);
+    const passwordHash = await bcrypt.hash(effectivePassword, salt);
 
     return this.db.transaction(async (tx: any) => {
       const [user] = await tx.insert(schema.users).values({
@@ -274,7 +301,9 @@ export class MaintenanceController {
           machineIds.map((mid: string) => ({ userId: user.id, machineId: mid }))
         );
       }
-      return user;
+      // Return the temporary password only if it was auto-generated (no password supplied)
+      const { passwordHash: _ph, ...safeUser } = user;
+      return password ? safeUser : { ...safeUser, temporaryPassword: effectivePassword };
     });
   }
 
@@ -579,7 +608,8 @@ export class MaintenanceController {
   // --- GLOBAL AUDIT TRAIL ---
   @Get('audit-trail')
   async getAuditTrail(@Query('scanId') scanId: string, @Req() req: any) {
-    await this.validateUser(req);
+    // M-4: Full audit trail (with raw answer data) is restricted to NATIONAL scope users
+    await this.validateAdmin(req);
 
     const conditions = [];
     if (scanId) conditions.push(eq(schema.correctionLogs.scanId, scanId));

@@ -94,8 +94,8 @@ export default function LoginPage() {
 
                         {error && <p className="text-xs text-rose-500 text-center">{error}</p>}
 
-                        <Button 
-                            type="submit" 
+                        <Button
+                            type="submit"
                             disabled={isSubmitting}
                             className="w-full h-12 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-all active:scale-95 shadow-lg shadow-indigo-100"
                         >
@@ -111,10 +111,9 @@ export default function LoginPage() {
                         <p className="text-[9px] text-slate-400 text-center italic">
                             All activities on this system are monitored and recorded. By logging in, you acknowledge your understanding of these terms and consent to such monitoring.
                         </p>
-                        <div className="flex justify-center gap-4 pt-2">
-                            <button className="text-[10px] uppercase text-indigo-600 hover:underline">Terms of Service</button>
-                            <button className="text-[10px] uppercase text-indigo-600 hover:underline">Privacy Policy</button>
-                        </div>
+                        <p className="text-[10px] text-slate-300 text-center uppercase tracking-widest pt-2">
+                            Secure Access Monitoring Enabled
+                        </p>
                     </div>
                 </CardContent>
             </Card>

@@ -213,7 +213,7 @@ export default function ExamRecords() {
                 {/* Footer Pagination */}
                 <div className="p-4 border-t bg-slate-50/30 flex items-center justify-between">
                     <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest pl-4">
-                        Showing {offset + 1} - {Math.min(offset + LIMIT, total)} of {total} Records
+                        {total === 0 ? "No Records Found" : `Showing ${offset + 1} - ${Math.min(offset + LIMIT, total)} of ${total} Records`}
                     </p>
                     <div className="flex gap-2 pr-4">
                         <Button
