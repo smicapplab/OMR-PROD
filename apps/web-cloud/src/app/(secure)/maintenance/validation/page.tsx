@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useAuth } from "@/app/context/AuthContext";
 import { apiFetch } from "@/lib/api";
 import { Loader2, ArrowRight } from "lucide-react";
 import { Card } from "@/components/ui/card";
@@ -22,8 +23,11 @@ interface ScanPendingReview {
 }
 
 export default function ValidationQueue() {
+    const { user } = useAuth();
     const [scans, setScans] = useState<ScanPendingReview[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+
+    const canVerify = user?.userType === 'SUPER_ADMIN' || user?.userType === 'DEPED_MONITOR';
 
     async function loadData() {
         setIsLoading(true);
@@ -45,7 +49,7 @@ export default function ValidationQueue() {
         <div className="flex-1 p-10 space-y-10 max-w-7xl mx-auto overflow-y-auto h-screen pb-32">
             <div className="flex items-center justify-between">
                 <div className="space-y-1">
-                    <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tight leading-none mb-1">Data Correction Queue</h2>
+                    <h2 className="text-xl font-black text-slate-900 uppercase tracking-tight leading-none mb-1">Data Correction Queue</h2>
                     <p className="text-sm text-slate-500 font-medium italic">Verify human-initiated bubble corrections and resolve capture ambiguities from the field.</p>
                 </div>
                 <Badge variant="outline" className="bg-rose-50 text-rose-600 border-rose-100 font-bold px-4 py-1 rounded-full uppercase text-[10px]">
@@ -90,7 +94,7 @@ export default function ValidationQueue() {
                                             variant="outline"
                                             className="h-9 rounded-xl font-bold text-[10px] uppercase border-slate-200 text-indigo-600 hover:bg-indigo-50"
                                         >
-                                            Verify Data <ArrowRight className="h-3 w-3" />
+                                            {canVerify ? "Verify Data" : "Show Corrections"} <ArrowRight className="h-3 w-3" />
                                         </Button>
                                     </Link>
                                 </TableCell>

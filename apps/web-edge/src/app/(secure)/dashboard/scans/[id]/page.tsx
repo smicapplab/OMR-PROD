@@ -50,7 +50,7 @@ export default function ScanDetailPage() {
         <div className="min-h-screen bg-gray-100">
             <nav className="bg-white shadow-sm">
                 <div className="mx-auto max-w-7xl px-4 h-16 flex items-center justify-between">
-                    <Link href="/dashboard" className="text-indigo-600 hover:text-indigo-500 font-medium">
+                    <Link href="/dashboard" className="text-indigo-600 hover:text-indigo-500 ">
                         ← Back to Dashboard
                     </Link>
                     <h1 className="text-lg font-bold">Scan Quality Review</h1>
@@ -73,10 +73,10 @@ export default function ScanDetailPage() {
                     <div className="mb-8">
                         <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Extraction Status</h2>
                         <div className="flex gap-2">
-                            <span className={`px-2 py-1 rounded text-xs font-bold ${scan.review_required ? 'bg-orange-100 text-orange-800' : 'bg-green-100 text-green-800'}`}>
+                            <span className={`px-2 py-1 rounded text-xs ${scan.review_required ? 'bg-orange-100 text-orange-800' : 'bg-green-100 text-green-800'}`}>
                                 {scan.review_required ? 'Review Required' : 'Auto-Verified'}
                             </span>
-                            <span className="px-2 py-1 rounded text-xs bg-gray-100 text-gray-800 font-bold uppercase">
+                            <span className="px-2 py-1 rounded text-xs bg-gray-100 text-gray-800 uppercase">
                                 {scan.process_status}
                             </span>
                         </div>
@@ -87,13 +87,13 @@ export default function ScanDetailPage() {
                         <div className="space-y-4">
                             <div>
                                 <label className="block text-xs text-gray-400">Full Name</label>
-                                <p className="font-medium">
+                                <p className="">
                                     {studentInfo.first_name?.answer || '---'} {studentInfo.last_name?.answer || '---'}
                                 </p>
                             </div>
                             <div>
                                 <label className="block text-xs text-gray-400">LRN (Student ID)</label>
-                                <p className="font-medium tracking-widest">{studentInfo.lrn?.answer || '---'}</p>
+                                <p className="tracking-widest">{studentInfo.lrn?.answer || '---'}</p>
                             </div>
                         </div>
                     </div>
@@ -103,8 +103,8 @@ export default function ScanDetailPage() {
                         <div className="space-y-2">
                             {Object.keys(answers).map(subject => (
                                 <div key={subject} className="flex justify-between items-center py-2 border-b border-gray-50">
-                                    <span className="capitalize text-sm font-medium">{subject}</span>
-                                    <span className="text-xs text-green-600 font-bold">Processed</span>
+                                    <span className="capitalize text-sm ">{subject}</span>
+                                    <span className="text-xs text-green-600 ">Processed</span>
                                 </div>
                             ))}
                         </div>

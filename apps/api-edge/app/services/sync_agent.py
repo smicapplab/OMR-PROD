@@ -19,7 +19,10 @@ def run_sync_loop(interval_seconds: int = 30):
             # 1. Pull latest operators/config from cloud
             sync_service.pull_operators(db)
             
-            # 2. Pull HQ resolutions (Finalized decisions)
+            # 2. Pull synchronized school lists
+            sync_service.pull_schools(db)
+            
+            # 3. Pull HQ resolutions (Finalized decisions)
             sync_service.pull_resolutions(db)
             
             # 3. Push audit logs

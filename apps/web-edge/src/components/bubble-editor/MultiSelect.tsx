@@ -26,11 +26,11 @@ export function MultiSelect({ label, path, fieldData, onUpdate }: MultiSelectPro
 
     return (
         <div className="space-y-3">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{label}</label>
+            <label className="text-[10px] text-slate-400 uppercase tracking-[0.2em]">{label}</label>
 
             <div className="flex flex-wrap gap-5 mb-3 min-h-[40px] p-3 rounded-xl border border-slate-100 bg-slate-50/50">
                 {selected.length === 0 ? (
-                    <span className="text-[10px] font-bold text-slate-300 uppercase italic">No selections</span>
+                    <span className="text-[10px] text-slate-300 uppercase italic">No selections</span>
                 ) : (
                     selected.map(val => (
                         <Badge
@@ -38,7 +38,7 @@ export function MultiSelect({ label, path, fieldData, onUpdate }: MultiSelectPro
                             variant="secondary"
                             className="bg-indigo-100 text-indigo-700 hover:bg-indigo-200 border-none px-2 py-1 gap-1.5 rounded-lg flex items-center animate-in zoom-in-95 duration-200"
                         >
-                            <span className="text-[10px] font-black">{val}</span>
+                            <span className="text-[10px] ">{val}</span>
                             <button onClick={() => toggle(val)} className="hover:text-indigo-900">
                                 <X className="h-3 w-3" />
                             </button>
@@ -59,7 +59,7 @@ export function MultiSelect({ label, path, fieldData, onUpdate }: MultiSelectPro
                                         : "bg-white border-slate-100 text-slate-500 hover:border-slate-200 shadow-sm"
                                 )}
                             >
-                                <span className="text-[10px] font-black uppercase tracking-tight">{opt}</span>
+                                <span className="text-[10px] uppercase tracking-tight">{opt}</span>
                                 {isSelected && <Check className="h-3.5 w-3.5" />}
                             </button>
                         );

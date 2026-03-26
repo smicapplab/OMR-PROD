@@ -3,13 +3,13 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/app/context/AuthContext";
 import { apiFetch } from "@/lib/api";
-import { 
+import {
     Search, AlertTriangle, Globe, Loader2
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { 
-    Table, TableBody, TableCell, TableHead, TableHeader, TableRow 
+import {
+    Table, TableBody, TableCell, TableHead, TableHeader, TableRow
 } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
@@ -21,16 +21,17 @@ export default function NationalDashboard() {
     const { user, logout } = useAuth();
     const pathname = usePathname();
     const [scans, setScans] = useState<CloudScan[]>([]);
-    const [stats, setStats] = useState({ totalScans: 0, reviewRequired: 0 });
+    const [stats, setStats] = useState({ totalScans: 0, reviewRequired: 0, scopeName: 'Global Sync Stream' });
     const [isLoading, setIsLoading] = useState(true);
 
     async function loadGlobalStats() {
         try {
-            const data = await apiFetch<{ recentScans: CloudScan[], totalScans: number, reviewRequired: number }>("/api/v1/sync/stats");
+            const data = await apiFetch<{ recentScans: CloudScan[], totalScans: number, reviewRequired: number, scopeName: string }>("/api/v1/sync/stats");
             setScans(data.recentScans || []);
             setStats({
                 totalScans: data.totalScans || 0,
-                reviewRequired: data.reviewRequired || 0
+                reviewRequired: data.reviewRequired || 0,
+                scopeName: data.scopeName || 'Global Sync Stream'
             });
         } catch (err) {
             console.error("Failed to load stats", err);
@@ -76,8 +77,10 @@ export default function NationalDashboard() {
                 <div className="space-y-6">
                     <div className="flex items-center justify-between px-2">
                         <div className="space-y-1">
-                            <h2 className="text-xl font-black text-slate-900 uppercase tracking-tight leading-none">Global Sync Stream</h2>
-                            <p className="text-xs text-slate-400 font-medium uppercase tracking-widest">Across all registered appliances</p>
+                            <h2 className="text-xl font-black text-slate-900 uppercase tracking-tight leading-none">{stats.scopeName}</h2>
+                            <p className="text-xs text-slate-400 font-medium uppercase tracking-widest">
+                                {user?.visibilityScope === 'NATIONAL' ? 'Across all registered appliances' : 'Official institutional feed'}
+                            </p>
                         </div>
                         <Button variant="outline" className="rounded-xl font-bold text-[10px] uppercase border-slate-200">Export Raw Logs</Button>
                     </div>

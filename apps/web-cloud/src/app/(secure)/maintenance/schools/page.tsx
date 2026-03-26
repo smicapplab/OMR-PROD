@@ -2,14 +2,14 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { apiFetch } from "@/lib/api";
-import { 
-    School, Plus, MapPin, Loader2, Building2, Globe, Map, Filter, ChevronLeft, ChevronRight
+import {
+    School, Plus, MapPin, Loader2, Building2, Globe, Map, Filter, ChevronLeft, ChevronRight, Pencil, X
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { 
-    Table, TableBody, TableCell, TableHead, TableHeader, TableRow 
+import {
+    Table, TableBody, TableCell, TableHead, TableHeader, TableRow
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -43,7 +43,7 @@ export default function SchoolsManagement() {
     const [total, setTotal] = useState(0);
     const [offset, setOffset] = useState(0);
     const LIMIT = 10;
-    
+
     // Filters
     const [filterRegion, setFilterRegion] = useState("ALL");
     const [searchQuery, setSearchQuery] = useState("");
@@ -55,13 +55,19 @@ export default function SchoolsManagement() {
     const [division, setDivision] = useState("");
     const [address, setAddress] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [editingSchoolId, setEditingSchoolId] = useState<string | null>(null);
 
-    async function loadData(currentOffset = 0) {
+    async function loadData(currentOffset = 0, q = searchQuery, rFilter = filterRegion) {
         setIsLoading(true);
         try {
             const [schoolRes, regionData] = await Promise.all([
-                apiFetch<PaginatedResponse>("/api/v1/maintenance/schools", { 
-                    params: { limit: LIMIT, offset: currentOffset } 
+                apiFetch<PaginatedResponse>("/api/v1/maintenance/schools", {
+                    params: {
+                        limit: LIMIT,
+                        offset: currentOffset,
+                        search: q,
+                        region: rFilter !== "ALL" ? rFilter : undefined
+                    }
                 }),
                 apiFetch<RegionData[]>("/api/v1/maintenance/regions")
             ]);
@@ -76,27 +82,52 @@ export default function SchoolsManagement() {
         }
     }
 
-    const filteredSchools = useMemo(() => {
-        return schools.filter(s => {
-            const matchesRegion = filterRegion === "ALL" || s.regionName === filterRegion;
-            const matchesSearch = s.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                                 s.code.includes(searchQuery);
-            return matchesRegion && matchesSearch;
-        });
-    }, [schools, filterRegion, searchQuery]);
+    useEffect(() => {
+        const delayDebounceFn = setTimeout(() => {
+            setOffset(0);
+            loadData(0, searchQuery, filterRegion);
+        }, 500);
+        return () => clearTimeout(delayDebounceFn);
+    }, [searchQuery, filterRegion]);
 
-    const handleCreate = async (e: React.FormEvent) => {
+    const handleEdit = (school: SchoolData) => {
+        setEditingSchoolId(school.id);
+        setName(school.name);
+        setCode(school.code);
+        setDivision(school.division || "");
+        setAddress(school.address || "");
+        // Find region ID by name
+        const region = regions.find(r => r.name === school.regionName);
+        if (region) setRegionId(region.id);
+    };
+
+    const resetForm = () => {
+        setEditingSchoolId(null);
+        setName("");
+        setCode("");
+        setAddress("");
+        setDivision("");
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsSubmitting(true);
         try {
-            await apiFetch("/api/v1/maintenance/schools", {
-                method: "POST",
-                body: JSON.stringify({ name, code, regionId, division, address })
-            });
-            setName(""); setCode(""); setDivision(""); setAddress("");
+            if (editingSchoolId) {
+                await apiFetch("/api/v1/maintenance/schools/update", {
+                    method: "POST",
+                    body: JSON.stringify({ id: editingSchoolId, name, code, regionId, division, address })
+                });
+            } else {
+                await apiFetch("/api/v1/maintenance/schools", {
+                    method: "POST",
+                    body: JSON.stringify({ name, code, regionId, division, address })
+                });
+            }
+            resetForm();
             loadData(offset);
         } catch (err) {
-            alert("Failed to create school");
+            alert(editingSchoolId ? "Failed to update school" : "Failed to create school");
         } finally {
             setIsSubmitting(false);
         }
@@ -109,7 +140,8 @@ export default function SchoolsManagement() {
     };
 
     useEffect(() => {
-        loadData(0);
+        // Initial load only if not triggered by the debounced effects above
+        // But since we want to clear searchQuery on mount, we can just let the effects handle it.
     }, []);
 
     const currentPage = Math.floor(offset / LIMIT) + 1;
@@ -119,7 +151,7 @@ export default function SchoolsManagement() {
         <div className="flex-1 p-10 space-y-10 max-w-7xl mx-auto overflow-y-auto h-screen pb-32">
             <div className="flex items-center justify-between">
                 <div className="space-y-1">
-                    <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tight leading-none mb-1">Institution Registry</h2>
+                    <h2 className="text-xl font-black text-slate-900 uppercase tracking-tight leading-none mb-1">Institution Registry</h2>
                     <p className="text-sm text-slate-500 font-medium">Manage the nationwide network of authorized testing centers.</p>
                 </div>
             </div>
@@ -131,13 +163,18 @@ export default function SchoolsManagement() {
                         <CardHeader>
                             <CardTitle className="text-lg font-bold flex items-center gap-2">
                                 <Building2 className="h-5 w-5 text-indigo-600" />
-                                Enroll Institution
+                                {editingSchoolId ? "Edit Institution" : "Enroll Institution"}
                             </CardTitle>
+                            {editingSchoolId && (
+                                <Button variant="ghost" size="sm" onClick={resetForm} className="h-8 rounded-lg text-slate-400 hover:text-slate-600">
+                                    <X className="h-4 w-4 mr-1" /> Cancel
+                                </Button>
+                            )}
                         </CardHeader>
                         <CardContent>
-                            <form onSubmit={handleCreate} className="space-y-4">
+                            <form onSubmit={handleSubmit} className="space-y-4">
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black uppercase text-slate-400 leading-none">School Name</label>
+                                    <label className="text-[10px] font-black uppercase text-slate-400 leading-none">{editingSchoolId ? "Update School Name" : "School Name"}</label>
                                     <Input placeholder="e.g. Manila Science HS" value={name} onChange={e => setName(e.target.value)} required />
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
@@ -147,7 +184,7 @@ export default function SchoolsManagement() {
                                     </div>
                                     <div className="space-y-2">
                                         <label className="text-[10px] font-black uppercase text-slate-400 leading-none">Region</label>
-                                        <select 
+                                        <select
                                             className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500"
                                             value={regionId}
                                             onChange={e => setRegionId(e.target.value)}
@@ -161,7 +198,7 @@ export default function SchoolsManagement() {
                                     <Input placeholder="123 Education St." value={address} onChange={e => setAddress(e.target.value)} />
                                 </div>
                                 <Button className="w-full bg-indigo-600 hover:bg-indigo-700 rounded-xl h-11 font-bold shadow-lg shadow-indigo-100 mt-2" disabled={isSubmitting}>
-                                    {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Registry Institution"}
+                                    {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : (editingSchoolId ? "Save Changes" : "Registry Institution")}
                                 </Button>
                             </form>
                         </CardContent>
@@ -174,15 +211,15 @@ export default function SchoolsManagement() {
                     <div className="flex flex-col md:flex-row gap-4">
                         <div className="flex-1 relative group">
                             <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
-                            <input 
-                                type="text" 
-                                placeholder="Search by name or DepEd ID..." 
+                            <input
+                                type="text"
+                                placeholder="Search by name or DepEd ID..."
                                 value={searchQuery}
                                 onChange={e => setSearchQuery(e.target.value)}
                                 className="w-full h-11 pl-10 pr-4 bg-white border border-slate-100 rounded-2xl text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-500 transition-all shadow-sm text-slate-900"
                             />
                         </div>
-                        <select 
+                        <select
                             className="h-11 px-4 bg-white border border-slate-100 rounded-2xl text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm text-slate-900"
                             value={filterRegion}
                             onChange={e => setFilterRegion(e.target.value)}
@@ -206,7 +243,7 @@ export default function SchoolsManagement() {
                                 <TableBody>
                                     {isLoading ? (
                                         <TableRow><TableCell colSpan={4} className="h-80 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-slate-200" /></TableCell></TableRow>
-                                    ) : filteredSchools.length > 0 ? filteredSchools.map((s) => (
+                                    ) : schools.length > 0 ? schools.map((s) => (
                                         <TableRow key={s.id} className="hover:bg-slate-50/50 transition-colors border-slate-50">
                                             <TableCell className="pl-8 py-5">
                                                 <div className="flex flex-col">
@@ -228,7 +265,12 @@ export default function SchoolsManagement() {
                                                 <Badge variant="secondary" className="font-mono text-[10px] bg-slate-100 text-slate-600 border-none px-2 h-5">ID: {s.code}</Badge>
                                             </TableCell>
                                             <TableCell className="pr-8 text-right">
-                                                <Badge className="bg-emerald-50 text-emerald-600 border-none text-[9px] font-black uppercase h-5 px-2">Verified</Badge>
+                                                <div className="flex items-center justify-end gap-2">
+                                                    <Badge className="bg-emerald-50 text-emerald-600 border-none text-[9px] font-black uppercase h-5 px-2">Verified</Badge>
+                                                    <Button variant="ghost" size="sm" onClick={() => handleEdit(s)} className="h-7 w-7 p-0 rounded-full text-slate-400 hover:text-indigo-600 hover:bg-indigo-50">
+                                                        <Pencil className="h-3.5 w-3.5" />
+                                                    </Button>
+                                                </div>
                                             </TableCell>
                                         </TableRow>
                                     )) : (
@@ -246,13 +288,13 @@ export default function SchoolsManagement() {
                                 Page {currentPage} of {totalPages || 1} <span className="mx-2 opacity-30">•</span> {total} Institutions
                             </p>
                             <div className="flex gap-2 pr-4">
-                                <Button 
+                                <Button
                                     variant="outline" size="sm" className="h-8 rounded-lg font-bold text-[10px] uppercase gap-1"
                                     onClick={() => handlePageChange('prev')} disabled={offset === 0 || isLoading}
                                 >
                                     <ChevronLeft className="h-3 w-3" /> Prev
                                 </Button>
-                                <Button 
+                                <Button
                                     variant="outline" size="sm" className="h-8 rounded-lg font-bold text-[10px] uppercase gap-1"
                                     onClick={() => handlePageChange('next')} disabled={offset + LIMIT >= total || isLoading}
                                 >

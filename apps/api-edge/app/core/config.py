@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     CLOUD_API_URL: str = "http://localhost:4000"
     MACHINE_ID: str = "MACHINE-00001"
     MACHINE_SECRET: Optional[str] = None
-    DEFAULT_SCHOOL_ID: str = "305312"
+    DEFAULT_SCHOOL_ID: str = "567890"
 
     class Config:
         case_sensitive = True

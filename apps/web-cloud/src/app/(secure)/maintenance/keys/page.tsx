@@ -2,15 +2,15 @@
 
 import { useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api";
-import { 
-    FileCheck, Plus, Loader2, Save, FileEdit, Trash2, 
+import {
+    FileCheck, Plus, Loader2, Save, FileEdit, Trash2,
     ChevronRight, CheckCircle2, AlertCircle, Info
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { 
-    Table, TableBody, TableCell, TableHead, TableHeader, TableRow 
+import {
+    Table, TableBody, TableCell, TableHead, TableHeader, TableRow
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -28,7 +28,7 @@ interface AnswerKey {
 export default function AnswerKeysManagement() {
     const [keys, setKeys] = useState<AnswerKey[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    
+
     // Editor State
     const [selectedKey, setSelectedKey] = useState<AnswerKey | null>(null);
     const [editExamName, setEditExamName] = useState("");
@@ -55,7 +55,7 @@ export default function AnswerKeysManagement() {
         setEditSubject("math");
         setEditVersion("2026-V1");
         const defaultAns: Record<string, string> = {};
-        for(let i=1; i<=40; i++) defaultAns[i] = "A";
+        for (let i = 1; i <= 40; i++) defaultAns[i] = "A";
         setEditAnswers(defaultAns);
     };
 
@@ -102,7 +102,7 @@ export default function AnswerKeysManagement() {
         <div className="flex-1 p-10 space-y-10 max-w-7xl mx-auto overflow-y-auto h-screen pb-32">
             <div className="flex items-center justify-between">
                 <div className="space-y-1">
-                    <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tight leading-none mb-1">Answer Master</h2>
+                    <h2 className="text-xl font-black text-slate-900 uppercase tracking-tight leading-none mb-1">Answer Master</h2>
                     <p className="text-sm text-slate-500 font-medium">Authoritative grading templates for the national exam network.</p>
                 </div>
                 <Button onClick={resetEditor} className="bg-indigo-600 hover:bg-indigo-700 rounded-xl font-bold h-11 gap-2 shadow-lg shadow-indigo-100">
@@ -117,18 +117,18 @@ export default function AnswerKeysManagement() {
                         <FileCheck className="h-4 w-4" />
                         <h3 className="text-[10px] font-black uppercase tracking-widest">Active Registrations</h3>
                     </div>
-                    
+
                     <div className="space-y-3">
                         {isLoading ? (
                             <div className="py-20 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-slate-200" /></div>
                         ) : keys.map((key) => (
-                            <button 
-                                key={key.id} 
+                            <button
+                                key={key.id}
                                 onClick={() => handleSelect(key)}
                                 className={cn(
                                     "w-full text-left p-5 rounded-2xl border-2 transition-all group",
-                                    selectedKey?.id === key.id 
-                                        ? "bg-white border-indigo-600 shadow-md ring-4 ring-indigo-50" 
+                                    selectedKey?.id === key.id
+                                        ? "bg-white border-indigo-600 shadow-md ring-4 ring-indigo-50"
                                         : "bg-white border-slate-100 hover:border-indigo-200 shadow-sm"
                                 )}
                             >
@@ -193,7 +193,7 @@ export default function AnswerKeysManagement() {
 
                                 <ScrollArea className="h-[450px] pr-4">
                                     <div className="grid grid-cols-4 gap-4 pb-10">
-                                        {Object.keys(editAnswers).sort((a,b) => Number(a)-Number(b)).map((qNum) => (
+                                        {Object.keys(editAnswers).sort((a, b) => Number(a) - Number(b)).map((qNum) => (
                                             <div key={qNum} className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100 group hover:border-indigo-200 transition-all">
                                                 <span className="w-6 text-[11px] font-black text-slate-300 group-hover:text-indigo-400 transition-colors">{qNum}</span>
                                                 <div className="flex gap-1">
@@ -203,8 +203,8 @@ export default function AnswerKeysManagement() {
                                                             onClick={() => updateSingleAnswer(qNum, choice)}
                                                             className={cn(
                                                                 "h-7 w-7 rounded-lg text-[10px] font-black transition-all",
-                                                                editAnswers[qNum] === choice 
-                                                                    ? "bg-slate-900 text-white shadow-md scale-110" 
+                                                                editAnswers[qNum] === choice
+                                                                    ? "bg-slate-900 text-white shadow-md scale-110"
                                                                     : "bg-white text-slate-400 hover:bg-white hover:text-indigo-600 border border-slate-200"
                                                             )}
                                                         >

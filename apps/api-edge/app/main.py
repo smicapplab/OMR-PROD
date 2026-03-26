@@ -9,6 +9,7 @@ from app.api.v1 import auth
 from app.core.security import decode_token
 
 # Initialize database
+from app.models.school import School  # Ensure table is created
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
@@ -122,6 +123,33 @@ async def get_scan(scan_id: int, db: Session = Depends(get_db)):
     if not scan:
         raise HTTPException(status_code=404, detail="Scan not found")
     return format_scan(scan)
+
+@app.get(f"{settings.API_V1_STR}/schools")
+async def get_schools(db: Session = Depends(get_db)):
+    from app.models.school import School
+    schools = db.query(School).all()
+    return [{
+        "id": s.id,
+        "name": s.name,
+        "code": s.code,
+        "region_id": s.region_id,
+        "division": s.division
+    } for s in schools]
+
+@app.get(f"{settings.API_V1_STR}/schools/{{school_id}}")
+async def get_school(school_id: str, db: Session = Depends(get_db)):
+    from app.models.school import School
+    from sqlalchemy import or_
+    school = db.query(School).filter(or_(School.id == school_id, School.code == school_id)).first()
+    if not school:
+        raise HTTPException(status_code=404, detail="School not found")
+    return {
+        "id": school.id,
+        "name": school.name,
+        "code": school.code,
+        "region_id": school.region_id,
+        "division": school.division
+    }
 
 @app.patch(f"{settings.API_V1_STR}/scans/{{scan_id}}")
 async def update_scan(scan_id: int, payload: dict, db: Session = Depends(get_db), user = Depends(get_current_user)):

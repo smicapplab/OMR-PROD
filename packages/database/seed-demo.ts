@@ -20,18 +20,18 @@ async function main() {
 
   // 2. Comprehensive School List
   const schoolsToInsert = [
-    { name: 'Manila Science High School', code: '305312', regionId: findId('NCR'), division: 'Manila', address: 'Taft Ave, Manila' },
+    { name: 'Manila Science High School', code: '567890', regionId: findId('NCR'), division: 'Manila', address: 'Taft Ave, Manila' },
     { name: 'Philippine Science HS (Main)', code: '300401', regionId: findId('NCR'), division: 'Quezon City', address: 'Agham Road, QC' },
     { name: 'Test School Alpha', code: '777888', regionId: findId('NCR'), division: 'Manila', address: 'Test Site 1' },
-    { name: 'Test School Beta', code: '636340', regionId: findId('NCR'), division: 'Manila', address: 'Test Site 2' },
-    
+    { name: 'Test School Beta', code: '123456', regionId: findId('NCR'), division: 'Manila', address: 'Test Site 2' },
+
     // More generated schools to trigger pagination
     ...Array.from({ length: 15 }).map((_, i) => ({
-        name: `Public School Instance ${i + 1}`,
-        code: `900${100 + i}`,
-        regionId: findId('NCR'),
-        division: 'Generic Division',
-        address: 'Standard DepEd Address Structure'
+      name: `Public School Instance ${i + 1}`,
+      code: `900${100 + i}`,
+      regionId: findId('NCR'),
+      division: 'Generic Division',
+      address: 'Standard DepEd Address Structure'
     }))
   ];
 
@@ -45,14 +45,14 @@ async function main() {
   const salt = await bcrypt.genSalt(10);
   const pass = await bcrypt.hash('password123', salt);
 
-  const [msSci] = await db.select().from(schema.schools).where(eq(schema.schools.code, '305312')).limit(1);
+  const [msSci] = await db.select().from(schema.schools).where(eq(schema.schools.code, '567890')).limit(1);
   const [tsAlpha] = await db.select().from(schema.schools).where(eq(schema.schools.code, '777888')).limit(1);
-  const [tsBeta] = await db.select().from(schema.schools).where(eq(schema.schools.code, '636340')).limit(1);
+  const [tsBeta] = await db.select().from(schema.schools).where(eq(schema.schools.code, '123456')).limit(1);
 
   const testUsers = [
     { email: 'auditor@omr-prod.gov.ph', firstName: 'Arthur', lastName: 'Auditor', userType: 'NATIONAL_AUDITOR', visibilityScope: 'NATIONAL', scopeValue: 'ALL' },
     { email: 'monitor.ncr@omr-prod.gov.ph', firstName: 'Nora', lastName: 'NCR', userType: 'DEPED_MONITOR', visibilityScope: 'REGIONAL', scopeValue: findByCode('NCR') },
-    { email: 'admin.777@omr-prod.gov.ph', firstName: 'Admin', lastName: '777', userType: 'SCHOOL_ADMIN', schoolId: tsAlpha.id, visibilityScope: 'SCHOOL', scopeValue: tsAlpha.id },
+    { email: 'admin.777@omr-prod.gov.ph', firstName: 'Admin', lastName: '777', userType: 'SCHOOL_ADMIN', schoolId: msSci.id, visibilityScope: 'SCHOOL', scopeValue: msSci.id },
     { email: 'operator1@mshs.edu.ph', firstName: 'MSHS', lastName: 'Operator 1', userType: 'EDGE_OPERATOR', visibilityScope: 'SCHOOL', scopeValue: msSci.id }
   ];
 
@@ -73,22 +73,22 @@ async function main() {
   if (devMachine) {
     // Clear old assignments if any (for repeated runs)
     await db.delete(schema.machineAssignments).where(eq(schema.machineAssignments.machineId, devMachine.id));
-    
+
     await db.insert(schema.machineAssignments).values([
-        { machineId: devMachine.id, scope: 'SCHOOL', scopeValue: msSci.id },
-        { machineId: devMachine.id, scope: 'SCHOOL', scopeValue: tsAlpha.id },
-        { machineId: devMachine.id, scope: 'SCHOOL', scopeValue: tsBeta.id }
+      { machineId: devMachine.id, scope: 'SCHOOL', scopeValue: msSci.id },
+      { machineId: devMachine.id, scope: 'SCHOOL', scopeValue: tsAlpha.id },
+      { machineId: devMachine.id, scope: 'SCHOOL', scopeValue: tsBeta.id }
     ]);
-    
+
     // Explicitly link operator1 to MACHINE-00001
     const [op1] = await db.select().from(schema.users).where(eq(schema.users.email, 'operator1@mshs.edu.ph')).limit(1);
     if (op1) {
-        await db.insert(userMachines).values({
-            userId: op1.id,
-            machineId: devMachine.id
-        }).onConflictDoNothing();
+      await db.insert(userMachines).values({
+        userId: op1.id,
+        machineId: devMachine.id
+      }).onConflictDoNothing();
     }
-    
+
     console.log('✅ MACHINE-00001 pre-authorized for multiple schools and personnel');
   }
 

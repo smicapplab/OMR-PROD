@@ -2,14 +2,14 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { apiFetch } from "@/lib/api";
-import { 
-    Monitor, Plus, Loader2, Building2, ShieldCheck, Cpu, Key, Clock, School, Globe, Trash2, X, CheckCircle2, Filter, AlertCircle, Check
+import {
+    Monitor, Plus, Loader2, Building2, ShieldCheck, Cpu, Key, Clock, School, Globe, Trash2, X, CheckCircle2, Filter, AlertCircle, Check, Pencil, Search, ChevronLeft, ChevronRight
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { 
-    Table, TableBody, TableCell, TableHead, TableHeader, TableRow 
+import {
+    Table, TableBody, TableCell, TableHead, TableHeader, TableRow
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -43,28 +43,34 @@ export default function MachinesManagement() {
     const [schools, setSchools] = useState<SchoolData[]>([]);
     const [regions, setRegions] = useState<RegionData[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    
+
     // Approval State
     const [selectedMachine, setSelectedMachine] = useState<MachineData | null>(null);
     const [activeAssignments, setActiveAssignments] = useState<Assignment[]>([]);
-    
+
+    const [total, setTotal] = useState(0);
+    const [offset, setOffset] = useState(0);
+    const LIMIT = 10;
+    const [listSearchQuery, setListSearchQuery] = useState("");
+
     // UI Filtering for selection
     const [selectionTab, setSelectionTab] = useState<'SCHOOL' | 'REGION'>('SCHOOL');
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedRegionFilter, setSelectedRegionFilter] = useState("ALL");
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    async function loadData() {
+    async function loadData(currentOffset = 0, search = listSearchQuery) {
         setIsLoading(true);
         try {
-            const [machineData, schoolRes, regionData] = await Promise.all([
-                apiFetch<MachineData[]>("/api/v1/maintenance/machines"),
+            const [machineRes, schoolRes, regionRes] = await Promise.all([
+                apiFetch<any>("/api/v1/maintenance/machines", { params: { limit: LIMIT, offset: currentOffset, search } }),
                 apiFetch<any>("/api/v1/maintenance/schools?limit=1000"),
                 apiFetch<RegionData[]>("/api/v1/maintenance/regions")
             ]);
-            setMachines(machineData);
+            setMachines(machineRes.items || []);
+            setTotal(machineRes.total || 0);
             setSchools(Array.isArray(schoolRes) ? schoolRes : schoolRes.items || []);
-            setRegions(regionData);
+            setRegions(regionRes);
         } catch (err) {
             console.error(err);
         } finally {
@@ -87,9 +93,9 @@ export default function MachinesManagement() {
         try {
             await apiFetch("/api/v1/maintenance/machines/approve", {
                 method: "POST",
-                body: JSON.stringify({ 
-                    id: selectedMachine.id, 
-                    assignments: activeAssignments 
+                body: JSON.stringify({
+                    id: selectedMachine.id,
+                    assignments: activeAssignments
                 })
             });
             setSelectedMachine(null);
@@ -103,8 +109,21 @@ export default function MachinesManagement() {
     };
 
     useEffect(() => {
-        loadData();
-    }, []);
+        const delayDebounceFn = setTimeout(() => {
+            setOffset(0);
+            loadData(0, listSearchQuery);
+        }, 500);
+        return () => clearTimeout(delayDebounceFn);
+    }, [listSearchQuery]);
+
+    const handlePageChange = (direction: 'next' | 'prev') => {
+        const newOffset = direction === 'next' ? offset + LIMIT : Math.max(0, offset - LIMIT);
+        setOffset(newOffset);
+        loadData(newOffset);
+    };
+
+    const currentPage = Math.floor(offset / LIMIT) + 1;
+    const totalPages = Math.ceil(total / LIMIT);
 
     const getScopeName = (scope: string, value: string) => {
         if (scope === 'SCHOOL') return schools.find(s => s.id === value)?.name || 'Unknown School';
@@ -130,7 +149,7 @@ export default function MachinesManagement() {
         <div className="flex-1 p-10 space-y-10 max-w-7xl mx-auto overflow-y-auto h-screen pb-32">
             <div className="flex items-center justify-between">
                 <div className="space-y-1">
-                    <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tight leading-none mb-1">Appliance Registry</h2>
+                    <h2 className="text-xl font-black text-slate-900 uppercase tracking-tight leading-none mb-1">Appliance Registry</h2>
                     <p className="text-sm text-slate-500 font-medium">Manage and authorize Edge scanning units.</p>
                 </div>
             </div>
@@ -152,7 +171,7 @@ export default function MachinesManagement() {
                             ) : (
                                 <div className="space-y-2">
                                     {pendingMachines.map(m => (
-                                        <button 
+                                        <button
                                             key={m.id}
                                             onClick={() => { setSelectedMachine(m); setActiveAssignments([]); }}
                                             className={cn(
@@ -178,17 +197,17 @@ export default function MachinesManagement() {
                             <CardHeader>
                                 <CardTitle className="text-lg font-bold flex items-center gap-2">
                                     <ShieldCheck className="h-5 w-5" />
-                                    Authorize {selectedMachine.machineId}
+                                    {selectedMachine.status === 'active' ? "Edit " : "Authorize "}{selectedMachine.machineId}
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-6">
                                 <div className="space-y-4">
                                     <div className="flex gap-2 p-1 bg-white/10 rounded-xl">
-                                        <button 
+                                        <button
                                             onClick={() => setSelectionTab('SCHOOL')}
                                             className={cn("flex-1 py-2 text-[10px] font-black uppercase rounded-lg transition-all", selectionTab === 'SCHOOL' ? "bg-white text-indigo-600" : "text-white/60 hover:text-white")}
                                         >Schools</button>
-                                        <button 
+                                        <button
                                             onClick={() => setSelectionTab('REGION')}
                                             className={cn("flex-1 py-2 text-[10px] font-black uppercase rounded-lg transition-all", selectionTab === 'REGION' ? "bg-white text-indigo-600" : "text-white/60 hover:text-white")}
                                         >Regions</button>
@@ -196,7 +215,7 @@ export default function MachinesManagement() {
 
                                     <div className="flex gap-2">
                                         <div className="flex-1 relative">
-                                            <Input 
+                                            <Input
                                                 placeholder="Search..."
                                                 value={searchQuery}
                                                 onChange={e => setSearchQuery(e.target.value)}
@@ -205,7 +224,7 @@ export default function MachinesManagement() {
                                             <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-3 w-3 text-white/40" />
                                         </div>
                                         {selectionTab === 'SCHOOL' && (
-                                            <select 
+                                            <select
                                                 className="h-9 px-3 bg-white/10 border-none rounded-xl text-[10px] font-bold outline-none text-white"
                                                 value={selectedRegionFilter}
                                                 onChange={e => setSelectedRegionFilter(e.target.value)}
@@ -239,7 +258,7 @@ export default function MachinesManagement() {
                                         <div className="flex gap-2">
                                             <Button variant="ghost" onClick={() => setSelectedMachine(null)} className="h-9 text-[10px] font-black uppercase text-white hover:bg-white/10">Cancel</Button>
                                             <Button onClick={handleApprove} className="h-9 px-6 bg-white text-indigo-600 hover:bg-indigo-50 rounded-xl font-black text-[10px] uppercase shadow-xl" disabled={isSubmitting}>
-                                                {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin" /> : "Approve & Deploy"}
+                                                {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin" /> : (selectedMachine.status === 'active' ? "Save Changes" : "Approve & Deploy")}
                                             </Button>
                                         </div>
                                     </div>
@@ -250,8 +269,17 @@ export default function MachinesManagement() {
                 </div>
 
                 {/* Active Appliances List */}
-                <div className="lg:col-span-7 space-y-6">
-                    <Card className="rounded-3xl border-none shadow-sm overflow-hidden ring-1 ring-slate-100 bg-white">
+                <div className="lg:col-span-7 space-y-4">
+                    <div className="relative group">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300 group-focus-within:text-indigo-500" />
+                        <Input
+                            placeholder="Search by Machine ID or Status..."
+                            value={listSearchQuery}
+                            onChange={e => setListSearchQuery(e.target.value)}
+                            className="pl-10 h-11 rounded-2xl bg-white border-slate-100 shadow-sm"
+                        />
+                    </div>
+                    <Card className="rounded-3xl border-none shadow-sm overflow-hidden ring-1 ring-slate-100 bg-white flex flex-col h-full">
                         <Table>
                             <TableHeader className="bg-slate-50/50">
                                 <TableRow className="border-slate-100">
@@ -269,7 +297,7 @@ export default function MachinesManagement() {
                                             <div className="flex flex-col">
                                                 <span className="font-black text-slate-900 text-sm uppercase">{m.machineId}</span>
                                                 <span className="text-[10px] text-slate-400 flex items-center gap-1 font-bold italic">
-                                                    <Clock className="h-2.5 w-2.5" /> 
+                                                    <Clock className="h-2.5 w-2.5" />
                                                     {m.lastHeartbeat ? `Last Sync: ${new Date(m.lastHeartbeat).toLocaleString()}` : 'Provisioned - Waiting for sync'}
                                                 </span>
                                             </div>
@@ -289,7 +317,16 @@ export default function MachinesManagement() {
                                             </div>
                                         </TableCell>
                                         <TableCell className="pr-8 text-right">
-                                            <Badge className="bg-emerald-50 text-emerald-600 border-none text-[9px] font-black uppercase h-5 px-2">Authorized</Badge>
+                                            <div className="flex items-center justify-end gap-3">
+                                                <Badge className="bg-emerald-50 text-emerald-600 border-none text-[9px] font-black uppercase h-5 px-2">Authorized</Badge>
+                                                <button
+                                                    onClick={() => { setSelectedMachine(m); setActiveAssignments(m.assignments || []); }}
+                                                    className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                                                    title="Edit Scope Assignments"
+                                                >
+                                                    <Pencil className="h-4 w-4" />
+                                                </button>
+                                            </div>
                                         </TableCell>
                                     </TableRow>
                                 )) : (
@@ -299,6 +336,27 @@ export default function MachinesManagement() {
                                 )}
                             </TableBody>
                         </Table>
+                    </Card>
+
+                    {/* Pagination Footer */}
+                    <Card className="rounded-2xl border-none shadow-sm overflow-hidden ring-1 ring-slate-100 bg-white p-4 flex items-center justify-between">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-4">
+                            Page {currentPage} of {totalPages || 1} <span className="mx-2 opacity-30">•</span> {total} Appliances
+                        </p>
+                        <div className="flex gap-2 pr-4">
+                            <Button
+                                variant="outline" size="sm" className="h-8 rounded-lg font-bold text-[10px] uppercase gap-1"
+                                onClick={() => handlePageChange('prev')} disabled={offset === 0 || isLoading}
+                            >
+                                <ChevronLeft className="h-3 w-3" /> Prev
+                            </Button>
+                            <Button
+                                variant="outline" size="sm" className="h-8 rounded-lg font-bold text-[10px] uppercase gap-1"
+                                onClick={() => handlePageChange('next')} disabled={offset + LIMIT >= total || isLoading}
+                            >
+                                Next <ChevronRight className="h-3 w-3" />
+                            </Button>
+                        </div>
                     </Card>
                 </div>
             </div>

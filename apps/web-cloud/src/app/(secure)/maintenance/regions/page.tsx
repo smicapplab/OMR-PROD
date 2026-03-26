@@ -2,14 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api";
-import { 
+import {
     Globe, Plus, Loader2, Map, Bookmark, FileText
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { 
-    Table, TableBody, TableCell, TableHead, TableHeader, TableRow 
+import {
+    Table, TableBody, TableCell, TableHead, TableHeader, TableRow
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 
@@ -24,7 +24,7 @@ interface RegionData {
 export default function RegionsManagement() {
     const [regions, setRegions] = useState<RegionData[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    
+
     const [name, setName] = useState("");
     const [code, setCode] = useState("");
     const [description, setDescription] = useState("");
@@ -67,7 +67,7 @@ export default function RegionsManagement() {
         <div className="flex-1 p-10 space-y-10 max-w-7xl mx-auto overflow-y-auto h-screen pb-32">
             <div className="flex items-center justify-between">
                 <div className="space-y-1">
-                    <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tight">Geographical Registry</h2>
+                    <h2 className="text-xl font-black text-slate-900 uppercase tracking-tight">Geographical Registry</h2>
                     <p className="text-sm text-slate-500 font-medium">Define the regional boundaries for national monitoring.</p>
                 </div>
             </div>

@@ -25,17 +25,17 @@ The system enforces strict data boundaries and functional privileges based on th
 
 | Role | Visibility Scope | Data Access Rights | System Privileges |
 | :--- | :--- | :--- | :--- |
-| **SUPER_ADMIN** | `NATIONAL` | **Full Read/Write**: Access to all nationwide records, scans, and master images. | Manage institutional registries, approve appliances, provision all users, modify answer keys, and finalize all QA queues. |
-| **NATIONAL_AUDITOR**| `NATIONAL` | **Full Read-Only**: Access to all nationwide records and the complete forensic audit trail. | View-only access to all registries and queues. Cannot modify data, approve corrections, or change system configuration. |
-| **DEPED_MONITOR** | `REGIONAL` / `SCHOOL` | **Role-Filtered Read-Only**: Access to analytics and records for assigned Region(s) or School(s). | Monitor sync progress, view student scores, and track regional performance. Cannot edit bubbles or manage personnel. |
-| **SCHOOL_ADMIN** | `SCHOOL` | **Institutional Read/Write**: Access only to students assigned to their specific institution. | Review/Approve field corrections, manage local operators, and oversee the institutional sync status. Access restricted to their home school. |
-| **EDGE_OPERATOR** | `APPLIANCE` | **Physical Local Access**: Access only to scans captured on the specific physical unit they are logged into. | Perform OMR scans, verify bubble confidence, and file manual data corrections. Cannot access the National Hub directly. |
+| **SUPER_ADMIN** | `NATIONAL` | **Full Read/Write**: Access to all nationwide records, scans, and master images. | Manage institutional registries, approve appliances, provision all users, modify answer keys, and finalize/approve all QA queues. |
+| **NATIONAL_AUDITOR**| `NATIONAL` | **Full Read-Only**: Access to all nationwide records and the complete forensic audit trail. | View-only access to all registries and queues. Cannot modify data or approve corrections. |
+| **DEPED_MONITOR** | `REGIONAL` | **Regional Read/Write**: Access to analytics and records for assigned Region(s). | Monitor sync progress, submit proposed bubble corrections, and **approve** QA corrections for schools within their region. |
+| **SCHOOL_ADMIN** | `SCHOOL` | **Institutional Read/Write**: Access only to students assigned to their specific institution. | Manage local operators, oversee institutional sync, and **submit** proposed bubble corrections for HQ review. Cannot approve their own submissions. |
+| **EDGE_OPERATOR** | `APPLIANCE` | **Physical Local Access**: Access only to scans captured on the specific physical unit they are logged into. | Perform OMR scans, verify bubble confidence, and file manual data corrections locally. |
 
 ### Scoping Summary:
-*   **National Personnel**: See the "Global Stream" (unfiltered).
-*   **Regional/Division Personnel**: See the "Regional Stream" (filtered by geographic boundaries).
-*   **Institutional Personnel**: See the "School Stream" (filtered by school code).
-*   **Field Personnel**: Bound to the **Appliance Identity**.
+*   **National Personnel**: Global oversight (National Registry).
+*   **Regional Monitors**: Regional authority (Submit & Approve for their region).
+*   **School Admins**: Institutional management (Submit for their school; requires Regional/National approval).
+*   **Edge Operators**: Field capture (Local OMR verification).
 
 ---
 
@@ -108,6 +108,7 @@ npm install && npm run build
 
 ### Default Test Credentials
 *   **National Admin**: `admin@omr-prod.gov.ph` / `password123`
+*   **National Auditor**: `auditor@omr-prod.gov.ph` / `password123`
 *   **Regional Monitor**: `monitor.ncr@omr-prod.gov.ph` / `password123`
 *   **School Admin**: `admin.777@omr-prod.gov.ph` / `password123`
 *   **Edge Operator**: `operator1@mshs.edu.ph` / `password123` (Linked to MACHINE-00001)

@@ -66,17 +66,17 @@ export function OMRTextInput({
 
     return (
         <div className="space-y-3">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{label}</label>
+            <label className="text-[10px] text-slate-400 uppercase tracking-[0.2em]">{label}</label>
             <Input
                 value={currentValue}
                 onChange={handleChange}
                 onBlur={handleBlur}
-                className="h-12 bg-slate-50 border-slate-100 rounded-xl font-bold text-slate-700 focus:bg-white focus:ring-2 focus:ring-indigo-100 transition-all uppercase"
+                className="h-12 bg-slate-50 border-slate-100 rounded-xl text-slate-700 focus:bg-white focus:ring-2 focus:ring-indigo-100 transition-all uppercase"
                 placeholder={`Enter ${label.toLowerCase()}...`}
                 inputMode={isNumeric ? "numeric" : "text"}
             />
             {fieldData.is_manual && (
-                <p className="text-[9px] text-indigo-500 font-black uppercase tracking-tighter px-1">
+                <p className="text-[9px] text-indigo-500 uppercase tracking-tighter px-1">
                     Modified Manually
                 </p>
             )}

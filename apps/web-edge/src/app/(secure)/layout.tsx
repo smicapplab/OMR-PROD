@@ -18,7 +18,7 @@ export default function SecureLayout({ children }: { children: React.ReactNode }
     if (isLoading) return (
         <div className="h-screen w-screen flex flex-col items-center justify-center bg-slate-50 gap-4">
             <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
-            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Verifying Appliance Access...</p>
+            <p className="text-[10px] uppercase tracking-[0.3em] text-slate-400">Verifying Appliance Access...</p>
         </div>
     );
 

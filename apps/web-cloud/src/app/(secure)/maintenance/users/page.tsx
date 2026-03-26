@@ -2,14 +2,14 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { apiFetch } from "@/lib/api";
-import { 
+import {
     Users, Plus, Loader2, UserPlus, Mail, Shield, ShieldCheck, School, Eye, Globe, Map, ChevronLeft, ChevronRight, Monitor, Trash2, Edit2, X, Check, Filter, Search
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { 
-    Table, TableBody, TableCell, TableHead, TableHeader, TableRow 
+import {
+    Table, TableBody, TableCell, TableHead, TableHeader, TableRow
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -49,7 +49,7 @@ export default function UsersManagement() {
     const [total, setTotal] = useState(0);
     const [offset, setOffset] = useState(0);
     const LIMIT = 10;
-    
+
     // Form State
     const [editingUser, setEditingUser] = useState<UserData | null>(null);
     const [email, setEmail] = useState("");
@@ -57,24 +57,25 @@ export default function UsersManagement() {
     const [lastName, setLastName] = useState("");
     const [password, setPassword] = useState("");
     const [userType, setUserType] = useState("EDGE_OPERATOR");
-    
+
     // Scoping state
     const [visibilityScope, setVisibilityScope] = useState<'NATIONAL' | 'REGIONAL' | 'SCHOOL'>('SCHOOL');
     const [selectedSchoolId, setSelectedSchoolId] = useState(""); // For SCHOOL_ADMIN (Single)
     const [selectedMachineIds, setSelectedMachineIds] = useState<string[]>([]); // For EDGE_OPERATOR
     const [multiScopeValues, setMultiScopeValues] = useState<string[]>([]); // For DEPED_MONITOR
-    
+
     // Selection Helpers
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedRegionFilter, setSelectedRegionFilter] = useState("ALL");
     const [isActive, setIsActive] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [listSearchQuery, setListSearchQuery] = useState("");
 
-    async function loadData(currentOffset = 0) {
+    async function loadData(currentOffset = 0, search = listSearchQuery) {
         setIsLoading(true);
         try {
             const [userRes, schoolRes, regionRes, machineRes] = await Promise.all([
-                apiFetch<any>("/api/v1/maintenance/users", { params: { limit: LIMIT, offset: currentOffset } }),
+                apiFetch<any>("/api/v1/maintenance/users", { params: { limit: LIMIT, offset: currentOffset, search } }),
                 apiFetch<any>("/api/v1/maintenance/schools?limit=1000"),
                 apiFetch<RegionData[]>("/api/v1/maintenance/regions"),
                 apiFetch<MachineData[]>("/api/v1/maintenance/machines")
@@ -102,10 +103,10 @@ export default function UsersManagement() {
     const handleEdit = (u: UserData) => {
         setEditingUser(u);
         setEmail(u.email); setFirstName(u.firstName); setLastName(u.lastName);
-        setPassword(""); 
+        setPassword("");
         setUserType(u.userType); setVisibilityScope(u.visibilityScope);
         setIsActive(u.isActive);
-        
+
         // Restore appropriate scopes
         if (u.userType === 'SCHOOL_ADMIN') setSelectedSchoolId(u.scopeValue);
         if (u.userType === 'EDGE_OPERATOR') setSelectedMachineIds(u.machineIds || []);
@@ -117,7 +118,7 @@ export default function UsersManagement() {
         setIsSubmitting(true);
         try {
             const endpoint = editingUser ? "/api/v1/maintenance/users/update" : "/api/v1/maintenance/users";
-            
+
             // Resolve scopeValue based on role
             let finalScopeValue = "";
             if (userType === 'SUPER_ADMIN' || userType === 'NATIONAL_AUDITOR') finalScopeValue = "ALL";
@@ -127,7 +128,7 @@ export default function UsersManagement() {
             const payload = {
                 id: editingUser?.id,
                 email, firstName, lastName, password: password || undefined,
-                userType, 
+                userType,
                 visibilityScope: (userType === 'SUPER_ADMIN' || userType === 'NATIONAL_AUDITOR') ? 'NATIONAL' : visibilityScope,
                 scopeValue: finalScopeValue,
                 machineIds: userType === 'EDGE_OPERATOR' ? selectedMachineIds : [],
@@ -168,7 +169,30 @@ export default function UsersManagement() {
         loadData(newOffset);
     };
 
-    useEffect(() => { loadData(0); }, []);
+    useEffect(() => {
+        const delayDebounceFn = setTimeout(() => {
+            setOffset(0);
+            loadData(0, listSearchQuery);
+        }, 500);
+        return () => clearTimeout(delayDebounceFn);
+    }, [listSearchQuery]);
+
+    useEffect(() => {
+        // Meta data load on mount
+        const loadMeta = async () => {
+            try {
+                const [schoolRes, regionRes, machineRes] = await Promise.all([
+                    apiFetch<any>("/api/v1/maintenance/schools?limit=1000"),
+                    apiFetch<RegionData[]>("/api/v1/maintenance/regions"),
+                    apiFetch<MachineData[]>("/api/v1/maintenance/machines")
+                ]);
+                setSchools(Array.isArray(schoolRes) ? schoolRes : schoolRes.items || []);
+                setRegions(regionRes || []);
+                setMachines(machineRes || []);
+            } catch (err) { }
+        };
+        loadMeta();
+    }, []);
 
     const currentPage = Math.floor(offset / LIMIT) + 1;
     const totalPages = Math.ceil(total / LIMIT);
@@ -177,7 +201,7 @@ export default function UsersManagement() {
         <div className="flex-1 p-10 space-y-10 max-w-7xl mx-auto overflow-y-auto h-screen pb-32">
             <div className="flex items-center justify-between">
                 <div className="space-y-1">
-                    <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tight">Human Registry</h2>
+                    <h2 className="text-xl font-black text-slate-900 uppercase tracking-tight">Human Registry</h2>
                     <p className="text-sm text-slate-500 font-medium italic">Manage personnel access and departmental authority boundaries.</p>
                 </div>
             </div>
@@ -217,7 +241,7 @@ export default function UsersManagement() {
 
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-bold uppercase text-slate-400 tracking-widest ml-1">Assigned Role</label>
-                                    <select 
+                                    <select
                                         className="w-full h-11 px-3 bg-white border border-slate-200 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900"
                                         value={userType}
                                         onChange={e => {
@@ -287,12 +311,12 @@ export default function UsersManagement() {
                                             </div>
                                             <div className="grid grid-cols-1 gap-1.5 max-h-40 overflow-y-auto p-2 bg-white rounded-xl border border-slate-200">
                                                 {(visibilityScope === 'REGIONAL' ? regions : filteredSchools).map(item => {
-                                                    const isSelected = userType === 'SCHOOL_ADMIN' 
-                                                        ? selectedSchoolId === item.id 
+                                                    const isSelected = userType === 'SCHOOL_ADMIN'
+                                                        ? selectedSchoolId === item.id
                                                         : multiScopeValues.includes(item.id);
-                                                    
+
                                                     return (
-                                                        <button key={item.id} type="button" 
+                                                        <button key={item.id} type="button"
                                                             onClick={() => {
                                                                 if (userType === 'SCHOOL_ADMIN') setSelectedSchoolId(item.id);
                                                                 else toggleMultiValue(item.id);
@@ -324,7 +348,16 @@ export default function UsersManagement() {
                 </div>
 
                 {/* List Panel */}
-                <div className="lg:col-span-7 flex flex-col">
+                <div className="lg:col-span-7 flex flex-col space-y-4">
+                    <div className="relative group">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300 group-focus-within:text-indigo-500" />
+                        <Input
+                            placeholder="Search by name or email..."
+                            value={listSearchQuery}
+                            onChange={e => setListSearchQuery(e.target.value)}
+                            className="pl-10 h-11 rounded-2xl bg-white border-slate-100 shadow-sm"
+                        />
+                    </div>
                     <Card className="rounded-3xl border-none shadow-sm overflow-hidden ring-1 ring-slate-100 bg-white flex flex-col flex-1">
                         <div className="flex-1">
                             <Table>

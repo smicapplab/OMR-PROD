@@ -19,7 +19,7 @@ export function CategoricalSelect({ label, path, fieldData, onUpdate, options: o
 
     return (
         <div className="space-y-3">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{label}</label>
+            <label className="text-[10px] text-slate-400 uppercase tracking-[0.2em]">{label}</label>
             <Select
                 value={fieldData.answer as string}
                 onValueChange={(val) => onUpdate(path, val)}

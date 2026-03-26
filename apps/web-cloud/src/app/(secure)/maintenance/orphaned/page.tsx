@@ -2,14 +2,14 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { apiFetch } from "@/lib/api";
-import { 
+import {
     AlertCircle, CheckCircle2, Loader2, School, Search, HelpCircle, ArrowRight, User, Hash, Globe, Filter
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { 
-    Table, TableBody, TableCell, TableHead, TableHeader, TableRow 
+import {
+    Table, TableBody, TableCell, TableHead, TableHeader, TableRow
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -40,7 +40,7 @@ export default function CorrectionQueue() {
     const [schools, setSchools] = useState<SchoolData[]>([]);
     const [regions, setRegions] = useState<RegionData[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    
+
     // Assignment State
     const [selectedScan, setSelectedScan] = useState<OrphanedScan | null>(null);
     const [targetSchoolId, setTargetSchoolId] = useState("");
@@ -74,9 +74,9 @@ export default function CorrectionQueue() {
         try {
             await apiFetch("/api/v1/maintenance/scans/assign", {
                 method: "POST",
-                body: JSON.stringify({ 
-                    scanId: selectedScan.id, 
-                    schoolId: targetSchoolId 
+                body: JSON.stringify({
+                    scanId: selectedScan.id,
+                    schoolId: targetSchoolId
                 })
             });
             setSelectedScan(null);
@@ -105,7 +105,7 @@ export default function CorrectionQueue() {
         <div className="flex-1 p-10 space-y-10 max-w-7xl mx-auto overflow-y-auto h-screen pb-32">
             <div className="flex items-center justify-between">
                 <div className="space-y-1">
-                    <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tight leading-none mb-1">Orphaned Records</h2>
+                    <h2 className="text-xl font-black text-slate-900 uppercase tracking-tight leading-none mb-1">Orphaned Records</h2>
                     <p className="text-sm text-slate-500 font-medium italic">Review scans with invalid institutional identification and map them to the correct school.</p>
                 </div>
                 <Badge variant="outline" className="bg-amber-50 text-amber-600 border-amber-100 font-bold px-4 py-1 rounded-full uppercase text-[10px]">
@@ -150,8 +150,8 @@ export default function CorrectionQueue() {
                                             </div>
                                         </TableCell>
                                         <TableCell className="pr-8 text-right">
-                                            <Button 
-                                                variant="ghost" 
+                                            <Button
+                                                variant="ghost"
                                                 onClick={() => setSelectedScan(s)}
                                                 className="h-8 rounded-lg font-bold text-[10px] uppercase text-indigo-600 hover:bg-indigo-50 gap-2"
                                             >
@@ -180,14 +180,14 @@ export default function CorrectionQueue() {
                                     Assign Institution
                                 </CardTitle>
                                 <CardDescription className="text-[10px] uppercase font-bold tracking-widest text-slate-400">
-                                    Scan ID: {selectedScan.id.substring(0,8)}
+                                    Scan ID: {selectedScan.id.substring(0, 8)}
                                 </CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-6">
                                 <div className="space-y-4">
                                     <div className="flex gap-2">
                                         <div className="flex-1 relative">
-                                            <Input 
+                                            <Input
                                                 placeholder="Search by name or code..."
                                                 value={searchQuery}
                                                 onChange={e => setSearchQuery(e.target.value)}
@@ -196,7 +196,7 @@ export default function CorrectionQueue() {
                                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3 w-3 text-slate-300" />
                                         </div>
                                         <div className="relative">
-                                            <select 
+                                            <select
                                                 className="h-10 pl-8 pr-4 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-medium outline-none appearance-none min-w-[120px]"
                                                 value={regionFilter}
                                                 onChange={e => setRegionFilter(e.target.value)}
@@ -233,8 +233,8 @@ export default function CorrectionQueue() {
 
                                 <div className="flex gap-3">
                                     <Button variant="outline" onClick={() => setSelectedScan(null)} className="flex-1 h-12 rounded-xl font-bold text-xs uppercase text-slate-400">Cancel</Button>
-                                    <Button 
-                                        onClick={handleAssign} 
+                                    <Button
+                                        onClick={handleAssign}
                                         disabled={!targetSchoolId || isSubmitting}
                                         className="flex-2 h-12 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs uppercase shadow-lg shadow-indigo-100"
                                     >

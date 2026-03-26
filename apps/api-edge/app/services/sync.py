@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.models.user import User, ActivityLog
 from app.models.scan import Scan
+from app.models.school import School
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("SyncAgent")
@@ -57,6 +58,30 @@ class SyncService:
             logger.info(f"✅ Synced {len(operators_data)} operators.")
         except Exception as e:
             logger.error(f"❌ Failed to pull operators: {e}")
+
+    def pull_schools(self, db: Session):
+        try:
+            logger.info(f"Pulling schools for Machine: {settings.MACHINE_ID}")
+            response = self.client.get(f"/sync/machines/{settings.MACHINE_ID}/schools")
+            if response.status_code == 401:
+                return
+
+            response.raise_for_status()
+            schools_data = response.json()
+            
+            for s_data in schools_data:
+                school = db.query(School).filter(School.id == s_data["id"]).first()
+                if not school:
+                    school = School(id=s_data["id"])
+                    db.add(school)
+                school.name = s_data["name"]
+                school.code = s_data["code"]
+                school.region_id = s_data.get("regionId")
+                school.division = s_data.get("division")
+            db.commit()
+            logger.info(f"✅ Synced {len(schools_data)} schools.")
+        except Exception as e:
+            logger.error(f"❌ Failed to pull schools: {e}")
 
     def push_logs(self, db: Session):
         try:

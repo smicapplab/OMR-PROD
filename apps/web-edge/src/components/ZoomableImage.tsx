@@ -78,7 +78,7 @@ export function ZoomableImage({ src, alt = "Official View" }: ZoomableImageProps
 
             {/* Scale Indicator */}
             <div className="absolute bottom-4 left-6 z-20">
-                <span className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] bg-black/20 px-3 py-1 rounded-full border border-white/5">
+                <span className="text-[10px] text-white/40 uppercase tracking-[0.2em] bg-black/20 px-3 py-1 rounded-full border border-white/5">
                     Magnification: {(scale * 100).toFixed(0)}%
                 </span>
             </div>
@@ -120,7 +120,7 @@ export function ZoomableImage({ src, alt = "Official View" }: ZoomableImageProps
                         <div className="h-12 w-12 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20">
                             <Maximize className="h-6 w-6 text-white/50" />
                         </div>
-                        <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Click Zoom to Inspect</p>
+                        <p className="text-[10px] text-white/30 uppercase tracking-widest">Click Zoom to Inspect</p>
                     </div>
                 </div>
             )}

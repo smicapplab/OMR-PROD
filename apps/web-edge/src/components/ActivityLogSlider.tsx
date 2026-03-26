@@ -103,7 +103,7 @@ export function ActivityLogSlider({ scanId, isOpen, onClose }: ActivityLogSlider
                         <Badge
                             key={i}
                             className={cn(
-                                "text-[9px] px-1.5 h-auto py-0.5 border-none uppercase whitespace-normal text-left max-w-full font-bold",
+                                "text-[9px] px-1.5 h-auto py-0.5 border-none uppercase whitespace-normal text-left max-w-full ",
                                 variant === 'from' ? "bg-rose-100 text-rose-700" : "bg-emerald-100 text-emerald-700"
                             )}
                         >
@@ -115,7 +115,7 @@ export function ActivityLogSlider({ scanId, isOpen, onClose }: ActivityLogSlider
         }
         return (
             <div className={cn(
-                "min-w-[24px] px-2 py-1 rounded text-[10px] font-black border break-all",
+                "min-w-[24px] px-2 py-1 rounded text-[10px] border break-all",
                 variant === 'from' ? "bg-rose-50 text-rose-600 border-rose-100" : "bg-emerald-50 text-emerald-600 border-emerald-100"
             )}>
                 {val}
@@ -133,7 +133,7 @@ export function ActivityLogSlider({ scanId, isOpen, onClose }: ActivityLogSlider
                         </div>
                         <div>
                             <SheetTitle className="text-base font-bold text-slate-900 leading-none mb-1">Audit Trail</SheetTitle>
-                            <SheetDescription className="text-[9px] font-black uppercase tracking-widest text-slate-400">Ref: {scanId}</SheetDescription>
+                            <SheetDescription className="text-[9px] uppercase tracking-widest text-slate-400">Ref: {scanId}</SheetDescription>
                         </div>
                     </div>
                 </SheetHeader>
@@ -144,12 +144,12 @@ export function ActivityLogSlider({ scanId, isOpen, onClose }: ActivityLogSlider
                             {isLoading ? (
                                 <div className="py-20 text-center flex flex-col items-center gap-3">
                                     <Loader2 className="h-6 w-6 animate-spin text-indigo-600" />
-                                    <p className="text-[10px] font-black text-slate-400 uppercase">Syncing audit history...</p>
+                                    <p className="text-[10px] text-slate-400 uppercase">Syncing audit history...</p>
                                 </div>
                             ) : logs.length === 0 ? (
                                 <div className="py-10 text-center border-2 border-dashed rounded-2xl border-slate-100">
                                     <ShieldCheck className="h-6 w-6 text-slate-200 mx-auto mb-2" />
-                                    <p className="text-xs text-slate-400 font-bold px-8">No modifications detected.</p>
+                                    <p className="text-xs text-slate-400 px-8">No modifications detected.</p>
                                 </div>
                             ) : (
                                 <div className="relative space-y-6 before:absolute before:inset-0 before:ml-4 before:-translate-x-px before:h-full before:w-0.5 before:bg-slate-100">
@@ -166,12 +166,12 @@ export function ActivityLogSlider({ scanId, isOpen, onClose }: ActivityLogSlider
 
                                                 <div className="flex flex-1 flex-col gap-0.5 pt-0.5 min-w-0">
                                                     <div className="flex items-center justify-between">
-                                                        <span className="text-[10px] font-black uppercase text-slate-900">{log.action.replace('_', ' ')}</span>
-                                                        <span className="text-[8px] font-bold text-slate-400">
+                                                        <span className="text-[10px] uppercase text-slate-900">{log.action.replace('_', ' ')}</span>
+                                                        <span className="text-[8px] text-slate-400">
                                                             {log.createdAt ? new Date(log.createdAt.replace(' ', 'T')).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : 'Unknown Time'}
                                                         </span>
                                                     </div>
-                                                    <p className="text-[10px] text-slate-500 flex items-center gap-1 font-medium mb-2">
+                                                    <p className="text-[10px] text-slate-500 flex items-center gap-1 mb-2">
                                                         <UserCircle className="h-3 w-3 text-slate-300" />
                                                         {log.operator}
                                                     </p>
@@ -180,7 +180,7 @@ export function ActivityLogSlider({ scanId, isOpen, onClose }: ActivityLogSlider
                                                         <div className="bg-slate-50 rounded-xl border border-slate-100 overflow-hidden divide-y divide-slate-100 mb-2">
                                                             {deltas.map((delta, idx) => (
                                                                 <div key={idx} className="p-2 flex flex-col gap-1.5 hover:bg-white transition-colors">
-                                                                    <span className="text-[8px] font-black uppercase text-indigo-600 tracking-tighter">
+                                                                    <span className="text-[8px] uppercase text-indigo-600 tracking-tighter">
                                                                         {delta.path.replace('student_info → ', '').replace('answers → ', '').replace('previous_school → ', 'PREV: ').replace('current_school → ', 'CURR: ')}
                                                                     </span>
                                                                     <div className="flex items-start gap-2">
@@ -194,7 +194,7 @@ export function ActivityLogSlider({ scanId, isOpen, onClose }: ActivityLogSlider
                                                     )}
 
                                                     <div className="flex items-center justify-between px-1">
-                                                        <span className="text-[8px] font-bold text-slate-300 uppercase tracking-widest text-right w-full">
+                                                        <span className="text-[8px] text-slate-300 uppercase tracking-widest text-right w-full">
                                                             State: {log.statusAfter?.replace('_', ' ') || 'OK'}
                                                         </span>
                                                     </div>

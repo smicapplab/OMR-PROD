@@ -8,6 +8,7 @@ import { CategoricalSelect } from "./CategoricalSelect";
 import { SimpleToggle } from "./SimpleToggle";
 import { MultiSelect } from "./MultiSelect";
 import { OMRTextInput } from "./OMRTextInput";
+import { SchoolSelect } from "./SchoolSelect";
 
 interface StudentProfileProps {
     localData: OMRRawData;
@@ -65,7 +66,7 @@ export function StudentProfile({ localData, onUpdateField, onUpdateText }: Stude
                     <div className="space-y-6 pt-2">
                         <CategoricalSelect label="Region" path={["current_school", "region"]} fieldData={localData.student_info.current_school?.region} onUpdate={onUpdateField} />
                         <OMRTextInput label="Division" path={["current_school", "division"]} fieldData={localData.student_info.current_school?.division} onUpdate={onUpdateText} isNumeric={true} maxLength={2} padLength={2} />
-                        <OMRTextInput label="School ID" path={["current_school", "school_id"]} fieldData={localData.student_info.current_school?.school_id} onUpdate={onUpdateText} isNumeric={true} maxLength={6} padLength={6} />
+                        <SchoolSelect label="School ID" path={["current_school", "school_id"]} fieldData={localData.student_info.current_school?.school_id as any} onUpdate={onUpdateText} />
                         <CategoricalSelect label="School Type" path={["current_school", "school_type"]} fieldData={localData.student_info.current_school?.school_type} onUpdate={onUpdateField} />
                     </div>
                 </CollapsibleSection>
@@ -73,7 +74,7 @@ export function StudentProfile({ localData, onUpdateField, onUpdateText }: Stude
                 <CollapsibleSection title="4. Academic History" icon={GraduationCap}>
                     <div className="space-y-6 pt-2">
                         <CategoricalSelect label="School Year (SY)" path={["previous_school", "school_year"]} fieldData={localData.student_info.previous_school?.school_year} onUpdate={onUpdateField} />
-                        <OMRTextInput label="Previous School ID" path={["previous_school", "school_id"]} fieldData={localData.student_info.previous_school?.school_id} onUpdate={onUpdateText} isNumeric={true} maxLength={6} padLength={6} />
+                        <SchoolSelect label="Previous School ID" path={["previous_school", "school_id"]} fieldData={localData.student_info.previous_school?.school_id as any} onUpdate={onUpdateText} />
                         <OMRTextInput label="Class Size" path={["previous_school", "class_size"]} fieldData={localData.student_info.previous_school?.class_size} onUpdate={onUpdateText} isNumeric={true} maxLength={2} padLength={2} />
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-dashed">

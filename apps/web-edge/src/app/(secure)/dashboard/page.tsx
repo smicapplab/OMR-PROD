@@ -40,10 +40,13 @@ export default function DashboardPage() {
     const [selectedScanId, setSelectedScanId] = useState<number | null>(null);
     const [selectedScan, setSelectedScan] = useState<Scan | null>(null);
     const [isDetailLoading, setIsDetailScanLoading] = useState(false);
+    const [resolvedSchoolName, setResolvedSchoolName] = useState<string | null>(null);
 
     const [isEditorOpen, setIsEditorOpen] = useState(false);
     const [isLogOpen, setIsLogOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
+    const [assignedSchools, setAssignedSchools] = useState<any[]>([]);
+    const [dashboardTitle, setDashboardTitle] = useState("Global Sync Stream");
     const skipRef = useRef(0);
     const LIMIT = 30;
 
@@ -106,6 +109,25 @@ export default function DashboardPage() {
     };
 
     useEffect(() => {
+        const loadMeta = async () => {
+            try {
+                const schools = await apiFetch<any[]>("/api/v1/schools");
+                setAssignedSchools(schools || []);
+                if (schools && schools.length > 0) {
+                    if (schools.length === 1) {
+                        setDashboardTitle(schools[0].name);
+                    } else if (schools.length <= 3) {
+                        setDashboardTitle(schools.map((s: any) => s.name).join(", "));
+                    } else {
+                        setDashboardTitle(`${schools.length} Institutions`);
+                    }
+                }
+            } catch (err) { console.error("Meta load failed", err); }
+        };
+        loadMeta();
+    }, []);
+
+    useEffect(() => {
         const timer = setTimeout(() => {
             loadScans(true);
         }, 300);
@@ -132,6 +154,18 @@ export default function DashboardPage() {
                 try {
                     const data = await apiFetch<Scan>(`/api/v1/scans/${selectedScanId}`);
                     setSelectedScan(data);
+
+                    const schoolId = (data.rawData as any)?.student_info?.current_school?.school_id?.answer;
+                    if (schoolId) {
+                        try {
+                            const schoolData = await apiFetch<any>(`/api/v1/schools/${schoolId}`);
+                            setResolvedSchoolName(schoolData.name || null);
+                        } catch {
+                            setResolvedSchoolName("UNRESOLVED");
+                        }
+                    } else {
+                        setResolvedSchoolName(null);
+                    }
                 } catch (err) {
                     console.error("Failed to load detail", err);
                 } finally {
@@ -162,21 +196,23 @@ export default function DashboardPage() {
                             <Database className="h-5 w-5 text-white" />
                         </div>
                         <div>
-                            <h1 className="text-base font-bold text-slate-900 leading-tight">OMR Edge Console</h1>
+                            <h1 className="text-base font-bold text-slate-900 leading-tight">
+                                {dashboardTitle}
+                            </h1>
                             <div className="flex items-center gap-2">
                                 <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
-                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Appliance Online • DEV-001</p>
+                                <p className="text-[10px] text-slate-400 uppercase tracking-widest">Appliance Online • DEV-001</p>
                             </div>
                         </div>
                     </div>
 
                     <div className="flex items-center gap-3">
                         <div className="text-right hidden sm:block">
-                            <p className="text-sm font-bold text-slate-900">{user?.firstName} {user?.lastName}</p>
-                            <Badge className="text-[9px] font-bold text-indigo-600 uppercase tracking-tighter bg-indigo-50 border-none px-1.5 py-0.5 rounded">{user?.userType}</Badge>
+                            <p className="text-sm text-slate-900">{user?.firstName} {user?.lastName}</p>
+                            <Badge className="text-[9px] text-indigo-600 uppercase tracking-tighter bg-indigo-50 border-none px-1.5 py-0.5 rounded">{user?.userType}</Badge>
                         </div>
                         <Avatar className="h-9 w-9 border-2 border-white shadow-sm">
-                            <AvatarFallback className="bg-indigo-100 text-indigo-700 font-bold text-xs uppercase">
+                            <AvatarFallback className="bg-indigo-100 text-indigo-700 text-xs uppercase">
                                 {user?.firstName?.[0]}{user?.lastName?.[0]}
                             </AvatarFallback>
                         </Avatar>
@@ -221,7 +257,7 @@ export default function DashboardPage() {
                                         {isLoading ? (
                                             <div className="flex flex-col items-center justify-center py-20 gap-3">
                                                 <RefreshCcw className="h-6 w-6 animate-spin text-slate-200" />
-                                                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.2em]">Indexing database...</p>
+                                                <p className="text-[11px] text-slate-400 uppercase tracking-[0.2em]">Indexing database...</p>
                                             </div>
                                         ) : (
                                             <div className="space-y-1">
@@ -241,16 +277,16 @@ export default function DashboardPage() {
                                                         >
                                                             <div className="flex justify-between items-start gap-2 mb-2">
                                                                 <div className="flex-1 overflow-hidden">
-                                                                    <p className={cn("text-sm font-bold truncate uppercase tracking-tight", selectedScanId === scan.id ? "text-indigo-700" : "text-slate-900")}>
+                                                                    <p className={cn("text-sm truncate uppercase tracking-tight", selectedScanId === scan.id ? "text-indigo-700" : "text-slate-900")}>
                                                                         {studentName}
                                                                     </p>
                                                                     <div className="flex items-center gap-2 mt-1">
                                                                         <FileText className="h-3 w-3 text-slate-300" />
-                                                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter truncate max-w-[120px]">
+                                                                        <span className="text-[10px] text-slate-400 uppercase tracking-tighter truncate max-w-[120px]">
                                                                             {scan.fileName}
                                                                         </span>
                                                                         <span className="text-slate-200">•</span>
-                                                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">
+                                                                        <span className="text-[10px] text-slate-400 uppercase tracking-tighter">
                                                                             {new Date(scan.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                                         </span>
                                                                     </div>
@@ -288,7 +324,7 @@ export default function DashboardPage() {
                                     {isDetailLoading && !selectedScan ? (
                                         <div className="flex flex-1 flex-col items-center justify-center bg-slate-50/30">
                                             <Loader2 className="h-10 w-10 animate-spin text-indigo-200 mb-4" />
-                                            <p className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em]">Loading High-Res Official Master...</p>
+                                            <p className="text-xs text-slate-400 uppercase tracking-[0.2em]">Loading High-Res Official Master...</p>
                                         </div>
                                     ) : selectedScan ? (
                                         <ResizablePanelGroup orientation="horizontal">
@@ -305,7 +341,7 @@ export default function DashboardPage() {
                                                     <div className="p-8">
                                                         <div className="flex items-center justify-between mb-8">
                                                             <div className="flex items-center gap-3">
-                                                                <div className="h-8 w-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600 font-bold text-xs">Ai</div>
+                                                                <div className="h-8 w-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600 text-xs">Ai</div>
                                                                 <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em]">Extraction Intelligence</h3>
                                                             </div>
                                                             <button
@@ -321,13 +357,13 @@ export default function DashboardPage() {
                                                             <div className="mb-8 p-4 bg-purple-50 rounded-2xl border border-purple-100 flex flex-col gap-3">
                                                                 <div className="flex items-center gap-2 text-purple-700">
                                                                     <ShieldCheck className="h-4 w-4" />
-                                                                    <span className="text-[11px] font-black uppercase tracking-wider">Awaiting Supervisor Approval</span>
+                                                                    <span className="text-[11px] uppercase tracking-wider">Awaiting Supervisor Approval</span>
                                                                 </div>
-                                                                <p className="text-xs text-purple-600/80 leading-relaxed font-medium">This record has manual corrections. A supervisor must verify the changes before they are synced to the cloud.</p>
+                                                                <p className="text-xs text-purple-600/80 leading-relaxed ">This record has manual corrections. A supervisor must verify the changes before they are synced to the cloud.</p>
                                                                 {(user?.userType === 'SUPER_ADMIN' || user?.userType === 'SCHOOL_ADMIN') && (
                                                                     <Button
                                                                         onClick={handleApprove}
-                                                                        className="w-full bg-purple-600 hover:bg-purple-700 text-white rounded-xl h-9 gap-2 text-xs font-bold"
+                                                                        className="w-full bg-purple-600 hover:bg-purple-700 text-white rounded-xl h-9 gap-2 text-xs "
                                                                     >
                                                                         <ThumbsUp className="h-3.5 w-3.5" />
                                                                         Verify & Approve
@@ -343,32 +379,105 @@ export default function DashboardPage() {
                                                                     <ShieldCheck className="h-4 w-4 text-emerald-500" />
                                                                 </div>
                                                             </CardHeader>
-                                                            <CardContent className="space-y-4">
-                                                                <div>
-                                                                    <p className="text-xl font-black text-slate-900 uppercase leading-tight">
-                                                                        {selectedScan.studentName || '---'}
-                                                                    </p>
-                                                                    <div className="grid grid-cols-2 gap-4 mt-3">
-                                                                        <div>
-                                                                            <label className="text-[9px] font-black text-slate-400 uppercase">LRN</label>
-                                                                            <p className="text-xs font-mono font-bold text-indigo-600 tracking-widest">
-                                                                                {(selectedScan.rawData as any)?.student_info?.lrn?.answer || '---'}
-                                                                            </p>
-                                                                        </div>
-                                                                        <div>
-                                                                            <label className="text-[9px] font-black text-slate-400 uppercase">SSC</label>
-                                                                            <p className="text-xs font-mono font-bold text-slate-700 uppercase">
-                                                                                {(selectedScan.rawData as any)?.student_info?.ssc?.answer || '---'}
-                                                                            </p>
-                                                                        </div>
-                                                                        <div className="col-span-2">
-                                                                            <label className="text-[9px] font-black text-slate-400 uppercase">Birthdate</label>
-                                                                            <p className="text-xs font-bold text-slate-700">
-                                                                                {(selectedScan.rawData as any)?.student_info?.birth_month?.answer || '--'} {(selectedScan.rawData as any)?.student_info?.birth_day?.answer || '--'}, {formatOMRYear((selectedScan.rawData as any)?.student_info?.birth_year?.answer) || '----'}
-                                                                            </p>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
+                                                            <CardContent className="space-y-6">
+                                                                {(() => {
+                                                                    const info = (selectedScan.rawData as any)?.student_info || {};
+                                                                    return (
+                                                                        <>
+                                                                            <div>
+                                                                                <p className="text-xl text-slate-900 uppercase leading-tight mb-4">
+                                                                                    {selectedScan.studentName || '---'} {info.middle_initial?.answer ? ` ${info.middle_initial.answer}.` : ''}
+                                                                                </p>
+                                                                                <div className="grid grid-cols-2 gap-4">
+                                                                                    <div>
+                                                                                        <label className="text-[9px] text-slate-400 uppercase">LRN</label>
+                                                                                        <p className="text-xs font-mono text-indigo-600 tracking-widest">{info.lrn?.answer || '---'}</p>
+                                                                                    </div>
+                                                                                    <div>
+                                                                                        <label className="text-[9px] text-slate-400 uppercase">Birthdate</label>
+                                                                                        <p className="text-xs text-slate-700">
+                                                                                            {info.birth_month?.answer || '--'} {info.birth_day?.answer || '--'}, {formatOMRYear(info.birth_year?.answer) || '----'}
+                                                                                        </p>
+                                                                                    </div>
+                                                                                    <div>
+                                                                                        <label className="text-[9px] text-slate-400 uppercase">Gender</label>
+                                                                                        <p className="text-xs text-slate-700 uppercase">{info.gender?.answer || '---'}</p>
+                                                                                    </div>
+                                                                                    <div>
+                                                                                        <label className="text-[9px] text-slate-400 uppercase">SSC / 4Ps</label>
+                                                                                        <div className="flex gap-1 mt-0.5">
+                                                                                            {info.ssc?.answer === 'Y' || info.ssc?.answer === 'YES' ? <Badge variant="outline" className="text-[9px] h-4 px-1 rounded-sm border-slate-200">SSC</Badge> : null}
+                                                                                            {info.four_ps?.answer === 'Y' || info.four_ps?.answer === 'YES' ? <Badge variant="outline" className="text-[9px] h-4 px-1 rounded-sm border-slate-200">4Ps</Badge> : null}
+                                                                                            {(!info.ssc?.answer || info.ssc?.answer === 'N') && (!info.four_ps?.answer || info.four_ps?.answer === 'N') ? <span className="text-xs text-slate-700">---</span> : null}
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+
+                                                                            <div className="pt-4 border-t border-slate-200 border-dashed">
+                                                                                <label className="text-[10px] text-slate-400 uppercase mb-3 block tracking-widest">Current Institution</label>
+                                                                                <div className="grid grid-cols-2 gap-4">
+                                                                                    <div>
+                                                                                        <label className="text-[9px] text-slate-400 uppercase flex items-center gap-1.5 mb-0.5">
+                                                                                            School ID
+                                                                                            {resolvedSchoolName === 'UNRESOLVED' ? (
+                                                                                                <Badge className="h-3 px-1 py-0 text-[7px] bg-rose-50 text-rose-500 border-rose-100 uppercase tracking-widest shadow-none">Unresolved</Badge>
+                                                                                            ) : resolvedSchoolName ? (
+                                                                                                <Badge className="h-3 px-1 py-0 text-[7px] bg-emerald-50 text-emerald-600 border-emerald-100 uppercase tracking-widest shadow-none">Verified</Badge>
+                                                                                            ) : null}
+                                                                                        </label>
+                                                                                        <p className="text-xs font-mono text-slate-700">{info.current_school?.school_id?.answer || '---'}</p>
+                                                                                        {resolvedSchoolName && resolvedSchoolName !== 'UNRESOLVED' && (
+                                                                                            <p className="text-[9px] text-slate-500 font-medium mt-0.5 truncate max-w-[140px] leading-tight">
+                                                                                                {resolvedSchoolName}
+                                                                                            </p>
+                                                                                        )}
+                                                                                    </div>
+                                                                                    <div>
+                                                                                        <label className="text-[9px] text-slate-400 uppercase">Type</label>
+                                                                                        <p className="text-xs text-slate-700 uppercase">{info.current_school?.school_type?.answer || '---'}</p>
+                                                                                    </div>
+                                                                                    <div>
+                                                                                        <label className="text-[9px] text-slate-400 uppercase">Region / Div</label>
+                                                                                        <p className="text-xs text-slate-700 uppercase">
+                                                                                            R{info.current_school?.region?.answer || '-'} / D{info.current_school?.division?.answer || '-'}
+                                                                                        </p>
+                                                                                    </div>
+                                                                                    <div>
+                                                                                        <label className="text-[9px] text-slate-400 uppercase">Special Classes</label>
+                                                                                        <p className="text-xs text-slate-700 uppercase">{Array.isArray(info.special_classes?.answer) ? info.special_classes.answer.join(', ') : (info.special_classes?.answer || '---')}</p>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+
+                                                                            <div className="pt-4 border-t border-slate-200 border-dashed">
+                                                                                <label className="text-[10px] text-slate-400 uppercase mb-3 block tracking-widest">Academic History</label>
+                                                                                <div className="grid grid-cols-2 gap-4">
+                                                                                    <div>
+                                                                                        <label className="text-[9px] text-slate-400 uppercase">Prev School ID</label>
+                                                                                        <p className="text-xs font-mono text-slate-700">{info.previous_school?.school_id?.answer || '---'}</p>
+                                                                                    </div>
+                                                                                    <div>
+                                                                                        <label className="text-[9px] text-slate-400 uppercase">School Year</label>
+                                                                                        <p className="text-xs text-slate-700">{info.previous_school?.school_year?.answer || '---'}</p>
+                                                                                    </div>
+                                                                                    <div className="col-span-2">
+                                                                                        <label className="text-[9px] text-slate-400 uppercase mb-2 block">Previous Grades</label>
+                                                                                        <div className="flex flex-wrap gap-2">
+                                                                                            {Object.keys(info.previous_school?.grades || {}).map(sub => (
+                                                                                                <div key={sub} className="flex items-center gap-1.5 bg-white border border-slate-100 rounded px-2 py-1">
+                                                                                                    <span className="text-[9px] text-slate-400 uppercase">{sub}</span>
+                                                                                                    <span className="text-xs text-slate-700">{info.previous_school.grades[sub]?.answer || '--'}</span>
+                                                                                                </div>
+                                                                                            ))}
+                                                                                            {Object.keys(info.previous_school?.grades || {}).length === 0 && <span className="text-xs text-slate-700 uppercase">---</span>}
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </>
+                                                                    );
+                                                                })()}
                                                             </CardContent>
                                                         </Card>
 
@@ -377,7 +486,7 @@ export default function DashboardPage() {
                                                                 <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Audit Timeline</h4>
                                                                 <button
                                                                     onClick={() => setIsLogOpen(true)}
-                                                                    className="text-[10px] font-black text-indigo-600 uppercase tracking-tighter underline underline-offset-4 hover:text-indigo-800"
+                                                                    className="text-[10px] text-indigo-600 uppercase tracking-tighter underline underline-offset-4 hover:text-indigo-800"
                                                                 >
                                                                     View Full Audit
                                                                 </button>
@@ -389,8 +498,8 @@ export default function DashboardPage() {
                                                                             <History className="h-3 w-3 text-indigo-600" />
                                                                         </div>
                                                                         <div>
-                                                                            <p className="text-xs font-bold text-slate-900">Manual Correction Applied</p>
-                                                                            <p className="text-[10px] text-slate-500 font-medium">Record was modified by operator</p>
+                                                                            <p className="text-xs text-slate-900">Manual Correction Applied</p>
+                                                                            <p className="text-[10px] text-slate-500 ">Record was modified by operator</p>
                                                                         </div>
                                                                     </div>
                                                                 ) : (
@@ -398,7 +507,7 @@ export default function DashboardPage() {
                                                                         <div className="h-6 w-6 rounded-full bg-white flex items-center justify-center border shrink-0">
                                                                             <CheckCircle2 className="h-3 w-3 text-slate-300" />
                                                                         </div>
-                                                                        <p className="text-[10px] font-bold text-slate-400 uppercase italic mt-1.5 tracking-tighter">No integrity modifications</p>
+                                                                        <p className="text-[10px] text-slate-400 uppercase italic mt-1.5 tracking-tighter">No integrity modifications</p>
                                                                     </div>
                                                                 )}
                                                             </div>
@@ -409,7 +518,7 @@ export default function DashboardPage() {
                                                                 <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Exam Modules</h4>
                                                                 <button
                                                                     onClick={() => setIsEditorOpen(true)}
-                                                                    className="text-[10px] font-black text-indigo-600 uppercase tracking-tighter underline underline-offset-4 hover:text-indigo-800 transition-colors"
+                                                                    className="text-[10px] text-indigo-600 uppercase tracking-tighter underline underline-offset-4 hover:text-indigo-800 transition-colors"
                                                                 >
                                                                     Adjust Bubbles
                                                                 </button>
@@ -420,10 +529,10 @@ export default function DashboardPage() {
                                                                     <div key={subject} className="flex items-center justify-between bg-white border border-slate-100 p-3.5 rounded-xl shadow-sm">
                                                                         <div className="flex items-center gap-3">
                                                                             <FileText className="h-4 w-4 text-slate-400" />
-                                                                            <span className="capitalize text-sm font-bold text-slate-700">{subject}</span>
+                                                                            <span className="capitalize text-sm text-slate-700">{subject}</span>
                                                                         </div>
                                                                         <div className="flex items-center gap-2">
-                                                                            <span className="text-[9px] font-bold text-emerald-600 uppercase">Verified</span>
+                                                                            <span className="text-[9px] text-emerald-600 uppercase">Verified</span>
                                                                             <CheckCircle2 className="h-4 w-4 text-green-500" />
                                                                         </div>
                                                                     </div>

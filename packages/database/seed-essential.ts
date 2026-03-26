@@ -31,6 +31,22 @@ async function main() {
     console.log(`Super Admin already exists.`);
   }
 
+  // 1b. Create National Auditor
+  const auditorEmail = 'auditor@omr-prod.gov.ph';
+  const [auditor] = await db.insert(schema.users).values({
+    email: auditorEmail,
+    passwordHash: hashedPassword,
+    userType: 'NATIONAL_AUDITOR',
+    firstName: 'National',
+    lastName: 'Auditor',
+    visibilityScope: 'NATIONAL',
+    scopeValue: 'ALL'
+  }).onConflictDoNothing().returning();
+
+  if (auditor) {
+    console.log(`National Auditor created: ${auditorEmail}`);
+  }
+
   // 2. Add Official Answer Keys (2026-V1)
   console.log('Seeding Official 2026-V1 Answer Keys...');
   const subjects = ['math', 'english', 'science', 'filipino', 'ap'];

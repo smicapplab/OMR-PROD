@@ -93,7 +93,7 @@ export default function ExamRecords() {
         <div className="flex-1 p-10 space-y-8 max-w-7xl mx-auto overflow-y-auto h-screen pb-32">
             <div className="flex items-center justify-between">
                 <div className="space-y-1">
-                    <h2 className="text-3xl font-black text-indigo-600 uppercase tracking-tight leading-none mb-1">Exam Records</h2>
+                    <h2 className="text-xl font-black text-slate-900 uppercase tracking-tight leading-none mb-1">Exam Records</h2>
                     <p className="text-sm text-slate-500 font-medium italic">Authoritative global capture ledger and grading archives.</p>
                 </div>
                 <Badge variant="outline" className="bg-slate-900 text-white border-none font-bold px-4 py-1.5 rounded-full uppercase text-[10px]">

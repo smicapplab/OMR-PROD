@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useState, use, useMemo, useCallback } from "react";
+import { useAuth } from "@/app/context/AuthContext";
 import { apiFetch } from "@/lib/api";
-import { 
-    Loader2, ArrowLeft, ShieldCheck, AlertTriangle, Check, X, 
-    User2, Calendar, MessageCircle, ClipboardCheck 
+import {
+    Loader2, ArrowLeft, ShieldCheck, AlertTriangle, Check, X,
+    User2, Calendar, MessageCircle, ClipboardCheck,
+    ArrowRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -35,8 +37,11 @@ const normalizeLabel = (s: string) => {
 
 export default function ValidationDetail({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
+    const { user } = useAuth();
     const router = useRouter();
     const [scan, setScan] = useState<ScanDetail | null>(null);
+
+    const canVerify = user?.userType === 'SUPER_ADMIN' || user?.userType === 'DEPED_MONITOR';
     const [log, setLog] = useState<AuditLog | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -59,8 +64,8 @@ export default function ValidationDetail({ params }: { params: Promise<{ id: str
                     Object.keys(scanData.pending_data[subject]).forEach(qNum => {
                         const pendingAnswer = scanData.pending_data[subject][qNum].answer;
                         const originalAnswer = scanData.extracted_data[subject]?.[qNum]?.answer;
-                        
-                        const isDifferent = Array.isArray(pendingAnswer) 
+
+                        const isDifferent = Array.isArray(pendingAnswer)
                             ? JSON.stringify(pendingAnswer) !== JSON.stringify(originalAnswer)
                             : pendingAnswer !== originalAnswer;
 
@@ -126,8 +131,8 @@ export default function ValidationDetail({ params }: { params: Promise<{ id: str
             Object.keys(scan.pending_data[subject]).forEach(qNum => {
                 const pendingAnswer = scan.pending_data[subject][qNum].answer;
                 const originalAnswer = scan.extracted_data[subject]?.[qNum]?.answer;
-                
-                const isDifferent = Array.isArray(pendingAnswer) 
+
+                const isDifferent = Array.isArray(pendingAnswer)
                     ? JSON.stringify(pendingAnswer) !== JSON.stringify(originalAnswer)
                     : pendingAnswer !== originalAnswer;
 
@@ -183,25 +188,6 @@ export default function ValidationDetail({ params }: { params: Promise<{ id: str
                         </p>
                     </div>
                 </div>
-
-                <div className="flex items-center gap-3">
-                    <Button
-                        variant="ghost"
-                        onClick={() => handleDecision('rejected')}
-                        disabled={isSubmitting}
-                        className="h-10 px-6 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl font-bold text-[10px] uppercase transition-all"
-                    >
-                        <X className="h-3.5 w-3.5 mr-2" /> Discard All
-                    </Button>
-                    <Button
-                        onClick={() => handleDecision('approved')}
-                        disabled={isSubmitting || (allDiffablePaths.length > 0 && selectedItems.size === 0)}
-                        className="h-10 px-8 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-[10px] uppercase shadow-lg shadow-indigo-100 active:scale-95 transition-all disabled:opacity-50"
-                    >
-                        {isSubmitting ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" /> : <ClipboardCheck className="h-3.5 w-3.5 mr-2" />}
-                        Verify & Commit ({allDiffablePaths.length > 0 ? selectedItems.size : "Global"})
-                    </Button>
-                </div>
             </header>
 
             {/* Resizable Work Area */}
@@ -218,7 +204,7 @@ export default function ValidationDetail({ params }: { params: Promise<{ id: str
                                         {isOrphaned ? "Orphaned" : "Revision Pending"}
                                     </Badge>
                                 </div>
-                                
+
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-1">
                                         <div className="flex items-center gap-1.5 text-slate-400">
@@ -254,9 +240,9 @@ export default function ValidationDetail({ params }: { params: Promise<{ id: str
                                         <h3 className="text-[10px] font-bold text-slate-900 uppercase tracking-widest">Change Items</h3>
                                         <Badge variant="outline" className="text-[9px] font-bold text-slate-400 border-slate-100">{allDiffablePaths.length}</Badge>
                                     </div>
-                                    {allDiffablePaths.length > 0 && (
-                                        <Button 
-                                            variant="ghost" 
+                                    {allDiffablePaths.length > 0 && canVerify && (
+                                        <Button
+                                            variant="ghost"
                                             onClick={toggleAll}
                                             className="h-6 px-2 text-[9px] font-bold uppercase text-indigo-600 hover:bg-indigo-50"
                                         >
@@ -271,7 +257,7 @@ export default function ValidationDetail({ params }: { params: Promise<{ id: str
                                         if (subjectDiffs.length === 0) return null;
 
                                         return (
-                                            <div key={subject} className="space-y-3">
+                                            <div key={subject} className="space-y-3 overflow-y-auto">
                                                 <h4 className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em] pl-1">{normalizeLabel(subject)}</h4>
                                                 <div className="space-y-2">
                                                     {subjectDiffs.map(path => {
@@ -280,48 +266,53 @@ export default function ValidationDetail({ params }: { params: Promise<{ id: str
                                                         const oldVal = originalAnswers[subject]?.[qNum]?.answer;
                                                         const newVal = proposedAnswers[subject][qNum].answer;
 
-                                                        const renderValue = (val: any) => {
+                                                        const renderValue = (val: any, type: 'old' | 'new') => {
+                                                            const isNew = type === 'new';
+                                                            const badgeClass = cn(
+                                                                "h-5 px-2 font-medium border-none",
+                                                                isNew
+                                                                    ? (isSelected ? "bg-emerald-200 text-emerald-800" : "bg-emerald-100 text-emerald-700")
+                                                                    : "bg-slate-200 text-slate-500"
+                                                            );
+
                                                             if (Array.isArray(val)) {
                                                                 return (
                                                                     <div className="flex flex-col gap-1">
                                                                         {val.length > 0 ? val.map((v, i) => (
-                                                                            <span key={i} className="text-[10px] font-medium bg-white/50 px-2 py-0.5 rounded border border-slate-100/50">{v}</span>
-                                                                        )) : <span className="text-[10px] text-slate-300 italic">None</span>}
+                                                                            <Badge key={i} variant="secondary" className={badgeClass}>{v}</Badge>
+                                                                        )) : <Badge variant="secondary" className={cn(badgeClass, "opacity-50 italic")}>None</Badge>}
                                                                     </div>
                                                                 );
                                                             }
-                                                            return <span className="font-semibold">{val || '∅'}</span>;
+                                                            return <Badge variant="secondary" className={badgeClass}>{val || '∅'}</Badge>;
                                                         };
 
                                                         return (
-                                                            <div 
-                                                                key={path} 
-                                                                onClick={() => toggleItem(path)}
+                                                            <div
+                                                                key={path}
+                                                                onClick={() => canVerify && toggleItem(path)}
                                                                 className={cn(
-                                                                    "group flex items-start gap-4 p-4 rounded-2xl border transition-all cursor-pointer",
-                                                                    isSelected ? "bg-indigo-50/20 border-indigo-200" : "bg-white border-slate-100 hover:border-slate-200"
+                                                                    "group flex items-start gap-4 p-4 rounded-2xl border transition-all",
+                                                                    canVerify ? "cursor-pointer" : "cursor-default",
+                                                                    isSelected ? "bg-indigo-50/20 border-indigo-200" : "bg-white border-slate-100"
                                                                 )}
                                                             >
-                                                                <div className={cn("shrink-0 mt-0.5 h-5 w-5 rounded-md border flex items-center justify-center transition-colors", isSelected ? "bg-indigo-600 border-indigo-600 text-white" : "bg-slate-50 border-slate-200 text-transparent")}>
-                                                                    <Check className="h-3 w-3 stroke-3" />
+                                                                <div className={cn("shrink-0 mt-0.5 h-5 w-5 rounded-md border flex items-center justify-center transition-colors",
+                                                                    isSelected ? "bg-indigo-600 border-indigo-600 text-white" : "bg-slate-50 border-slate-200 text-transparent"
+                                                                )}>
+                                                                    <Check className={cn("h-3 w-3 stroke-3", !canVerify && !isSelected && "hidden")} />
                                                                 </div>
 
                                                                 <div className="flex-1 flex flex-col gap-3">
                                                                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{normalizeLabel(qNum)}</span>
-                                                                    
-                                                                    <div className="flex flex-col gap-2">
+
+                                                                    <div className="flex items-start gap-2">
                                                                         <div className="flex items-center gap-2 p-2 px-3 bg-slate-50/50 rounded-xl border border-slate-100/50">
-                                                                            <Badge variant="secondary" className="h-4 px-1 text-[7px] font-bold bg-slate-200 text-slate-500 border-none uppercase">Old</Badge>
-                                                                            <div className="text-[11px] text-slate-400">
-                                                                                {renderValue(oldVal)}
-                                                                            </div>
+                                                                            {renderValue(oldVal, 'old')}
                                                                         </div>
-                                                                        
-                                                                        <div className={cn("flex items-center gap-2 p-2 px-3 rounded-xl border transition-colors", isSelected ? "bg-emerald-50 border-emerald-100" : "bg-slate-50/50 border-slate-100/50")}>
-                                                                            <Badge variant="secondary" className={cn("h-4 px-1 text-[7px] font-bold border-none uppercase", isSelected ? "bg-emerald-200 text-emerald-700" : "bg-slate-200 text-slate-500")}>New</Badge>
-                                                                            <div className={cn("text-[11px]", isSelected ? "text-emerald-700 font-semibold" : "text-slate-600")}>
-                                                                                {renderValue(newVal)}
-                                                                            </div>
+                                                                        <ArrowRight className="h-4 w-4 text-slate-300 mt-3" />
+                                                                        <div className={cn("flex items-center gap-2 p-2 px-3 transition-colors")}>
+                                                                            {renderValue(newVal, 'new')}
                                                                         </div>
                                                                     </div>
                                                                 </div>
@@ -329,6 +320,26 @@ export default function ValidationDetail({ params }: { params: Promise<{ id: str
                                                         );
                                                     })}
                                                 </div>
+                                                {canVerify && (
+                                                    <div className="flex items-center justify-end gap-3">
+                                                        <Button
+                                                            variant="ghost"
+                                                            onClick={() => handleDecision('rejected')}
+                                                            disabled={isSubmitting}
+                                                            className="h-10 px-6 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl font-bold text-[10px] uppercase transition-all"
+                                                        >
+                                                            <X className="h-3.5 w-3.5 mr-2" /> Discard All
+                                                        </Button>
+                                                        <Button
+                                                            onClick={() => handleDecision('approved')}
+                                                            disabled={isSubmitting || (allDiffablePaths.length > 0 && selectedItems.size === 0)}
+                                                            className="h-10 px-8 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-[10px] uppercase shadow-lg shadow-indigo-100 active:scale-95 transition-all disabled:opacity-50"
+                                                        >
+                                                            {isSubmitting ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" /> : <ClipboardCheck className="h-3.5 w-3.5 mr-2" />}
+                                                            Verify & Commit ({allDiffablePaths.length > 0 ? selectedItems.size : "Global"})
+                                                        </Button>
+                                                    </div>
+                                                )}
                                             </div>
                                         );
                                     }) : (

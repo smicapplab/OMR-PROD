@@ -31,9 +31,9 @@ export function Select({ value, onValueChange, placeholder, options, className }
             <button
                 type="button"
                 onClick={() => setIsOpen(!isOpen)}
-                className="flex h-12 w-full items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-4 text-sm font-bold text-slate-700 shadow-sm transition-all hover:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-100 active:scale-[0.98]"
+                className="flex h-12 w-full items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-4 text-sm text-slate-700 shadow-sm transition-all hover:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-100 active:scale-[0.98]"
             >
-                <span className={cn(!value && "text-slate-400 font-medium")}>
+                <span className={cn(!value && "text-slate-400 ")}>
                     {value || placeholder || "Select..."}
                 </span>
                 <ChevronDown className={cn("h-4 w-4 text-slate-400 transition-transform duration-200", isOpen && "rotate-180")} />
@@ -51,7 +51,7 @@ export function Select({ value, onValueChange, placeholder, options, className }
                                     setIsOpen(false);
                                 }}
                                 className={cn(
-                                    "flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-sm font-bold transition-colors",
+                                    "flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-sm transition-colors",
                                     value === option
                                         ? "bg-indigo-50 text-indigo-600"
                                         : "text-slate-600 hover:bg-slate-50"

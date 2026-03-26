@@ -115,10 +115,10 @@ export function BubbleEditor({ scan, isOpen, onClose, onSaved }: BubbleEditorPro
                     <Tabs defaultValue="student" className="flex-1 flex flex-col overflow-hidden">
                         <div className="px-6 py-2 border-b bg-slate-50/50">
                             <TabsList className="grid w-full grid-cols-2 h-9 rounded-lg bg-slate-200/50 p-1">
-                                <TabsTrigger value="student" className="rounded-md text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm">
+                                <TabsTrigger value="student" className="rounded-md text-[10px] uppercase tracking-widest data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm">
                                     Student Profile
                                 </TabsTrigger>
-                                <TabsTrigger value="answers" className="rounded-md text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm">
+                                <TabsTrigger value="answers" className="rounded-md text-[10px] uppercase tracking-widest data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm">
                                     Exam Responses
                                 </TabsTrigger>
                             </TabsList>
@@ -142,8 +142,8 @@ export function BubbleEditor({ scan, isOpen, onClose, onSaved }: BubbleEditorPro
 
                 <SheetFooter className="p-6 border-t bg-slate-50 shrink-0">
                     <div className="flex w-full gap-4">
-                        <Button variant="outline" className="flex-1 h-11 rounded-xl border-slate-200 font-bold" onClick={onClose}>Discard</Button>
-                        <Button className="flex-2 h-11 bg-indigo-600 hover:bg-indigo-700 shadow-xl shadow-indigo-100 rounded-xl gap-3 font-bold uppercase tracking-wider transition-all active:scale-95" onClick={handleSave} disabled={isSaving}>
+                        <Button variant="outline" className="flex-1 h-11 rounded-xl border-slate-200 " onClick={onClose}>Discard</Button>
+                        <Button className="flex-2 h-11 bg-indigo-600 hover:bg-indigo-700 shadow-xl shadow-indigo-100 rounded-xl gap-3 uppercase tracking-wider transition-all active:scale-95" onClick={handleSave} disabled={isSaving}>
                             {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                             Verify & Commit
                         </Button>

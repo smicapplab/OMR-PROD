@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api";
-import { 
+import {
     History, User, FileText, Clock, Search, Filter, ShieldCheck, ChevronLeft, ChevronRight, Loader2
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { 
-    Table, TableBody, TableCell, TableHead, TableHeader, TableRow 
+import {
+    Table, TableBody, TableCell, TableHead, TableHeader, TableRow
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -47,7 +47,7 @@ export default function AuditHistory() {
         <div className="flex-1 p-10 space-y-10 max-w-7xl mx-auto overflow-y-auto h-screen pb-32">
             <div className="flex items-center justify-between">
                 <div className="space-y-1">
-                    <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tight leading-none mb-1">Audit History</h2>
+                    <h2 className="text-xl font-black text-slate-900 uppercase tracking-tight leading-none mb-1">Audit History</h2>
                     <p className="text-sm text-slate-500 font-medium">Historical ledger of all manual data corrections and institutional assignments.</p>
                 </div>
             </div>

@@ -19,3 +19,7 @@ The local operator interface for school-site data capture and verification.
 npm run dev
 ```
 Accessible at `http://localhost:3000` (default).
+
+## 🔐 Default Test Credentials
+- **Edge Operator**: `operator1@mshs.edu.ph` / `password123`
+- **School Admin**: `admin.777@omr-prod.gov.ph` / `password123`
