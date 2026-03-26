@@ -32,12 +32,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 if (res.ok) {
                     const { accessToken: newToken } = await res.json();
                     setAccessToken(newToken);
+                } else {
+                    // Not logged in
+                    setUser(null);
+                    return;
                 }
 
                 const data = await apiFetch<User>("/api/v1/auth/me");
                 setUser(data);
-            } catch (err) {
-                console.error("Restore session failed:", err);
+            } catch (err: any) {
+                // Ignore silent auth failures
+                if (err.message !== "Unauthorized") {
+                    console.error("Restore session failed:", err);
+                }
                 setUser(null);
             } finally {
                 setIsLoading(false);

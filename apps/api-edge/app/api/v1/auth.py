@@ -69,6 +69,18 @@ async def refresh(
     access_token = create_access_token(user.id)
     return {"accessToken": access_token}
 
+
+@router.post("/logout")
+async def logout(response: Response):
+    response.delete_cookie(
+        key="omr_edge_refresh",
+        path="/api/v1/auth/refresh",
+        httponly=True,
+        secure=False,
+        samesite="lax"
+    )
+    return {"message": "Logged out successfully"}
+
 @router.get("/me")
 async def get_me(request: Request, db: Session = Depends(get_db)):
     auth_header = request.headers.get("Authorization")

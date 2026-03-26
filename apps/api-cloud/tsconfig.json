@@ -3,8 +3,13 @@
   "compilerOptions": {
     "outDir": "./dist",
     "baseUrl": ".",
+    "rootDir": "../../",
     "noEmit": false
   },
-  "include": ["src/**/*.ts"],
+  "include": [
+    "src/**/*.ts",
+    "../../packages/database/src/**/*.ts",
+    "../../packages/contracts/src/**/*.ts"
+  ],
   "exclude": ["node_modules", "dist"]
 }
