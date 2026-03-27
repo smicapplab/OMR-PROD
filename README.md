@@ -130,8 +130,13 @@ sudo sh get-docker.sh
 sudo usermod -aG docker $USER && newgrp docker
 ```
 
-### 2. Install Node.js (via fnm)
+### 2. Install Node.js Dependencies & fnm
 ```bash
+# Debian/Ubuntu:
+sudo apt update && sudo apt install curl unzip -y
+# RHEL/Fedora:
+sudo dnf install curl unzip -y
+
 curl -fsSL https://fnm.vercel.app/install | bash
 source ~/.bashrc
 fnm install --lts
@@ -198,6 +203,77 @@ CLOUD_API_URL=http://<server-ip>:4000
 Replace `<server-ip>` with your Linode's public IP address. Then start everything with `./scripts/demo.sh`.
 
 > **Firewall**: Make sure ports `3000`, `3001`, `4000`, and `8000` are open in your server's firewall / security group.
+
+### Securing with Nginx and Free SSL (Let's Encrypt)
+To safely expose the applications over standard HTTPS ports (443) and encrypt all traffic, install Nginx as a reverse proxy alongside Certbot.
+
+#### 1. Install Dependencies (Ubuntu/Debian)
+```bash
+sudo apt update
+sudo apt install nginx certbot python3-certbot-nginx -y
+```
+
+#### 2. Configure Nginx Server Blocks
+Create a new configuration file for your domains (e.g., `sudo nano /etc/nginx/sites-available/omr-prod`):
+```nginx
+# Cloud Front-End
+server {
+    listen 80;
+    server_name cloud.yourdomain.com;
+    location / {
+        proxy_pass http://localhost:3001;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
+
+# Cloud API
+server {
+    listen 80;
+    server_name api.yourdomain.com;
+    location / {
+        proxy_pass http://localhost:4000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
+
+# Edge Front-End
+server {
+    listen 80;
+    server_name edge.yourdomain.com;
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
+
+# Edge API
+server {
+    listen 80;
+    server_name edge-api.yourdomain.com;
+    location / {
+        proxy_pass http://localhost:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
+```
+
+Enable the configuration and reload Nginx:
+```bash
+sudo ln -s /etc/nginx/sites-available/omr-prod /etc/nginx/sites-enabled/
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+#### 3. Request Free SSL Certificates
+Run Certbot to automatically verify your domains and rewrite the Nginx configuration with proper HTTPS SSL certificates:
+```bash
+sudo certbot --nginx -d cloud.yourdomain.com -d api.yourdomain.com -d edge.yourdomain.com -d edge-api.yourdomain.com
+```
+*Note: Ensure your domain DNS A records are pointing to your server's public IP address before running Certbot, and that your `.env` frontend URLs are updated to match the new `https://` domain names rather than raw IPs.*
 
 ---
 
