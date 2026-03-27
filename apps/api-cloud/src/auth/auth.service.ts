@@ -121,9 +121,11 @@ export class AuthService {
       const payload = this.jwtService.verify(token);
       // Reject non-access tokens (e.g. a refresh token used as an access token)
       if (payload.type !== 'access') return null;
+
       const [user] = await this.db.select().from(schema.users)
         .where(and(eq(schema.users.id, payload.sub), eq(schema.users.isActive, true)))
         .limit(1);
+
       return user ?? null;
     } catch {
       return null;

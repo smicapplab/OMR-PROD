@@ -12,7 +12,6 @@ export class AuthController {
 
   @Post('login')
   async login(@Body() body: any, @Res({ passthrough: true }) res: Response) {
-    if (!this.authService) throw new Error('AuthService missing');
     const user = await this.authService.validateUser(body.email, body.password);
     if (!user) throw new UnauthorizedException('Invalid credentials');
 

@@ -619,15 +619,24 @@ export class MaintenanceController {
   // --- GLOBAL AUDIT TRAIL ---
   @Get('audit-trail')
   async getAuditTrail(@Query('scanId') scanId: string, @Req() req: any) {
-    // M-4: Full audit trail (with raw answer data) is restricted to NATIONAL scope users
-    await this.validateAdmin(req);
+    // M-4: Audit trail is now scoped: National sees all, others see their own scans.
+    const user = await this.validateUser(req);
 
     const conditions = [];
     if (scanId) conditions.push(eq(schema.correctionLogs.scanId, scanId));
 
+    if (user.visibilityScope === 'SCHOOL') {
+      conditions.push(eq(schema.scans.schoolId, user.scopeValue));
+    } else if (user.visibilityScope === 'REGIONAL') {
+      const regionSchools = this.db.select({ id: schema.schools.id })
+        .from(schema.schools)
+        .where(eq(schema.schools.regionId, user.scopeValue));
+      conditions.push(inArray(schema.scans.schoolId, regionSchools));
+    }
+
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-    console.log(`[DEBUG audit-trail] scanId=${scanId}, conditions=${conditions.length}`);
+    console.log(`[DEBUG audit-trail] user=${user.email}, scope=${user.visibilityScope}, scanId=${scanId}`);
 
     const logs = await this.db.select({
       id: schema.correctionLogs.id,
