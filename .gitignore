@@ -37,8 +37,7 @@ lerna-debug.log*
 
 # Environment files - ensure all .env variations are ignored in all subdirectories
 .env
-.env.*
-!.env.sample
+.env.local
 
 # OS
 .DS_Store
