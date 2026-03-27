@@ -36,7 +36,13 @@ export function StudentProfile({ localData, onUpdateField, onUpdateText }: Stude
                         <SimpleToggle label="Special Science Curriculum (SSC)" path={["ssc"]} fieldData={localData.student_info.ssc} onUpdate={onUpdateField} />
 
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-dashed">
-                            <OMRTextInput label="Birth Month" path={["birth_month"]} fieldData={localData.student_info.birth_month} onUpdate={onUpdateText} isNumeric={true} maxLength={2} padLength={2} min={1} max={12} />
+                            <CategoricalSelect
+                                label="Birth Month"
+                                path={["birth_month"]}
+                                fieldData={localData.student_info.birth_month}
+                                onUpdate={onUpdateField}
+                                options={["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"]}
+                            />
                             <OMRTextInput label="Birth Day" path={["birth_day"]} fieldData={localData.student_info.birth_day} onUpdate={onUpdateText} isNumeric={true} maxLength={2} padLength={2} min={1} max={31} />
 
                             <CategoricalSelect

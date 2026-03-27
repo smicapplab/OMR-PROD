@@ -18,3 +18,14 @@ export function formatOMRYear(val: string | number | undefined | null): string {
 
   return s;
 }
+
+/**
+ * Normalizes OMR boolean-like values into a standard "Yes" or "No" display.
+ * Handles variations like "SELECTED", "1", "0", "Y", "N", "Yes", "No", and blanks.
+ */
+export function normalizeOMRBoolean(val: any): "Yes" | "No" {
+  if (!val) return "No";
+  const s = String(val).trim().toUpperCase();
+  if (s === "YES" || s === "Y" || s === "SELECTED" || s === "1" || s === "TRUE") return "Yes";
+  return "No";
+}

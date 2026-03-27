@@ -527,7 +527,9 @@ export class MaintenanceController {
 
       if (decision === 'rejected') {
         await tx.update(schema.scans).set({ pending_data: null, reviewRequired: false }).where(eq(schema.scans.id, scanId));
-        if (logId) await tx.update(schema.correctionLogs).set({ status: 'rejected' }).where(eq(schema.correctionLogs.id, logId));
+        await tx.update(schema.correctionLogs)
+          .set({ status: 'rejected' })
+          .where(and(eq(schema.correctionLogs.scanId, scanId), eq(schema.correctionLogs.status, 'pending')));
         return { ok: true, status: 'rejected' };
       }
 
@@ -558,14 +560,12 @@ export class MaintenanceController {
         })
         .where(eq(schema.scans.id, scanId));
 
-      if (logId) {
-        await tx.update(schema.correctionLogs)
-          .set({
-            status: 'approved',
-            newData: finalData // Log what was actually approved
-          })
-          .where(eq(schema.correctionLogs.id, logId));
-      }
+      await tx.update(schema.correctionLogs)
+        .set({
+          status: 'approved',
+          newData: finalData // Log what was actually approved
+        })
+        .where(and(eq(schema.correctionLogs.scanId, scanId), eq(schema.correctionLogs.status, 'pending')));
 
       return { ok: true, status: 'approved', score: totalScore };
     });

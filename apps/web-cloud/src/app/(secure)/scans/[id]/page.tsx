@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { cn, formatOMRYear } from "@/lib/utils";
+import { cn, formatOMRYear, normalizeOMRBoolean } from "@/lib/utils";
 import Link from "next/link";
 import { ZoomableImage } from "@/components/ZoomableImage";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -101,6 +101,13 @@ export default function ScanDetailPage({ params }: { params: Promise<{ id: strin
                     newVal = formatOMRYear(newVal);
                 }
 
+                const isSSC = currentPath.toLowerCase().includes('ssc') || currentPath.toLowerCase().includes('science') || currentPath.toLowerCase().includes('four_ps');
+
+                if (isSSC) {
+                    oldVal = normalizeOMRBoolean(oldVal);
+                    newVal = normalizeOMRBoolean(newVal);
+                }
+
                 if (Array.isArray(newVal)) {
                     const oldArr = Array.isArray(oldVal) ? oldVal : (oldVal ? [oldVal] : []);
                     const oldSorted = [...oldArr].sort();
@@ -110,7 +117,7 @@ export default function ScanDetailPage({ params }: { params: Promise<{ id: strin
                         deltas.push({ path: currentPath || "Metadata", from: oldSorted, to: newSorted, type: 'array' });
                     }
                 } else if (newVal !== oldVal) {
-                    deltas.push({ path: currentPath || "Field", from: String(oldVal ?? '-'), to: String(newVal ?? '-'), type: 'string' });
+                    deltas.push({ path: currentPath || "Field", from: String(oldVal ?? '---'), to: String(newVal ?? '---'), type: 'string' });
                 }
                 return;
             }
@@ -135,7 +142,7 @@ export default function ScanDetailPage({ params }: { params: Promise<{ id: strin
                         <Badge key={i} className={cn("text-[9px] px-1.5 h-auto py-0.5 border-none uppercase whitespace-normal text-left max-w-full font-bold", variant === 'from' ? "bg-rose-100 text-rose-700" : "bg-emerald-100 text-emerald-700")}>
                             {item}
                         </Badge>
-                    )) : <span className="text-[10px] text-slate-300">-</span>}
+                    )) : <span className="text-[10px] text-slate-300">---</span>}
                 </div>
             );
         }

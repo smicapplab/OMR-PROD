@@ -4,6 +4,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useAuth } from "@/app/context/AuthContext";
 import { apiFetch } from "@/lib/api";
+import { normalizeOMRBoolean } from "@/lib/utils";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import {
     Search, Loader2, LogOut, CheckCircle2,
@@ -145,11 +146,16 @@ export default function DashboardPage() {
 
     // Auto-refresh — three separate concerns kept clean:
 
-    // 1. Tick down every second (runs once, never restarts)
+    // 1. Tick down every second (pauses if editor is open)
     useEffect(() => {
-        const tick = setInterval(() => setCountdown(c => (c > 0 ? c - 1 : 0)), 1000);
+        const tick = setInterval(() => {
+            setCountdown(c => {
+                if (isEditorOpen) return c; // Pause countdown while editing
+                return (c > 0 ? c - 1 : 0);
+            });
+        }, 1000);
         return () => clearInterval(tick);
-    }, []);
+    }, [isEditorOpen]);
 
     // 2. Reset the countdown whenever the search query changes
     //    (loadScans is recreated when searchQuery changes, so this dep is correct)
@@ -160,12 +166,15 @@ export default function DashboardPage() {
     // 3. Fire the refresh when the countdown reaches 0
     //    Both loadScans and refreshDetail are in deps so they're always fresh
     useEffect(() => {
-        if (countdown === 0) {
+        if (countdown === 0 && !isEditorOpen) {
             loadScans(true, true);
             refreshDetail();
             setCountdown(REFRESH_INTERVAL);
+        } else if (countdown === 0 && isEditorOpen) {
+            // If it hits 0 while editing, just defer until next check
+            setCountdown(REFRESH_INTERVAL);
         }
-    }, [countdown, loadScans, refreshDetail]);
+    }, [countdown, loadScans, refreshDetail, isEditorOpen]);
 
     useEffect(() => {
         const observer = new IntersectionObserver(
@@ -190,7 +199,10 @@ export default function DashboardPage() {
 
                     const schoolId = (data.rawData as any)?.student_info?.current_school?.school_id?.answer;
                     if (schoolId) {
-                        const localSchool = assignedSchools.find(s => String(s.id) === String(schoolId));
+                        const localSchool = assignedSchools.find(s =>
+                            String(s.id) === String(schoolId) ||
+                            String(s.code) === String(schoolId)
+                        );
                         if (localSchool) {
                             setResolvedSchoolName(localSchool.name);
                         } else {
@@ -467,9 +479,9 @@ export default function DashboardPage() {
                                                                                     <div>
                                                                                         <label className="text-[9px] text-slate-400 uppercase">SSC / 4Ps</label>
                                                                                         <div className="flex gap-1 mt-0.5">
-                                                                                            {info.ssc?.answer === 'Y' || info.ssc?.answer === 'YES' ? <Badge variant="outline" className="text-[9px] h-4 px-1 rounded-sm border-slate-200">SSC</Badge> : null}
-                                                                                            {info.four_ps?.answer === 'Y' || info.four_ps?.answer === 'YES' ? <Badge variant="outline" className="text-[9px] h-4 px-1 rounded-sm border-slate-200">4Ps</Badge> : null}
-                                                                                            {(!info.ssc?.answer || info.ssc?.answer === 'N') && (!info.four_ps?.answer || info.four_ps?.answer === 'N') ? <span className="text-xs text-slate-700">---</span> : null}
+                                                                                            {normalizeOMRBoolean(info.ssc?.answer) === 'Yes' ? <Badge variant="outline" className="text-[9px] h-4 px-1 rounded-sm border-slate-200">SSC</Badge> : null}
+                                                                                            {normalizeOMRBoolean(info.four_ps?.answer) === 'Yes' ? <Badge variant="outline" className="text-[9px] h-4 px-1 rounded-sm border-slate-200">4Ps</Badge> : null}
+                                                                                            {normalizeOMRBoolean(info.ssc?.answer) === 'No' && normalizeOMRBoolean(info.four_ps?.answer) === 'No' ? <span className="text-xs text-slate-700">No Special Status</span> : null}
                                                                                         </div>
                                                                                     </div>
                                                                                 </div>

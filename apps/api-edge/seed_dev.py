@@ -1,26 +1,27 @@
 from app.core.database import SessionLocal, engine, Base
 from app.models.user import User
-from passlib.context import CryptContext
+import bcrypt
 import sys
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+def hash_password(password: str) -> str:
+    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
 def seed():
     print("--- 🛠 Seeding Local Edge Database ---")
-    
+
     # Ensure tables exist
     Base.metadata.create_all(bind=engine)
-    
+
     db = SessionLocal()
     try:
         # Check if user already exists
         user_email = "admin@omr.local"
         existing_user = db.query(User).filter(User.email == user_email).first()
-        
+
         if not existing_user:
             new_user = User(
                 email=user_email,
-                password_hash=pwd_context.hash("password123"),
+                password_hash=hash_password("password123"),
                 first_name="Local",
                 last_name="Operator",
                 user_type="SCHOOL_OPERATOR"
@@ -36,7 +37,7 @@ def seed():
         if not db.query(User).filter(User.email == op_email).first():
             db.add(User(
                 email=op_email,
-                password_hash=pwd_context.hash("password123"),
+                password_hash=hash_password("password123"),
                 first_name="MSHS",
                 last_name="Operator 1",
                 user_type="SCHOOL_OPERATOR"

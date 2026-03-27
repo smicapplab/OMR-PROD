@@ -22,6 +22,7 @@ async function main() {
   const schoolsToInsert = [
     { name: 'Manila Science High School', code: '305312', regionId: findId('NCR'), division: 'Manila', address: 'Taft Ave, Manila' },
     { name: 'Philippine Science HS (Main)', code: '300401', regionId: findId('NCR'), division: 'Quezon City', address: 'Agham Road, QC' },
+    { name: 'Caloocan City Business High School', code: '567890', regionId: findId('NCR'), division: 'Caloocan City', address: 'Agham Road, QC' },
     { name: 'Test School Alpha', code: '777888', regionId: findId('NCR'), division: 'Manila', address: 'Test Site 1' },
     { name: 'Test School Beta', code: '123456', regionId: findId('NCR'), division: 'Manila', address: 'Test Site 2' },
 
@@ -48,12 +49,13 @@ async function main() {
   const [msSci] = await db.select().from(schema.schools).where(eq(schema.schools.code, '305312')).limit(1);
   const [tsAlpha] = await db.select().from(schema.schools).where(eq(schema.schools.code, '777888')).limit(1);
   const [tsBeta] = await db.select().from(schema.schools).where(eq(schema.schools.code, '123456')).limit(1);
+  const [ccbhs] = await db.select().from(schema.schools).where(eq(schema.schools.code, '567890')).limit(1);
 
   const testUsers = [
     { email: 'auditor@omr-prod.gov.ph', firstName: 'Arthur', lastName: 'Auditor', userType: 'NATIONAL_AUDITOR', visibilityScope: 'NATIONAL', scopeValue: 'ALL' },
     { email: 'monitor.ncr@omr-prod.gov.ph', firstName: 'Nora', lastName: 'NCR', userType: 'DEPED_MONITOR', visibilityScope: 'REGIONAL', scopeValue: findByCode('NCR') },
-    { email: 'admin.777@omr-prod.gov.ph', firstName: 'Admin', lastName: '777', userType: 'SCHOOL_ADMIN', schoolId: msSci.id, visibilityScope: 'SCHOOL', scopeValue: msSci.id },
-    { email: 'operator1@mshs.edu.ph', firstName: 'MSHS', lastName: 'Operator 1', userType: 'EDGE_OPERATOR', visibilityScope: 'SCHOOL', scopeValue: msSci.id }
+    { email: 'admin.777@omr-prod.gov.ph', firstName: 'Admin', lastName: '777', userType: 'SCHOOL_ADMIN', schoolId: ccbhs.id, visibilityScope: 'SCHOOL', scopeValue: ccbhs.id },
+    { email: 'operator1@mshs.edu.ph', firstName: 'MSHS', lastName: 'Operator 1', userType: 'EDGE_OPERATOR', visibilityScope: 'SCHOOL', scopeValue: ccbhs.id }
   ];
 
   for (const u of testUsers) {
@@ -80,7 +82,8 @@ async function main() {
     await db.insert(schema.machineAssignments).values([
       { machineId: devMachine.id, scope: 'SCHOOL', scopeValue: msSci.id },
       { machineId: devMachine.id, scope: 'SCHOOL', scopeValue: tsAlpha.id },
-      { machineId: devMachine.id, scope: 'SCHOOL', scopeValue: tsBeta.id }
+      { machineId: devMachine.id, scope: 'SCHOOL', scopeValue: tsBeta.id },
+      { machineId: devMachine.id, scope: 'SCHOOL', scopeValue: ccbhs.id }
     ]);
 
     // Explicitly link operator1 to MACHINE-00001

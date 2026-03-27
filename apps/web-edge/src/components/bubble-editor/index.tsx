@@ -38,6 +38,13 @@ export function BubbleEditor({ scan, isOpen, onClose, onSaved }: BubbleEditorPro
         }
     }, [scan]);
 
+    // Reset reason when modal opens
+    useEffect(() => {
+        if (isOpen) {
+            setReason("");
+        }
+    }, [isOpen]);
+
     const subjects = useMemo(() => Object.keys(localData?.answers || {}), [localData]);
 
     const handleSave = async () => {

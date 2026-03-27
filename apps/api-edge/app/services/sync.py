@@ -3,6 +3,8 @@ import logging
 import shutil
 import cv2
 import os
+import gzip
+import json
 from pathlib import Path
 from sqlalchemy.orm import Session
 from app.core.config import settings
@@ -32,6 +34,17 @@ class SyncService:
             timeout=30.0,
             headers={"X-Machine-Secret": secret}
         )
+
+    def _post_compressed(self, endpoint: str, data: dict):
+        """Compresses JSON payload using gzip before sending to Cloud Hub."""
+        payload = json.dumps(data).encode("utf-8")
+        compressed = gzip.compress(payload)
+        # We must set both Content-Encoding and Content-Type for Nest/Express to parse correctly
+        headers = {
+            "Content-Encoding": "gzip",
+            "Content-Type": "application/json"
+        }
+        return self.client.post(endpoint, content=compressed, headers=headers)
 
     def pull_operators(self, db: Session):
         try:
@@ -102,7 +115,7 @@ class SyncService:
                 ]
             }
 
-            response = self.client.post("/sync/logs", json=payload)
+            response = self._post_compressed("/sync/logs", data=payload)
             response.raise_for_status()
 
             for l in logs: l.is_synced = True
@@ -190,8 +203,18 @@ class SyncService:
                     "file_url": f"/cloud-assets/masters/{master_filename}",
                     "proxy_url": f"/cloud-assets/proxies/{proxy_filename}"
                 }
+
+                # Gap-5: If manually edited, try to find the original data in logs 
+                # so the Hub can show a proper diff on first sync.
+                if scan.is_manually_edited:
+                    first_log = db.query(ActivityLog).filter(
+                        ActivityLog.scan_id == scan.id, 
+                        ActivityLog.action == "SCAN_CORRECTION"
+                    ).order_by(ActivityLog.created_at.asc()).first()
+                    if first_log and isinstance(first_log.details, dict) and "old_data" in first_log.details:
+                        payload["original_raw_data"] = first_log.details["old_data"]
                 
-                response = self.client.post("/sync/scans", json=payload)
+                response = self._post_compressed("/sync/scans", data=payload)
                 response.raise_for_status()
                 
                 scan.sync_status = "synced"

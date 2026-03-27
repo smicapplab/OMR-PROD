@@ -6,7 +6,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { apiFetch } from "@/lib/api";
 import { History, UserCircle, Save, ArrowRight, ShieldCheck, Loader2, ThumbsUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { cn, formatOMRYear } from "@/lib/utils";
+import { cn, formatOMRYear, normalizeOMRBoolean } from "@/lib/utils";
 import { AuditLog } from "@omr-prod/contracts";
 
 interface Delta {
@@ -59,6 +59,13 @@ export function ActivityLogSlider({ scanId, isOpen, onClose }: ActivityLogSlider
                     newVal = formatOMRYear(newVal);
                 }
 
+                // Standardize SSC/4Ps booleans
+                const isSSC = currentPath.toLowerCase().includes('ssc') || currentPath.toLowerCase().includes('science') || currentPath.toLowerCase().includes('four_ps');
+                if (isSSC) {
+                    oldVal = normalizeOMRBoolean(oldVal);
+                    newVal = normalizeOMRBoolean(newVal);
+                }
+
                 if (Array.isArray(newVal)) {
                     const oldArr = Array.isArray(oldVal) ? oldVal : (oldVal ? [oldVal] : []);
                     const oldSorted = [...oldArr].sort();
@@ -75,8 +82,8 @@ export function ActivityLogSlider({ scanId, isOpen, onClose }: ActivityLogSlider
                 } else if (newVal !== oldVal) {
                     deltas.push({
                         path: currentPath || "Field",
-                        from: String(oldVal ?? '-'),
-                        to: String(newVal ?? '-'),
+                        from: String(oldVal ?? '---'),
+                        to: String(newVal ?? '---'),
                         type: 'string'
                     });
                 }
@@ -109,7 +116,7 @@ export function ActivityLogSlider({ scanId, isOpen, onClose }: ActivityLogSlider
                         >
                             {item}
                         </Badge>
-                    )) : <span className="text-[10px] text-slate-300">-</span>}
+                    )) : <span className="text-[10px] text-slate-300">---</span>}
                 </div>
             );
         }

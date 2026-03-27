@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
+import { cn, normalizeOMRBoolean } from "@/lib/utils";
 import Link from "next/link";
 import { ZoomableImage } from "@/components/ZoomableImage";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
@@ -42,7 +42,7 @@ export default function ValidationDetail({ params }: { params: Promise<{ id: str
     const [scan, setScan] = useState<ScanDetail | null>(null);
 
     const canVerify = user?.userType === 'SUPER_ADMIN' || user?.userType === 'DEPED_MONITOR';
-    const [log, setLog] = useState<AuditLog | null>(null);
+    const [pendingLogs, setPendingLogs] = useState<AuditLog[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
@@ -55,8 +55,8 @@ export default function ValidationDetail({ params }: { params: Promise<{ id: str
                 apiFetch<AuditLog[]>("/api/v1/maintenance/audit-trail")
             ]);
             setScan(scanData);
-            const pendingLog = logs.find(l => l.scanId === id && l.status === 'pending');
-            setLog(pendingLog || null);
+            const pLogs = logs.filter(l => l.scanId === id && l.status === 'pending');
+            setPendingLogs(pLogs);
 
             if (scanData.pending_data) {
                 const allKeys = new Set<string>();
@@ -106,7 +106,7 @@ export default function ValidationDetail({ params }: { params: Promise<{ id: str
                 method: "POST",
                 body: JSON.stringify({
                     scanId: scan.id,
-                    logId: log?.id,
+                    logId: pendingLogs[0]?.id,
                     decision,
                     selectedItems: decision === 'approved' ? Array.from(selectedItems) : []
                 })
@@ -196,45 +196,63 @@ export default function ValidationDetail({ params }: { params: Promise<{ id: str
                     {/* Left: Metadata & Diff Viewer */}
                     <ResizablePanel defaultSize={40} minSize={30}>
                         <div className="h-full flex flex-col bg-white border-r">
-                            {/* Request Info Box */}
-                            <div className="p-6 bg-slate-50/50 border-b border-slate-100 space-y-4">
-                                <div className="flex items-center justify-between">
-                                    <h2 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Correction Request</h2>
-                                    <Badge className={cn("border-none text-[8px] font-bold uppercase h-5 px-2", isOrphaned ? "bg-rose-100 text-rose-600" : "bg-indigo-900 text-white")}>
-                                        {isOrphaned ? "Orphaned" : "Revision Pending"}
-                                    </Badge>
-                                </div>
+                            {/* Request Info Boxes */}
+                            <div className="border-b border-slate-100 divide-y divide-slate-100">
+                                {pendingLogs.length > 0 ? (
+                                    pendingLogs.map((log, idx) => (
+                                        <div key={log.id} className="p-6 bg-slate-50/50 space-y-4">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-2">
+                                                    <h2 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Correction {pendingLogs.length > 1 ? `#${idx + 1}` : "Request"}</h2>
+                                                </div>
+                                                <Badge className={cn("border-none text-[8px] font-bold uppercase h-5 px-2", isOrphaned ? "bg-rose-100 text-rose-600" : "bg-indigo-900 text-white")}>
+                                                    {isOrphaned ? "Orphaned" : "Revision Pending"}
+                                                </Badge>
+                                            </div>
 
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-1">
-                                        <div className="flex items-center gap-1.5 text-slate-400">
-                                            <User2 className="h-3 w-3" />
-                                            <span className="text-[8px] font-bold uppercase">Requested By</span>
-                                        </div>
-                                        <p className="text-[11px] font-medium text-slate-700">{log?.userName || "Internal System"}</p>
-                                    </div>
-                                    <div className="space-y-1">
-                                        <div className="flex items-center gap-1.5 text-slate-400">
-                                            <Calendar className="h-3 w-3" />
-                                            <span className="text-[8px] font-bold uppercase">Date Filed</span>
-                                        </div>
-                                        <p className="text-[11px] font-medium text-slate-700">{log ? new Date(log.createdAt).toLocaleString() : "---"}</p>
-                                    </div>
-                                </div>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div className="space-y-1">
+                                                    <div className="flex items-center gap-1.5 text-slate-400">
+                                                        <User2 className="h-3 w-3" />
+                                                        <span className="text-[8px] font-bold uppercase">Requested By</span>
+                                                    </div>
+                                                    <p className="text-[11px] font-medium text-slate-700 font-mono tracking-tight text-xs">{log.userName || "Internal System"}</p>
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <div className="flex items-center gap-1.5 text-slate-400">
+                                                        <Calendar className="h-3 w-3" />
+                                                        <span className="text-[8px] font-bold uppercase">Date Filed</span>
+                                                    </div>
+                                                    <p className="text-[11px] font-medium text-slate-700">{new Date(log.createdAt).toLocaleString()}</p>
+                                                </div>
+                                            </div>
 
-                                <div className="space-y-1.5 p-3 bg-white border border-slate-100 rounded-xl">
-                                    <div className="flex items-center gap-1.5 text-indigo-500">
-                                        <MessageCircle className="h-3 w-3" />
-                                        <span className="text-[8px] font-bold uppercase text-indigo-600/70">Operator Remarks</span>
+                                            <div className="space-y-1.5 p-3 bg-white border border-slate-100 rounded-xl">
+                                                <div className="flex items-center gap-1.5 text-indigo-500">
+                                                    <MessageCircle className="h-3 w-3" />
+                                                    <span className="text-[8px] font-bold uppercase text-indigo-600/70">Operator Remarks</span>
+                                                </div>
+                                                <p className="text-[11px] text-slate-500 font-medium italic leading-relaxed">
+                                                    {log.reason ? `"${log.reason}"` : "No additional comments provided by the operator."}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div className="p-6 bg-slate-50/50 space-y-4">
+                                        <div className="flex items-center justify-between">
+                                            <h2 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Automated Flag</h2>
+                                            <Badge className="bg-amber-100 text-amber-600 border-none text-[8px] font-bold uppercase h-5 px-2">Verification Required</Badge>
+                                        </div>
+                                        <p className="text-[11px] text-slate-500 font-medium italic leading-relaxed">
+                                            This record was flagged by the OMR Intelligence due to low confidence scores or missing vital signals.
+                                        </p>
                                     </div>
-                                    <p className="text-[11px] text-slate-500 font-medium italic leading-relaxed">
-                                        {log?.reason ? `"${log.reason}"` : "No additional comments provided by the operator."}
-                                    </p>
-                                </div>
+                                )}
                             </div>
 
                             {/* Granular Selector */}
-                            <div className="flex-1 overflow-y-auto custom-scrollbar">
+                            <div className="flex-1 overflow-y-auto custom-scrollbar mb-16">
                                 <div className="sticky top-0 z-10 p-6 bg-white flex items-center justify-between border-b border-slate-50 shadow-sm shadow-slate-50/50">
                                     <div className="flex items-center gap-2">
                                         <h3 className="text-[10px] font-bold text-slate-900 uppercase tracking-widest">Change Items</h3>
@@ -275,16 +293,19 @@ export default function ValidationDetail({ params }: { params: Promise<{ id: str
                                                                     : "bg-slate-200 text-slate-500"
                                                             );
 
-                                                            if (Array.isArray(val)) {
+                                                            const isSSC = path.toLowerCase().includes('ssc') || path.toLowerCase().includes('science') || path.toLowerCase().includes('four_ps');
+                                                            const displayVal = isSSC ? normalizeOMRBoolean(val) : val;
+
+                                                            if (Array.isArray(displayVal)) {
                                                                 return (
                                                                     <div className="flex flex-col gap-1">
-                                                                        {val.length > 0 ? val.map((v, i) => (
+                                                                        {displayVal.length > 0 ? displayVal.map((v, i) => (
                                                                             <Badge key={i} variant="secondary" className={badgeClass}>{v}</Badge>
                                                                         )) : <Badge variant="secondary" className={cn(badgeClass, "opacity-50 italic")}>None</Badge>}
                                                                     </div>
                                                                 );
                                                             }
-                                                            return <Badge variant="secondary" className={badgeClass}>{val || '∅'}</Badge>;
+                                                            return <Badge variant="secondary" className={badgeClass}>{displayVal || '---'}</Badge>;
                                                         };
 
                                                         return (

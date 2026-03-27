@@ -35,14 +35,20 @@ class ScannerService:
             extracted_data = result["data"]
             
             # 2. VALIDATE SCHOOL IDENTIFICATION
-            # If student bubbled a different school ID than what the machine/operator expects
-            # Correct path is student_info -> current_school -> school_id
+            # Trust the paper first (extracted_school_id). 
+            # Fallback to the context school_id (DEFAULT_SCHOOL_ID) only if the paper is blank.
             extracted_school_id = extracted_data.get("student_info", {}).get("current_school", {}).get("school_id", {}).get("answer")
+            
+            # Determine the authoritative ID for this record
+            final_school_id = extracted_school_id if extracted_school_id else school_id
+            
             review_required = result["review_required"]
             
+            # If the paper differs from the machine context, flag it for auditor review
+            # but still use the paper's ID as the record's primary attribution.
             if school_id and extracted_school_id and str(school_id) != str(extracted_school_id):
-                logger.warning(f"⚠️ School Mismatch Detected! Expected: {school_id}, Paper: {extracted_school_id}")
-                review_required = True # Force review for potential typo
+                logger.warning(f"⚠️ School Mismatch Detected! Context: {school_id}, Paper: {extracted_school_id}")
+                review_required = True 
 
             # Use SHA as the filename to match cloud naming and prevent collisions
             unique_filename = f"{sha}{file_path.suffix}"
@@ -57,7 +63,7 @@ class ScannerService:
                 review_required=review_required,
                 raw_data=extracted_data,
                 process_status="success",
-                school_id=school_id,
+                school_id=final_school_id,
                 machine_id=machine_id
             )
             db.add(db_scan)

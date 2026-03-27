@@ -108,8 +108,9 @@ export class SyncController {
                     const incomingStr = JSON.stringify(body.raw_data);
                     const existingStr = JSON.stringify(existing.extracted_data);
 
-                    if (incomingStr !== existingStr) {
+                    if (incomingStr !== existingStr || body.original_raw_data) {
                         await tx.update(schema.scans).set({
+                            extracted_data: body.original_raw_data || existing.extracted_data,
                             pending_data: body.raw_data,
                             reviewRequired: true,
                             updatedAt: new Date()
@@ -118,7 +119,7 @@ export class SyncController {
                         await tx.insert(schema.correctionLogs).values({
                             scanId: existing.id,
                             action: 'BUBBLE_CORRECTION',
-                            oldData: existing.extracted_data,
+                            oldData: body.original_raw_data || existing.extracted_data,
                             newData: body.raw_data,
                             reason: 'Field Correction Sync',
                             status: 'pending'
@@ -139,7 +140,8 @@ export class SyncController {
                 confidence: body.confidence,
                 reviewRequired: syncStatus === 'orphaned' || body.is_manually_edited === true,
                 status: syncStatus,
-                extracted_data: body.raw_data,
+                extracted_data: body.original_raw_data || body.raw_data,
+                pending_data: body.original_raw_data ? body.raw_data : null,
                 totalScore: totalScore,
                 maxScore: maxPossibleScore,
                 gradingDetails: gradingDetails,
