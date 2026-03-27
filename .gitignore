@@ -85,4 +85,4 @@ pids
 raw_scans/*
 /success/*
 /error/*
-/apps/api-cloud/cloud_storage/*
+#/apps/api-cloud/cloud_storage/*
