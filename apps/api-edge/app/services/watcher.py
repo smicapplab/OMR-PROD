@@ -10,6 +10,35 @@ from app.core.config import settings
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("Watcher")
 
+def process_existing_files(path: Path):
+    """Scan directory for existing images and process them before watcher starts."""
+    extensions = [".png", ".jpg", ".jpeg", ".webp"]
+    files = [f for f in path.iterdir() if f.is_file() and f.suffix.lower() in extensions]
+    
+    if not files:
+        return
+
+    logger.info(f"📂 Found {len(files)} existing scans in {path.name}. Processing...")
+    
+    from app.services.scanner import scanner_service
+    from app.core.database import SessionLocal
+    from app.core.config import settings
+
+    for file_path in files:
+        db = SessionLocal()
+        try:
+            db_scan = scanner_service.process_new_file(
+                file_path,
+                db,
+                machine_id=settings.MACHINE_ID,
+                school_id=settings.DEFAULT_SCHOOL_ID
+            )
+            logger.info(f"✅ Startup processed: {file_path.name}")
+        except Exception as e:
+            logger.error(f"❌ Failed startup process for {file_path.name}: {e}")
+        finally:
+            db.close()
+
 class ScanHandler(FileSystemEventHandler):
     def on_created(self, event):
         if event.is_directory:
@@ -41,6 +70,9 @@ class ScanHandler(FileSystemEventHandler):
 def start_watcher(path_to_watch: str):
     path = Path(path_to_watch)
     path.mkdir(exist_ok=True)
+    
+    # Process existing files before starting the real-time observer
+    process_existing_files(path)
     
     event_handler = ScanHandler()
     observer = Observer()
