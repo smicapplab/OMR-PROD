@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api";
 import {
-    History, User, FileText, Clock, Search, Filter, ShieldCheck, ChevronLeft, ChevronRight, Loader2
+    History, User, FileText, Clock, Search, Filter, ShieldCheck, ChevronLeft, ChevronRight, Loader2, RotateCw
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
     Table, TableBody, TableCell, TableHead, TableHeader, TableRow
@@ -49,6 +50,18 @@ export default function AuditHistory() {
                 <div className="space-y-1">
                     <h2 className="text-xl font-black text-slate-900 uppercase tracking-tight leading-none mb-1">Audit History</h2>
                     <p className="text-sm text-slate-500 font-medium">Historical ledger of all manual data corrections and institutional assignments.</p>
+                </div>
+                <div className="flex items-center gap-4">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => loadData()}
+                        disabled={isLoading}
+                        className="h-9 px-3 rounded-xl text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all gap-2 font-bold text-[10px] uppercase"
+                    >
+                        <RotateCw className={cn("h-3.5 w-3.5", isLoading && "animate-spin")} />
+                        Refresh
+                    </Button>
                 </div>
             </div>
 

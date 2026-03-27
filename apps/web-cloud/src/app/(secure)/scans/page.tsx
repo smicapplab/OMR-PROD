@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { apiFetch } from "@/lib/api";
 import { useAuth } from "@/app/context/AuthContext";
 import {
-    Search, Globe, School, ChevronLeft, ChevronRight, Loader2, X
+    Search, Globe, School, ChevronLeft, ChevronRight, Loader2, X, RotateCw
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -96,9 +96,21 @@ export default function ExamRecords() {
                     <h2 className="text-xl font-black text-slate-900 uppercase tracking-tight leading-none mb-1">Exam Records</h2>
                     <p className="text-sm text-slate-500 font-medium italic">Authoritative global capture ledger and grading archives.</p>
                 </div>
-                <Badge variant="outline" className="bg-slate-900 text-white border-none font-bold px-4 py-1.5 rounded-full uppercase text-[10px]">
-                    {total} Total Captures
-                </Badge>
+                <div className="flex items-center gap-4">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => loadData(offset)}
+                        disabled={isLoading}
+                        className="h-9 px-3 rounded-xl text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all gap-2 font-bold text-[10px] uppercase"
+                    >
+                        <RotateCw className={cn("h-3.5 w-3.5", isLoading && "animate-spin")} />
+                        Refresh
+                    </Button>
+                    <Badge variant="outline" className="bg-slate-900 text-white border-none font-bold px-4 py-1.5 rounded-full uppercase text-[10px]">
+                        {total} Total Captures
+                    </Badge>
+                </div>
             </div>
 
             {/* Advanced Filters */}

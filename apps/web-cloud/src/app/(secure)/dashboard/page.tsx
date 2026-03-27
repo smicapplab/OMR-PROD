@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/app/context/AuthContext";
 import { apiFetch } from "@/lib/api";
 import {
-    Search, AlertTriangle, Globe, Loader2
+    Search, AlertTriangle, Globe, Loader2, RotateCw
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -24,8 +24,10 @@ export default function NationalDashboard() {
     const [scans, setScans] = useState<CloudScan[]>([]);
     const [stats, setStats] = useState({ totalScans: 0, reviewRequired: 0, scopeName: 'Global Sync Stream' });
     const [isLoading, setIsLoading] = useState(true);
+    const [countdown, setCountdown] = useState(60);
 
     async function loadGlobalStats() {
+        setIsLoading(true);
         try {
             const data = await apiFetch<{ recentScans: CloudScan[], totalScans: number, reviewRequired: number, scopeName: string }>("/api/v1/sync/stats");
             setScans(data.recentScans || []);
@@ -34,6 +36,7 @@ export default function NationalDashboard() {
                 reviewRequired: data.reviewRequired || 0,
                 scopeName: data.scopeName || 'Global Sync Stream'
             });
+            setCountdown(60); // Reset on success
         } catch (err) {
             console.error("Failed to load stats", err);
         } finally {
@@ -43,8 +46,19 @@ export default function NationalDashboard() {
 
     useEffect(() => {
         loadGlobalStats();
-        const interval = setInterval(loadGlobalStats, 10000);
-        return () => clearInterval(interval);
+    }, []);
+
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setCountdown(prev => {
+                if (prev <= 1) {
+                    loadGlobalStats();
+                    return 60;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+        return () => clearInterval(timer);
     }, []);
 
     return (
@@ -83,7 +97,18 @@ export default function NationalDashboard() {
                                 {user?.visibilityScope === 'NATIONAL' ? 'Across all registered appliances' : 'Official institutional feed'}
                             </p>
                         </div>
-                        <Button variant="outline" className="rounded-xl font-bold text-[10px] uppercase border-slate-200">Export Raw Logs</Button>
+                        <div className="flex items-center gap-2">
+                            <Button
+                                variant="outline"
+                                onClick={() => loadGlobalStats()}
+                                disabled={isLoading}
+                                className="rounded-xl font-bold text-[10px] uppercase border-slate-200 gap-2 h-9"
+                            >
+                                <RotateCw className={cn("h-3 w-3", isLoading && "animate-spin")} />
+                                Refresh ({countdown}s)
+                            </Button>
+                            <Button variant="outline" className="rounded-xl font-bold text-[10px] uppercase border-slate-200 h-9">Export Raw Logs</Button>
+                        </div>
                     </div>
 
                     <Card className="rounded-3xl border-none shadow-sm overflow-hidden ring-1 ring-slate-100 bg-white">

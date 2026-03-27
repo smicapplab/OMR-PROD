@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { apiFetch } from "@/lib/api";
 import {
-    Monitor, Plus, Loader2, Building2, ShieldCheck, Cpu, Key, Clock, School, Globe, Trash2, X, CheckCircle2, Filter, AlertCircle, Check, Pencil, Search, ChevronLeft, ChevronRight
+    Monitor, Plus, Loader2, Building2, ShieldCheck, Cpu, Key, Clock, School, Globe, Trash2, X, CheckCircle2, Filter, AlertCircle, Check, Pencil, Search, ChevronLeft, ChevronRight, RotateCw
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -151,6 +151,18 @@ export default function MachinesManagement() {
                 <div className="space-y-1">
                     <h2 className="text-xl font-black text-slate-900 uppercase tracking-tight leading-none mb-1">Appliance Registry</h2>
                     <p className="text-sm text-slate-500 font-medium">Manage and authorize Edge scanning units.</p>
+                </div>
+                <div className="flex items-center gap-4">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => loadData(offset)}
+                        disabled={isLoading}
+                        className="h-9 px-3 rounded-xl text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all gap-2 font-bold text-[10px] uppercase"
+                    >
+                        <RotateCw className={cn("h-3.5 w-3.5", isLoading && "animate-spin")} />
+                        Refresh
+                    </Button>
                 </div>
             </div>
 

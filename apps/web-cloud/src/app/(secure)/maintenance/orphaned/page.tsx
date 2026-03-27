@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { apiFetch } from "@/lib/api";
 import {
-    AlertCircle, CheckCircle2, Loader2, School, Search, HelpCircle, ArrowRight, User, Hash, Globe, Filter
+    AlertCircle, CheckCircle2, Loader2, School, Search, HelpCircle, ArrowRight, User, Hash, Globe, Filter, RotateCw
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -108,9 +108,21 @@ export default function CorrectionQueue() {
                     <h2 className="text-xl font-black text-slate-900 uppercase tracking-tight leading-none mb-1">Orphaned Records</h2>
                     <p className="text-sm text-slate-500 font-medium italic">Review scans with invalid institutional identification and map them to the correct school.</p>
                 </div>
-                <Badge variant="outline" className="bg-amber-50 text-amber-600 border-amber-100 font-bold px-4 py-1 rounded-full uppercase text-[10px]">
-                    {scans.length} Issues Found
-                </Badge>
+                <div className="flex items-center gap-4">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => loadData()}
+                        disabled={isLoading}
+                        className="h-9 px-3 rounded-xl text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all gap-2 font-bold text-[10px] uppercase"
+                    >
+                        <RotateCw className={cn("h-3.5 w-3.5", isLoading && "animate-spin")} />
+                        Refresh
+                    </Button>
+                    <Badge variant="outline" className="bg-amber-50 text-amber-600 border-amber-100 font-bold px-4 py-1 rounded-full uppercase text-[10px]">
+                        {scans.length} Issues Found
+                    </Badge>
+                </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">

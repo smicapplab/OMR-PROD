@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/app/context/AuthContext";
 import { apiFetch } from "@/lib/api";
-import { Loader2, ArrowRight } from "lucide-react";
+import { Loader2, ArrowRight, RotateCw } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -52,9 +52,21 @@ export default function ValidationQueue() {
                     <h2 className="text-xl font-black text-slate-900 uppercase tracking-tight leading-none mb-1">Data Correction Queue</h2>
                     <p className="text-sm text-slate-500 font-medium italic">Verify human-initiated bubble corrections and resolve capture ambiguities from the field.</p>
                 </div>
-                <Badge variant="outline" className="bg-rose-50 text-rose-600 border-rose-100 font-bold px-4 py-1 rounded-full uppercase text-[10px]">
-                    {scans.length} Pending Actions
-                </Badge>
+                <div className="flex items-center gap-4">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => loadData()}
+                        disabled={isLoading}
+                        className="h-9 px-3 rounded-xl text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all gap-2 font-bold text-[10px] uppercase"
+                    >
+                        <RotateCw className={cn("h-3.5 w-3.5", isLoading && "animate-spin")} />
+                        Refresh
+                    </Button>
+                    <Badge variant="outline" className="bg-rose-50 text-rose-600 border-rose-100 font-bold px-4 py-1 rounded-full uppercase text-[10px]">
+                        {scans.length} Pending Actions
+                    </Badge>
+                </div>
             </div>
 
             <Card className="rounded-3xl border-none shadow-sm overflow-hidden ring-1 ring-slate-100 bg-white">
