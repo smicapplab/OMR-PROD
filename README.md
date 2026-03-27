@@ -19,6 +19,20 @@ A production-grade, distributed Optical Mark Recognition (OMR) system designed f
 
 ---
 
+## 🌐 Live Demo System
+
+Explore the production-simulated environment at these addresses:
+
+### [National Cloud Hub](https://cloud.139.162.17.189.nip.io/)
+*   **Role**: Centralized cloud infrastructure for nationwide grading, regional monitoring, and authoritative audits.
+*   **Credentials**: `admin@omr-prod.gov.ph` / `password123`
+
+### [Edge Appliance](https://edge.139.162.17.189.nip.io/)
+*   **Role**: Local school-site capture layer. Simulates the physical hardware used by operators to scan, locally verify, and sync paper data to the hub.
+*   **Credentials**: `operator1@mshs.edu.ph` / `password123`
+
+---
+
 ## 🔐 Security & Visibility Matrix (Detailed RBAC)
 
 The system enforces strict data boundaries and functional privileges based on the user's assigned **Role** and **Visibility Scope**.
