@@ -15,11 +15,12 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { CloudScan } from "@omr-prod/contracts";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 export default function NationalDashboard() {
     const { user, logout } = useAuth();
     const pathname = usePathname();
+    const router = useRouter();
     const [scans, setScans] = useState<CloudScan[]>([]);
     const [stats, setStats] = useState({ totalScans: 0, reviewRequired: 0, scopeName: 'Global Sync Stream' });
     const [isLoading, setIsLoading] = useState(true);
@@ -104,7 +105,7 @@ export default function NationalDashboard() {
                                         </TableCell>
                                     </TableRow>
                                 ) : scans.length > 0 ? scans.map((scan) => (
-                                    <TableRow key={scan.id} className="hover:bg-slate-50/50 transition-colors border-slate-50 cursor-pointer group">
+                                    <TableRow key={scan.id} onClick={() => router.push(`/scans/${scan.id}`)} className="hover:bg-slate-50/50 transition-colors border-slate-50 cursor-pointer group">
                                         <TableCell className="pl-8 py-5">
                                             <div className="flex flex-col">
                                                 <span className="font-bold text-slate-900 text-sm uppercase leading-none mb-1">{scan.studentName || 'Unidentified'}</span>

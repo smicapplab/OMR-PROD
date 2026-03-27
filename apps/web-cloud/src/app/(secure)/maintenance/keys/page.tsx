@@ -2,16 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api";
-import {
-    FileCheck, Plus, Loader2, Save, FileEdit, Trash2,
-    ChevronRight, CheckCircle2, AlertCircle, Info
-} from "lucide-react";
+import { FileCheck, Loader2, Save, FileEdit, CheckCircle2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-    Table, TableBody, TableCell, TableHead, TableHeader, TableRow
-} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
@@ -105,9 +99,9 @@ export default function AnswerKeysManagement() {
                     <h2 className="text-xl font-black text-slate-900 uppercase tracking-tight leading-none mb-1">Answer Master</h2>
                     <p className="text-sm text-slate-500 font-medium">Authoritative grading templates for the national exam network.</p>
                 </div>
-                <Button onClick={resetEditor} className="bg-indigo-600 hover:bg-indigo-700 rounded-xl font-bold h-11 gap-2 shadow-lg shadow-indigo-100">
+                {/* <Button onClick={resetEditor} className="bg-indigo-600 hover:bg-indigo-700 rounded-xl font-bold h-11 gap-2 shadow-lg shadow-indigo-100">
                     <Plus className="h-4 w-4" /> New Key Template
-                </Button>
+                </Button> */}
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">

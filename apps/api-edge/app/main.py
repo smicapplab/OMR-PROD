@@ -77,11 +77,11 @@ def format_scan(scan):
 
 # Ensure static directories exist before mounting
 import os
-os.makedirs("success", exist_ok=True)
-os.makedirs("error", exist_ok=True)
- 
-app.mount("/images/success", StaticFiles(directory="success"), name="success_images")
-app.mount("/images/error", StaticFiles(directory="error"), name="error_images")
+os.makedirs(settings.SUCCESS_DIR, exist_ok=True)
+os.makedirs(settings.ERROR_DIR, exist_ok=True)
+
+app.mount("/images/success", StaticFiles(directory=settings.SUCCESS_DIR), name="success_images")
+app.mount("/images/error", StaticFiles(directory=settings.ERROR_DIR), name="error_images")
 app.include_router(auth.router, prefix=f"{settings.API_V1_STR}/auth", tags=["auth"])
 
 @app.get("/")

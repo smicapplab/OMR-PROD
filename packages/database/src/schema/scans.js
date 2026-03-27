@@ -39,6 +39,7 @@ exports.scans = (0, pg_core_1.pgTable)('omr_scans', {
     statusIdx: (0, pg_core_1.index)('scans_status_idx').on(t.status),
     shaIdx: (0, pg_core_1.uniqueIndex)('scans_sha_idx').on(t.originalSha),
     machineIdx: (0, pg_core_1.index)('scans_machine_idx').on(t.machineId),
+    reviewIdx: (0, pg_core_1.index)('scans_review_required_idx').on(t.reviewRequired),
 }));
 exports.correctionLogs = (0, pg_core_1.pgTable)('correction_logs', {
     id: (0, pg_core_1.uuid)('id').defaultRandom().primaryKey(),
@@ -48,7 +49,7 @@ exports.correctionLogs = (0, pg_core_1.pgTable)('correction_logs', {
     oldData: (0, pg_core_1.jsonb)('old_data'),
     newData: (0, pg_core_1.jsonb)('new_data'),
     reason: (0, pg_core_1.text)('reason'),
-    status: (0, pg_core_1.varchar)('status', { length: 50 }).notNull().default('approved'),
+    status: (0, pg_core_1.varchar)('status', { length: 50 }).notNull().default('pending'),
     createdAt: (0, pg_core_1.timestamp)('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
 //# sourceMappingURL=scans.js.map

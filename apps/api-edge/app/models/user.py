@@ -8,7 +8,7 @@ class User(Base):
 
     id = Column(String, primary_key=True, default=lambda: str(uuid_pkg.uuid4()))
     email = Column(String, unique=True, index=True, nullable=False)
-    password_hash = Column(String, nullable=False)
+    password_hash = Column(String, nullable=True)
     first_name = Column(String)
     last_name = Column(String)
     is_active = Column(Boolean, default=True)

@@ -11,5 +11,8 @@
     "../../packages/database/src/**/*.ts",
     "../../packages/contracts/src/**/*.ts"
   ],
-  "exclude": ["node_modules", "dist"]
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
 }

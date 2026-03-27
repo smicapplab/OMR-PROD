@@ -14,7 +14,7 @@ export function ZoomableImage({ src, alt = "Official View" }: ZoomableImageProps
     const [position, setPosition] = useState({ x: 0, y: 0 });
     const [isDragging, setIsDragging] = useState(false);
     const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-    
+
     const containerRef = useRef<HTMLDivElement>(null);
     const imgRef = useRef<HTMLImageElement>(null);
 
@@ -61,7 +61,7 @@ export function ZoomableImage({ src, alt = "Official View" }: ZoomableImageProps
     }, []);
 
     return (
-        <div className="relative h-full w-full flex flex-col bg-slate-950 overflow-hidden rounded-xl border border-slate-800 shadow-inner">
+        <div className="relative h-full w-full flex flex-col bg-slate-950 overflow-hidden border border-slate-800 shadow-inner">
             {/* Toolbar */}
             <div className="absolute top-4 right-4 z-20 flex gap-1.5 bg-black/40 backdrop-blur-xl p-1.5 rounded-xl border border-white/10 shadow-2xl">
                 <button onClick={handleZoomIn} className="p-2 hover:bg-white/10 text-white rounded-lg transition-colors">
@@ -84,7 +84,7 @@ export function ZoomableImage({ src, alt = "Official View" }: ZoomableImageProps
             </div>
 
             {/* Image Stage */}
-            <div 
+            <div
                 ref={containerRef}
                 className={cn(
                     "flex-1 relative overflow-hidden flex items-center justify-center select-none",
@@ -96,16 +96,16 @@ export function ZoomableImage({ src, alt = "Official View" }: ZoomableImageProps
                 onMouseUp={handleMouseUp}
                 onMouseLeave={handleMouseUp}
             >
-                <div 
+                <div
                     style={{
                         transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
                         transition: isDragging ? 'none' : 'transform 0.2s cubic-bezier(0.2, 0, 0, 1)'
                     }}
                     className="flex items-center justify-center transition-transform"
                 >
-                    <img 
+                    <img
                         ref={imgRef}
-                        src={src} 
+                        src={src}
                         alt={alt}
                         className="max-h-[85vh] w-auto shadow-[0_0_100px_rgba(0,0,0,0.8)] pointer-events-none"
                         onLoad={handleReset}

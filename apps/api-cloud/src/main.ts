@@ -4,6 +4,7 @@ import * as cookieParser from 'cookie-parser';
 import { ValidationPipe } from '@nestjs/common';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
+import { existsSync } from 'fs';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -32,11 +33,17 @@ async function bootstrap() {
   app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
   app.setGlobalPrefix('api/v1');
 
-  app.useStaticAssets(join(__dirname, '..', 'cloud_storage'), {
+  let storagePath = join(process.cwd(), 'cloud_storage');
+  if (!existsSync(storagePath)) {
+    storagePath = join(process.cwd(), 'apps', 'api-cloud', 'cloud_storage');
+  }
+
+  app.useStaticAssets(storagePath, {
     prefix: '/cloud-assets',
   });
 
-  await app.listen(4000);
-  console.log(`🚀 Cloud Hub API running on: http://localhost:4000/api/v1`);
+  const port = parseInt(process.env.PORT || '4000', 10);
+  await app.listen(port);
+  console.log(`🚀 Cloud Hub API running on port ${port}`);
 }
 bootstrap();

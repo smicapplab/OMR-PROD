@@ -81,6 +81,8 @@ pids
 *.seed
 *.pid.lock
 
-# Demo and scripts
-scripts/reset-demo.sh
-scripts/reset-db.sh.bak
+# Test Scans
+raw_scans/*
+/success/*
+/error/*
+/apps/api-cloud/cloud_storage/*

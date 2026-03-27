@@ -1,171 +1,111 @@
-#!/bin/bash
+#!/usr/bin/env bash
+# OMR-PROD — Local Dev
+# Starts all services with hot reload. Automatically generates and applies
+# schema migrations on every run — no manual drizzle commands needed.
+# First time on a new machine? Run scripts/init.sh first.
+set -e
+cd "$(dirname "$0")/.."
 
-# --- OMR-PROD Local Dev Orchestrator (Optimized & Robust) ---
-# Parallelizes Docker startup and npm install, and ensures .env is loaded.
-
-# --- Argument Parsing ---
-SYNC_DB=false
-for arg in "$@"; do
-  if [[ "$arg" == "--sync" ]]; then
-    SYNC_DB=true
-  fi
-done
-
-echo "--- 🛠 Bootstrapping Local Dev Environment ---"
- 
-# --- Port Cleanup (Prevention of "Address already in use") ---
-_kill_port() {
-  local port=$1
-  local pid
-  pid=$(lsof -t -i :"$port" 2>/dev/null)
-  if [ -n "$pid" ]; then
-    echo "  🔥 Killing stale process on port $port (PID: $pid)..."
-    kill -9 $pid 2>/dev/null || true
-  fi
-}
- 
-echo "🧹 Clearing stale processes on ports 3000, 3001, 4000, 8000..."
-_kill_port 3000
-_kill_port 3001
-_kill_port 4000
-_kill_port 8000
-echo "✅ Cleanup complete"
+echo "--- 🛠  OMR-PROD Dev ---"
 echo ""
 
-# ── Secret Auto-Generation ──────────────────────────────────────────────────
-# List of (env_file, var_name, placeholder_patterns) tuples.
-# If the var is missing or matches any placeholder pattern, a new value is
-# generated with `openssl rand -hex 32` and written into the file.
+# ── Helpers ────────────────────────────────────────────────────────────────
+_kill_port() {
+  local pid
+  pid=$(lsof -t -i :"$1" 2>/dev/null) || true
+  [ -n "$pid" ] && kill -9 "$pid" 2>/dev/null || true
+}
 
 _ensure_secret() {
-  local env_file="$1"
-  local var_name="$2"
-
-  # Create the file if it doesn't exist yet
-  if [ ! -f "$env_file" ]; then
-    touch "$env_file"
-  fi
-
-  # Read the current value (strip surrounding quotes and whitespace)
+  local env_file="$1" var_name="$2"
+  if [ ! -f "$env_file" ]; then touch "$env_file"; fi
   local current
   current=$(grep -E "^${var_name}=" "$env_file" 2>/dev/null | head -1 | cut -d'=' -f2- | tr -d '"' | tr -d "'" | xargs)
-
-  # Placeholder patterns that indicate the value has not been customised
-  local is_placeholder=false
   case "$current" in
     ""|*"change-me"*|*"your-"*|*"GENERATE_"*|*"secret-key"*|*"dev-"*|*"change-this"*)
-      is_placeholder=true ;;
-  esac
-
-  if $is_placeholder; then
-    local new_val
-    new_val=$(openssl rand -hex 32)
-    # Remove the old line (if any) then append the new one
-    if grep -qE "^${var_name}=" "$env_file" 2>/dev/null; then
-      # Use a temp file for portability (sed -i differs between macOS and Linux)
-      local tmp
-      tmp=$(mktemp)
-      grep -vE "^${var_name}=" "$env_file" > "$tmp"
+      local new_val; new_val=$(openssl rand -hex 32)
+      local tmp; tmp=$(mktemp)
+      grep -vE "^${var_name}=" "$env_file" > "$tmp" 2>/dev/null || true
       mv "$tmp" "$env_file"
-    fi
-    echo "${var_name}=\"${new_val}\"" >> "$env_file"
-    echo "  🔑 Generated ${var_name} in ${env_file}"
-  fi
+      echo "${var_name}=\"${new_val}\"" >> "$env_file"
+      echo "  🔑 Generated ${var_name} in ${env_file}"
+      ;;
+  esac
 }
+# ───────────────────────────────────────────────────────────────────────────
 
+echo "🧹 Clearing stale processes on ports 3000 3001 4000 8000..."
+for port in 3000 3001 4000 8000; do _kill_port "$port"; done
 echo ""
-echo "🔐 Checking / generating secrets..."
-_ensure_secret ".env"                    "JWT_SECRET"
-_ensure_secret ".env"                    "JWT_REFRESH_SECRET"
-_ensure_secret ".env"                    "ENROLLMENT_SECRET"
-_ensure_secret "apps/api-cloud/.env"     "JWT_SECRET"
-_ensure_secret "apps/api-edge/.env"      "SECRET_KEY"
-echo "✅ Secrets OK"
-echo ""
-# ─────────────────────────────────────────────────────────────────────────────
 
-# 0. Load Environment Variables from Root
+echo "🔐 Checking secrets..."
+_ensure_secret ".env"                "JWT_SECRET"
+_ensure_secret ".env"                "JWT_REFRESH_SECRET"
+_ensure_secret ".env"                "ENROLLMENT_SECRET"
+_ensure_secret "apps/api-cloud/.env" "JWT_SECRET"
+_ensure_secret "apps/api-edge/.env"  "SECRET_KEY"
+echo ""
+
 if [ -f .env ]; then
-  echo "Loading root .env..."
-  # Exporting variables for sub-processes
-  set -a
-  source .env
-  set +a
+  set -a; source .env; set +a
 else
-  echo "No root .env found! Database commands may fail."
+  echo "⚠️  No root .env found — run scripts/init.sh"
 fi
 
-# 1. Start Docker in background early
-(
-    if ! docker ps --filter "name=omr-prod-db" --filter "status=running" | grep -q "omr-prod-db"; then
-        echo "Starting PostgreSQL container in background..."
-        docker-compose up -d db > /dev/null 2>&1
-    fi
-) &
-DOCKER_BOOT_PID=$!
+# Start Docker early while install/build run
+docker ps --filter "name=omr-prod-db" --filter "status=running" | grep -q "omr-prod-db" \
+  || { echo "🐳 Starting PostgreSQL..."; docker compose up -d db > /dev/null 2>&1; } &
+DOCKER_PID=$!
 
-# 2. Run npm install (Must be before build)
-echo "Syncing workspaces (npm install)..."
-npm install --quiet &
-INSTALL_PID=$!
+echo "📦 Installing dependencies..."
+npm install --quiet
 
-# 3. Wait for install to complete before building
-wait $INSTALL_PID
-echo "npm install complete."
-
-# 4. Build workspaces (Sequential to install, parallel to Docker wait if still booting)
-echo "Building workspaces (turbo build)..."
+echo "🔨 Building workspaces..."
 npm run build &
 BUILD_PID=$!
 
-# 5. Wait for Docker and check readiness while build runs
-wait $DOCKER_BOOT_PID
-echo "Ensuring PostgreSQL is ready..."
-until docker exec omr-prod-db pg_isready -U postgres > /dev/null 2>&1; do
-    sleep 0.5
-done
-echo "PostgreSQL is ready."
+# Wait for Postgres while build runs
+wait $DOCKER_PID
+echo "⏳ Waiting for PostgreSQL..."
+until docker exec omr-prod-db pg_isready -U postgres > /dev/null 2>&1; do sleep 0.5; done
+echo "✅ PostgreSQL ready"
 
-# 6. Wait for Build to finish
 wait $BUILD_PID
-echo "Build complete."
+echo "✅ Build complete"
+echo ""
 
-# 7. Cloud Database (Drizzle)
-if [ "$SYNC_DB" = true ]; then
-    echo "Syncing Cloud Schema (Requested via --sync)..."
-    # Explicitly passing DATABASE_URL if needed, but 'set -a' should have exported it
-    npm run db:cloud:push --workspace=@omr-prod/database
-    npm run db:cloud:seed --workspace=@omr-prod/database
-else
-    echo "Skipping Cloud Schema Sync (Use --sync to enable)."
-fi
+# ── Cloud schema ─────────────────────────────────────────────────────────────
+# generate: creates a new migration file if the schema changed (no-op if not)
+# migrate:  applies any pending migrations — never drops without an explicit migration
+echo "☁️  Syncing Cloud schema..."
+npm run db:cloud:generate -w @omr-prod/database
+npm run db:cloud:migrate  -w @omr-prod/database
 
-# 8. Edge Database (SQLite)
+# ── Edge schema ──────────────────────────────────────────────────────────────
+echo "📟 Syncing Edge schema..."
 EDGE_DB="apps/api-edge/omr_edge.db"
-echo "Checking Edge Appliance Database..."
-if [ ! -f "$EDGE_DB" ]; then
-    echo "Initializing Edge Schema & Seed..."
-    npm run db:edge:push --workspace=@omr-prod/database
-    
-    if [ -d "apps/api-edge/.venv" ]; then
-        echo "Seeding Edge users via python..."
-        cd apps/api-edge
-        .venv/bin/python seed_dev.py
-        cd ../..
-    else
-        echo "api-edge virtual environment not found. Skip python seed."
-    fi
-else
-    if [ "$SYNC_DB" = true ]; then
-        echo "Syncing Edge Schema (Requested via --sync)..."
-        npm run db:edge:push --workspace=@omr-prod/database
-    else
-        echo "Edge database exists (Skipping Edge sync)."
-    fi
-fi
+EDGE_IS_NEW=false
+[ ! -f "$EDGE_DB" ] && EDGE_IS_NEW=true
 
+npm run db:edge:generate -w @omr-prod/database
+npm run db:edge:migrate  -w @omr-prod/database
+
+if $EDGE_IS_NEW; then
+  if [ -d "apps/api-edge/.venv" ]; then
+    echo "🌱 Seeding new Edge DB..."
+    cd apps/api-edge
+    DATABASE_URL=sqlite:///./omr_edge.db .venv/bin/python seed_dev.py
+    cd ../..
+  else
+    echo "⚠️  Edge venv missing — run scripts/init.sh"
+  fi
+fi
 
 echo ""
-echo "Starting all services in dev mode (Hot Reload)..."
-echo "---------------------------------------------------"
+echo "🚀 Starting dev servers (hot reload)..."
+echo "  Cloud API → http://localhost:4000/api/v1"
+echo "  Cloud UI  → http://localhost:3001"
+echo "  Edge API  → http://localhost:8000"
+echo "  Edge UI   → http://localhost:3000"
+echo ""
 npm run dev

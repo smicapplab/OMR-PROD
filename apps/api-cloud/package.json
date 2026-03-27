@@ -5,9 +5,9 @@
   "type": "commonjs",
   "scripts": {
     "build": "nest build",
-    "dev": "ts-node --swc src/main.ts",
+    "dev": "nest start --watch",
     "start:dev": "nest start --watch",
-    "start": "node dist/main"
+    "start": "node dist/apps/api-cloud/src/main.js"
   },
   "dependencies": {
     "@nestjs/common": "^10.0.0",

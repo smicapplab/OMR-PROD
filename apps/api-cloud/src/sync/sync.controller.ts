@@ -282,7 +282,7 @@ export class SyncController {
         };
     }
 
-    private decorateScan(s: any, schoolMap: Record<string, string>) {
+    private decorateScan(s: any, schoolMap: Record<string, string>, includeBlob: boolean = false) {
         // Support both full extracted_data blob (detail view) and inline projections (list/stats view)
         const info = s.extracted_data?.student_info;
         const first = s.studentFirstName || info?.first_name?.answer || info?.firstName?.answer || '';
@@ -290,11 +290,12 @@ export class SyncController {
         const lrn = s.lrn || info?.lrn?.answer || '---';
         const studentName = (first || last) ? `${first} ${last}`.trim() : 'Unidentified';
 
-        // Don't re-expose the full blob in list/stats responses
+        // Don't re-expose the full blob in list/stats responses by default
         const { extracted_data: _blob, studentFirstName: _f, studentLastName: _l, ...rest } = s;
 
         return {
             ...rest,
+            ...(includeBlob ? { extracted_data: _blob } : {}),
             schoolName: schoolMap[s.schoolId] || 'Unknown',
             studentName,
             lrn,
@@ -321,7 +322,7 @@ export class SyncController {
             if (school) schoolMap[scan.schoolId] = school.name;
         }
 
-        return this.decorateScan(scan, schoolMap);
+        return this.decorateScan(scan, schoolMap, true);
     }
 
     @Get('scans')
@@ -373,7 +374,11 @@ export class SyncController {
             confidence: schema.scans.confidence,
             status: schema.scans.status,
             createdAt: schema.scans.createdAt,
-            reviewRequired: schema.scans.reviewRequired
+            reviewRequired: schema.scans.reviewRequired,
+            // Inline JSONB projections — no full blob
+            studentFirstName: sql<string>`${schema.scans.extracted_data}->'student_info'->'first_name'->>'answer'`,
+            studentLastName: sql<string>`${schema.scans.extracted_data}->'student_info'->'last_name'->>'answer'`,
+            lrn: sql<string>`${schema.scans.extracted_data}->'student_info'->'lrn'->>'answer'`,
             // [OPTIMIZATION]: Exclude extracted_data/pending_data/gradingDetails in list view
         }).from(schema.scans).where(whereClause).orderBy(desc(schema.scans.createdAt)).limit(l).offset(o);
         const [totalResult] = await this.db.select({ value: count() }).from(schema.scans).where(whereClause);

@@ -52,6 +52,7 @@ async def login(
 @router.post("/refresh")
 async def refresh(
     request: Request,
+    response: Response,
     db: Session = Depends(get_db)
 ):
     refresh_token = request.cookies.get("omr_edge_refresh")
@@ -60,12 +61,26 @@ async def refresh(
 
     payload = decode_token(refresh_token)
     if not payload or payload.get("type") != "refresh":
+        response.delete_cookie(
+            key="omr_edge_refresh",
+            path="/api/v1/auth/refresh",
+            httponly=True,
+            secure=settings.SECURE_COOKIES,
+            samesite="lax"
+        )
         raise HTTPException(status_code=401, detail="Invalid refresh token")
 
     user_id = payload.get("sub")
     # H-1: Also check isActive on refresh so deactivated users lose their session
     user = db.query(User).filter(User.id == user_id, User.is_active == True).first()
     if not user:
+        response.delete_cookie(
+            key="omr_edge_refresh",
+            path="/api/v1/auth/refresh",
+            httponly=True,
+            secure=settings.SECURE_COOKIES,
+            samesite="lax"
+        )
         raise HTTPException(status_code=401, detail="User not found or deactivated")
 
     access_token = create_access_token(user.id)

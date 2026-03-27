@@ -3,9 +3,12 @@
 import { useEffect, useState, use, useCallback } from "react";
 import { apiFetch } from "@/lib/api";
 import { useAuth } from "@/app/context/AuthContext";
-import { 
-    FileText, History, Info, ClipboardList, PenLine, ArrowLeft, Loader2, 
-    ShieldCheck, AlertTriangle, UserCircle, Save, ThumbsUp, ArrowRight
+import {
+    FileText, History, Info, ClipboardList, PenLine, ArrowLeft, Loader2,
+    ShieldCheck, AlertTriangle, UserCircle, Save, ThumbsUp, ArrowRight,
+    ChevronDown,
+    ChevronUp,
+    ChevronRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -25,10 +28,60 @@ interface Delta {
     type: 'string' | 'array';
 }
 
+function SubjectGradingDetails({ subject, details, extractedAnswers }: { subject: string, details: any, extractedAnswers: any }) {
+    const [isOpen, setIsOpen] = useState(false);
+    return (
+        <details className="group bg-white rounded-xl border border-slate-200 overflow-hidden mb-3 last:mb-0 shadow-sm" open={isOpen} onToggle={(e) => setIsOpen(e.currentTarget.open)}>
+            <summary className="p-3 bg-slate-50 border-b border-transparent cursor-pointer flex items-center justify-between hover:bg-slate-100 transition-colors list-none font-bold text-[10px] text-slate-700 uppercase tracking-widest outline-none group-open:border-slate-200 group-open:bg-indigo-50/50 [&::-webkit-details-marker]:hidden">
+                <div className="flex items-center gap-3">
+                    <span className="text-slate-800 tracking-wider relative top-px">{subject}</span>
+                    <Badge className="bg-white text-indigo-700 border-indigo-100 shadow-sm text-[9px] h-5 px-1.5 pointer-events-none">{details.score} / {details.total}</Badge>
+                </div>
+                <div className="text-[9px] text-indigo-400 font-bold group-open:hidden"><ChevronRight /></div>
+                <div className="text-[9px] text-indigo-400 font-bold hidden group-open:block"><ChevronDown /></div>
+            </summary>
+
+            <div className="p-0">
+                <table className="w-full text-left text-[10px] font-bold">
+                    <thead className="bg-white text-slate-400 sticky top-0 uppercase tracking-widest border-b border-slate-100 shadow-sm z-10">
+                        <tr>
+                            <th className="py-2 px-4 font-black w-12 text-center text-[9px]">Number</th>
+                            <th className="py-2 px-2 text-center w-20 text-[9px]">Response</th>
+                            <th className="py-2 px-2 text-center w-20 text-[9px]">Answer</th>
+                            <th className="py-2 px-4 text-center w-16 text-[9px]">Result</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50 text-slate-600 uppercase">
+                        {Object.keys(details.results || {}).sort((a, b) => Number(a) - Number(b)).map(qNum => {
+                            const isCorrect = details.results[qNum];
+                            const correctAns = details.correctAnswers ? details.correctAnswers[qNum] : '-';
+                            const studentAns = extractedAnswers?.[qNum]?.answer || '-';
+                            return (
+                                <tr key={qNum} className={cn("hover:bg-slate-50/50 transition-colors", !isCorrect && "bg-rose-50/30")}>
+                                    <td className="py-2 px-4 text-center text-slate-400 font-black">{qNum}</td>
+                                    <td className="py-2 px-2 text-center">
+                                        <Badge className={cn("text-[9px] px-1.5 py-0 border-none shadow-none h-4.5 rounded text-center flex items-center justify-center mx-auto max-w-[max-content]", isCorrect ? "bg-emerald-100 text-emerald-700" : (studentAns === '-' ? "bg-slate-100 text-slate-400" : "bg-rose-100 text-rose-700"))}>{studentAns}</Badge>
+                                    </td>
+                                    <td className="py-2 px-2 text-center">
+                                        <Badge className="bg-slate-100 text-slate-500 border-none shadow-none h-4.5 rounded text-[9px] px-1.5 py-0 text-center flex items-center justify-center mx-auto max-w-[max-content]">{correctAns}</Badge>
+                                    </td>
+                                    <td className="py-2 px-4 text-center">
+                                        {isCorrect ? <ShieldCheck className="h-3 w-3 text-emerald-500 mx-auto" /> : <AlertTriangle className="h-3 w-3 text-rose-400 mx-auto" />}
+                                    </td>
+                                </tr>
+                            );
+                        })}
+                    </tbody>
+                </table>
+            </div>
+        </details>
+    );
+}
+
 export default function ScanDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
     const { user } = useAuth();
-    
+
     const [scan, setScan] = useState<CloudScan | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isEditorOpen, setIsEditorOpen] = useState(false);
@@ -52,7 +105,7 @@ export default function ScanDetailPage({ params }: { params: Promise<{ id: strin
                     const oldArr = Array.isArray(oldVal) ? oldVal : (oldVal ? [oldVal] : []);
                     const oldSorted = [...oldArr].sort();
                     const newSorted = [...newVal].sort();
-                    
+
                     if (JSON.stringify(oldSorted) !== JSON.stringify(newSorted)) {
                         deltas.push({ path: currentPath || "Metadata", from: oldSorted, to: newSorted, type: 'array' });
                     }
@@ -138,7 +191,7 @@ export default function ScanDetailPage({ params }: { params: Promise<{ id: strin
     return (
         <div className="h-screen flex flex-col bg-white overflow-hidden font-sans">
             {/* Header */}
-            <header className="h-16 border-b border-slate-100 bg-white shrink-0 flex items-center justify-between px-8">
+            <header className="h-16 bg-white shrink-0 flex items-center justify-between px-8">
                 <div className="flex items-center gap-6">
                     <Link href="/scans">
                         <Button variant="ghost" className="text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 gap-2 px-3 rounded-xl h-10 transition-all font-bold uppercase text-[10px]">
@@ -146,7 +199,7 @@ export default function ScanDetailPage({ params }: { params: Promise<{ id: strin
                             Back to Records
                         </Button>
                     </Link>
-                    <div className="h-8 w-px bg-slate-100" />
+                    <div className="h-8 w-px" />
                     <div className="flex items-center gap-3">
                         <div className="h-9 w-9 rounded-xl bg-indigo-600 flex items-center justify-center">
                             <FileText className="h-4 w-4 text-white" />
@@ -163,7 +216,7 @@ export default function ScanDetailPage({ params }: { params: Promise<{ id: strin
                 </div>
 
                 <div className="flex items-center gap-3">
-                    <Button 
+                    <Button
                         onClick={() => setIsEditorOpen(true)}
                         className="h-10 px-6 bg-slate-900 hover:bg-black text-white rounded-xl gap-2 font-black uppercase text-[10px] tracking-widest transition-all active:scale-95 shadow-lg shadow-slate-100"
                     >
@@ -176,7 +229,7 @@ export default function ScanDetailPage({ params }: { params: Promise<{ id: strin
             {/* Main Content Area */}
             <div className="flex-1 flex overflow-hidden">
                 {/* Left: Wide Forensic View */}
-                <div className="flex-1 bg-slate-100 flex flex-col relative border-r overflow-hidden group">
+                <div className="flex-1 flex flex-col relative border-r overflow-hidden group">
                     <div className="absolute top-6 left-6 z-10 flex items-center gap-2">
                         <Badge className="bg-white/90 backdrop-blur-md text-slate-900 border-none shadow-sm text-[9px] font-bold uppercase h-6 px-3">
                             Official Scan Reference
@@ -185,15 +238,15 @@ export default function ScanDetailPage({ params }: { params: Promise<{ id: strin
                     <div className="flex-1 overflow-hidden">
                         <ZoomableImage src={`${API_URL}${scan.fileUrl}`} alt="Forensic Scan Reference" />
                     </div>
-                    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10 bg-white/90 backdrop-blur-md px-4 py-2 rounded-full border border-slate-100 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10 bg-white/90 backdrop-blur-md px-4 py-2 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">
                         <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Scroll to Zoom • Drag to Pan</p>
                     </div>
                 </div>
 
                 {/* Right: Insight Sidebar */}
-                <div className="w-96 flex flex-col bg-white border-l">
+                <div className="w-96 flex flex-col bg-white">
                     <Tabs defaultValue="overview" className="flex flex-col h-full">
-                        <div className="px-6 py-3 border-b bg-slate-50/50">
+                        <div className="px-6 py-3 border-b">
                             <TabsList className="grid w-full grid-cols-2 h-9 rounded-lg bg-slate-200/50 p-1">
                                 <TabsTrigger value="overview" className="rounded-md text-[9px] font-black uppercase tracking-widest data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm">
                                     Insights
@@ -205,7 +258,7 @@ export default function ScanDetailPage({ params }: { params: Promise<{ id: strin
                         </div>
 
                         <div className="flex-1 overflow-y-auto custom-scrollbar">
-                            <TabsContent value="overview" className="p-8 m-0 space-y-10 outline-none border-none">
+                            <TabsContent value="overview" className="p-8 m-0 space-y-10 outline-none border-none mb-15">
                                 <div className="space-y-6">
                                     <div className="flex items-center gap-2 text-slate-400">
                                         <Info className="h-4 w-4" />
@@ -251,7 +304,7 @@ export default function ScanDetailPage({ params }: { params: Promise<{ id: strin
                                             <div className="flex justify-between items-center mb-2">
                                                 <span className="text-[9px] font-black uppercase tracking-[0.2em] opacity-60">Verified Score</span>
                                                 <Badge className="bg-white/20 text-white border-none text-[8px] font-black uppercase h-5 px-2">
-                                                    {((scan.confidence || 0)*100).toFixed(1)}% Match
+                                                    {((scan.confidence || 0) * 100).toFixed(1)}% Match
                                                 </Badge>
                                             </div>
                                             <div className="flex items-baseline gap-1">
@@ -260,6 +313,26 @@ export default function ScanDetailPage({ params }: { params: Promise<{ id: strin
                                             </div>
                                         </div>
                                     </div>
+
+                                    {/* Subject Grading Item Analysis */}
+                                    {scan.gradingDetails && Object.keys(scan.gradingDetails).length > 0 && (
+                                        <div className="mt-8">
+                                            <div className="flex items-center gap-2 text-slate-400 mb-4 px-2">
+                                                <ShieldCheck className="h-4 w-4" />
+                                                <h4 className="text-[11px] font-black uppercase tracking-[0.2em]">Item Analysis</h4>
+                                            </div>
+                                            <div className="flex flex-col">
+                                                {Object.keys(scan.gradingDetails).sort().map(subject => (
+                                                    <SubjectGradingDetails
+                                                        key={subject}
+                                                        subject={subject}
+                                                        details={scan.gradingDetails[subject]}
+                                                        extractedAnswers={scan.extracted_data?.answers?.[subject]}
+                                                    />
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </TabsContent>
 
@@ -269,7 +342,7 @@ export default function ScanDetailPage({ params }: { params: Promise<{ id: strin
                                         <History className="h-4 w-4" />
                                         <h4 className="text-[11px] font-black uppercase tracking-[0.2em]">Audit Artifacts</h4>
                                     </div>
-                                    
+
                                     {correctionHistory.length > 0 ? (
                                         <div className="relative space-y-6 before:absolute before:inset-0 before:ml-4 before:-translate-x-px before:h-full before:w-0.5 before:bg-slate-100">
                                             {correctionHistory.map((h, i) => {
@@ -282,7 +355,7 @@ export default function ScanDetailPage({ params }: { params: Promise<{ id: strin
                                                         )}>
                                                             {h.action === 'BUBBLE_CORRECTION' ? <Save className="h-3.5 w-3.5" /> : <ThumbsUp className="h-3.5 w-3.5" />}
                                                         </div>
-                                                        
+
                                                         <div className="flex flex-1 flex-col gap-0.5 pt-0.5 min-w-0">
                                                             <div className="flex items-center justify-between">
                                                                 <span className="text-[10px] font-black uppercase text-slate-900">{h.action.replace('_', ' ')}</span>
@@ -311,7 +384,7 @@ export default function ScanDetailPage({ params }: { params: Promise<{ id: strin
                                                                     ))}
                                                                 </div>
                                                             )}
-                                                            
+
                                                             <div className="mt-2 p-3 rounded-xl bg-slate-50/50 border border-slate-100 border-dashed relative">
                                                                 <p className="text-[10px] text-slate-600 font-medium italic leading-relaxed">
                                                                     &quot;{h.reason}&quot;
@@ -345,8 +418,8 @@ export default function ScanDetailPage({ params }: { params: Promise<{ id: strin
 
             {/* Bubble Editor Integration */}
             {scan && (
-                <BubbleEditor 
-                    scan={{...scan, rawData: scan.extracted_data }}
+                <BubbleEditor
+                    scan={{ ...scan, rawData: scan.extracted_data }}
                     isOpen={isEditorOpen}
                     onClose={() => setIsEditorOpen(false)}
                     onSaved={() => {

@@ -54,11 +54,13 @@ export default function DashboardPage() {
     const LIMIT = 30;
 
     const observerTarget = useRef(null);
+    const REFRESH_INTERVAL = 10; // seconds
+    const [countdown, setCountdown] = useState(REFRESH_INTERVAL);
 
 
-    const loadScans = useCallback(async (isInitial = true) => {
-        if (isInitial) setIsLoading(true);
-        else setIsFetchingMore(true);
+    const loadScans = useCallback(async (isInitial = true, isSilent = false) => {
+        if (isInitial && !isSilent) setIsLoading(true);
+        else if (!isInitial && !isSilent) setIsFetchingMore(true);
 
         try {
             if (isInitial) skipRef.current = 0;
@@ -87,18 +89,18 @@ export default function DashboardPage() {
         } catch (err) {
             console.error("Failed to load scans", err);
         } finally {
-            setIsLoading(false);
-            setIsFetchingMore(false);
+            if (!isSilent) setIsLoading(false);
+            if (!isSilent) setIsFetchingMore(false);
         }
     }, [searchQuery]);
 
-    const refreshDetail = async () => {
+    const refreshDetail = useCallback(async () => {
         if (!selectedScanId) return;
         try {
             const data = await apiFetch<Scan>(`/api/v1/scans/${selectedScanId}`);
             setSelectedScan(data);
         } catch (err) { console.error(err); }
-    };
+    }, [selectedScanId]);
 
     const handleApprove = async () => {
         if (!selectedScanId) return;
@@ -136,10 +138,34 @@ export default function DashboardPage() {
 
     useEffect(() => {
         const timer = setTimeout(() => {
-            loadScans(true);
+            loadScans(true, false);
         }, 300);
         return () => clearTimeout(timer);
     }, [searchQuery, loadScans]);
+
+    // Auto-refresh — three separate concerns kept clean:
+
+    // 1. Tick down every second (runs once, never restarts)
+    useEffect(() => {
+        const tick = setInterval(() => setCountdown(c => (c > 0 ? c - 1 : 0)), 1000);
+        return () => clearInterval(tick);
+    }, []);
+
+    // 2. Reset the countdown whenever the search query changes
+    //    (loadScans is recreated when searchQuery changes, so this dep is correct)
+    useEffect(() => {
+        setCountdown(REFRESH_INTERVAL);
+    }, [loadScans]);
+
+    // 3. Fire the refresh when the countdown reaches 0
+    //    Both loadScans and refreshDetail are in deps so they're always fresh
+    useEffect(() => {
+        if (countdown === 0) {
+            loadScans(true, true);
+            refreshDetail();
+            setCountdown(REFRESH_INTERVAL);
+        }
+    }, [countdown, loadScans, refreshDetail]);
 
     useEffect(() => {
         const observer = new IntersectionObserver(
@@ -164,10 +190,10 @@ export default function DashboardPage() {
 
                     const schoolId = (data.rawData as any)?.student_info?.current_school?.school_id?.answer;
                     if (schoolId) {
-                        try {
-                            const schoolData = await apiFetch<any>(`/api/v1/schools/${schoolId}`);
-                            setResolvedSchoolName(schoolData.name || null);
-                        } catch {
+                        const localSchool = assignedSchools.find(s => String(s.id) === String(schoolId));
+                        if (localSchool) {
+                            setResolvedSchoolName(localSchool.name);
+                        } else {
                             setResolvedSchoolName("UNRESOLVED");
                         }
                     } else {
@@ -238,7 +264,17 @@ export default function DashboardPage() {
                                         <History className="h-4 w-4 text-slate-400" />
                                         <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider">Scan Feed</h2>
                                     </div>
-                                    <Badge variant="outline" className="font-mono text-[10px]">{totalScans}</Badge>
+                                    <div className="flex items-center gap-2">
+                                        <Badge variant="outline" className="font-mono text-[10px]">{totalScans}</Badge>
+                                        <button
+                                            onClick={() => { loadScans(true); refreshDetail(); setCountdown(REFRESH_INTERVAL); }}
+                                            title="Refresh now"
+                                            className="flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors font-mono tabular-nums"
+                                        >
+                                            <RefreshCcw className={cn("h-3 w-3", countdown <= 5 && "animate-spin text-indigo-500")} />
+                                            {countdown}s
+                                        </button>
+                                    </div>
                                 </div>
 
                                 <div className="px-6 mb-4">

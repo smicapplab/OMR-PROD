@@ -16,7 +16,13 @@ class Settings(BaseSettings):
     MACHINE_ID: str = "MACHINE-00001"
     MACHINE_SECRET: Optional[str] = None
     SECRET_KEY: str = "GENERATE_SECURE_SECRET_AT_RUNTIME"
-    DEFAULT_SCHOOL_ID: str = "567890"
+    DEFAULT_SCHOOL_ID: str = "305312"
+
+    # Scan directories — relative to project root (2 levels above apps/api-edge)
+    RAW_SCANS_DIR: str = "../../raw_scans"
+    UPLOADS_DIR: str = "../../uploads"
+    SUCCESS_DIR: str = "../../success"
+    ERROR_DIR: str = "../../error"
 
     # CORS: comma-separated list of allowed origins
     CORS_ORIGINS: str = "http://localhost:3000,http://localhost:3001"

@@ -61,7 +61,7 @@ Every 30 seconds, the Edge performs a heartbeat:
 ## 📡 Data Integrity & QA Workflows
 
 ### Orphaned Paper Workflow
-If a student bubbles an invalid School Code, the Cloud Hub accepts the data but marks it as `orphaned`. 
+If a student bubbles an invalid School Code, the Cloud Hub accepts the data but marks it as `orphaned`.
 *   **Correction Queue**: Orphaned scans are held for manual school assignment by National QA.
 *   **Audit**: Every institutional assignment is permanently logged in the **Audit History**.
 
@@ -73,43 +73,24 @@ Manual field corrections are automatically flagged for HQ verification:
 
 ---
 
-## 🚀 Recent Modernization & Optimizations
-
-We recently completed a systematic upgrade of the OMR-PROD codebase to improve stability, transparency, and performance.
-
-### 🛠️ Key Improvements:
-- **Harmonized Audit Trail**: Ported the premium Edge ActivityLog Slider and recursive delta-comparison logic to the Cloud Hub, ensuring a unified forensic experience.
-- **Backend Performance**: 
-  - Resolved **N+1 query patterns** in sync and search endpoints.
-  - Refined **SELECT statements** to fetch only necessary summary fields, reducing bandwidth for large JSONB datasets.
-  - Implemented **Batch Insertion** for high-volume activity logs.
-- **Runtime Reliability**: Fixed critical date-parsing bugs and payload mismatches (`createdAt` vs `created_at`) across the Python/TypeScript bridge.
-- **Full TypeScript Adoption**: Systematic removal of legacy `any` types and unused variables across the monorepo for improved maintainability.
-
----
-
-## 🍎 MacOS Installation
-
-This section provides instructions for setting up OMR-PROD on macOS.
+## 🍎 macOS Installation
 
 ### 1. Install Homebrew
-Homebrew is the essential package manager for macOS.
 ```bash
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 ```
 
 ### 2. Install Docker Desktop
-OMR-PROD uses Docker for the Cloud Hub database. Install it via Homebrew Cask or download from the official website.
 ```bash
 brew install --cask docker
 ```
-*Make sure to start the Docker Desktop application after installation.*
+Start the Docker Desktop application after installation.
 
 ### 3. Install Node.js (via fnm)
-We recommend **fnm** for managing Node.js versions.
 ```bash
 brew install fnm
-# Add eval "$(fnm env --use-on-cd)" to your ~/.zshrc or ~/.bash_profile
+# Add to ~/.zshrc or ~/.bash_profile:
+# eval "$(fnm env --use-on-cd)"
 fnm install --lts
 fnm use --lts
 ```
@@ -120,88 +101,121 @@ brew install python
 npm install -g pm2
 ```
 
-### 5. Deployment Workflow
+### 5. First-Time Setup
+Run once after cloning. Creates `.env` files, installs all dependencies, sets up the Python venv, and seeds both databases.
 ```bash
-# 1. Initialize Database (Cloud Hub)
-./scripts/reset-db-demo.sh
-
-# 2. Install Dependencies & Build
-npm install
-npm run build
-
-# 3. Run the Demo
-./scripts/run-demo.sh
+./scripts/init.sh
 ```
+
+### 6. Daily Development
+```bash
+./scripts/dev.sh
+```
+Clears stale ports, auto-generates and applies any pending schema migrations, then starts all four services with hot reload.
+
+### Run as Demo (PM2)
+```bash
+./scripts/demo.sh
+```
+Runs all four services as persistent PM2 processes on a single machine.
 
 ---
 
 ## 🐧 Linux Standalone Installation (Debian/RHEL/Linode)
 
-This section provides distribution-agnostic instructions for setting up OMR-PROD on a clean Linux system (e.g., Linode, VPS, or local server).
-
 ### 1. Install Docker & Docker Compose
-The most agnostic way to install Docker on Linux is using the official convenience script:
 ```bash
 curl -fsSL https://get.docker.com -o get-docker.sh
 sudo sh get-docker.sh
-sudo usermod -aG docker $USER && newgrp docker # Allow running docker without sudo
+sudo usermod -aG docker $USER && newgrp docker
 ```
 
 ### 2. Install Node.js (via fnm)
-We recommend **fnm** (Fast Node Manager) as it is a single-binary version manager that works across all shells.
 ```bash
 curl -fsSL https://fnm.vercel.app/install | bash
-source ~/.bashrc # Or restart your shell
+source ~/.bashrc
 fnm install --lts
 fnm use --lts
 ```
 
 ### 3. Verify Python 3 & venv
-Most modern Linux distributions come with Python 3.10+. Ensure it is installed along with the venv module:
 ```bash
 python3 --version
-# On Debian/Ubuntu: sudo apt update && sudo apt install python3-venv -y
-# On RHEL/Fedora: sudo dnf install python3 -y
+# Debian/Ubuntu:
+sudo apt update && sudo apt install python3-venv -y
+# RHEL/Fedora:
+sudo dnf install python3 -y
 ```
 
-### 4. Install PM2 (Process Manager)
+### 4. Install PM2
 ```bash
 npm install -g pm2
 ```
 
-### 5. Deployment Workflow
-Once the environment is ready, follow these steps to deploy the OMR-PROD demo:
-
+### 5. First-Time Setup
 ```bash
-# 1. Initialize Database (Cloud Hub)
-./scripts/reset-db-demo.sh
-
-# 2. Install Dependencies & Build
-npm install
-npm run build
-
-# 3. Run the Demo
-./scripts/run-demo.sh
+./scripts/init.sh
 ```
+
+### 6. Daily Development
+```bash
+./scripts/dev.sh
+```
+
+### Run as Demo (PM2)
+```bash
+./scripts/demo.sh
+```
+
+---
+
+## 🌐 Remote / Linode Deployment
+
+When running on a remote server (e.g., a Linode VPS), all service URLs must be updated so browsers can reach the APIs. Edit these four files after running `./scripts/init.sh`:
+
+**`apps/api-cloud/.env`** — Cloud API server config
+```env
+PORT=4000
+CORS_ORIGINS="http://<server-ip>:3000,http://<server-ip>:3001"
+```
+
+**`apps/web-cloud/.env.local`** — Cloud frontend points to the Cloud API
+```env
+NEXT_PUBLIC_API_URL=http://<server-ip>:4000
+```
+
+**`apps/web-edge/.env.local`** — Edge frontend points to the Edge API
+```env
+NEXT_PUBLIC_API_URL=http://<server-ip>:8000
+NEXT_PUBLIC_MACHINE_ID=MACHINE-00001
+```
+
+**`apps/api-edge/.env`** — Edge API syncs back to the Cloud API
+```env
+CLOUD_API_URL=http://<server-ip>:4000
+```
+
+Replace `<server-ip>` with your Linode's public IP address. Then start everything with `./scripts/demo.sh`.
+
+> **Firewall**: Make sure ports `3000`, `3001`, `4000`, and `8000` are open in your server's firewall / security group.
 
 ---
 
 ## 🛠 Developer Operations
 
-### Workspace Management
-```bash
-npm install && npm run build
-```
+### Scripts Overview
 
-### Database Reset (Local Testing)
-**Cloud Hub (Postgres)**: Wipes DB, pushes schema, seeds NCR/R4A, test schools, and Super Admin.
-```bash
-./scripts/reset-db-demo.sh
-```
+| Script | When to use |
+| :--- | :--- |
+| `scripts/init.sh` | **Once** on a fresh clone — sets up `.env` files, installs deps, creates Python venv, seeds both DBs |
+| `scripts/dev.sh` | **Every day** — starts all services with hot reload; auto-migrates schema changes |
+| `scripts/reset-db.sh` | Wipe and reseed **both** databases (Cloud + Edge) with no confirmation prompt |
+| `scripts/demo.sh` | Run all four services via **PM2** on a single machine for demos / remote servers |
 
-**Edge Machine (SQLite)**: Wipes local data, initializes `MACHINE-00001`, and pulls authorized operators.
+### Database Reset
+Wipes Cloud (Postgres) and Edge (SQLite), reapplies migrations, and reseeds all demo data:
 ```bash
-./scripts/reset-edge-demo.sh
+./scripts/reset-db.sh
 ```
 
 ### Default Test Credentials
@@ -209,4 +223,16 @@ npm install && npm run build
 *   **National Auditor**: `auditor@omr-prod.gov.ph` / `password123`
 *   **Regional Monitor**: `monitor.ncr@omr-prod.gov.ph` / `password123`
 *   **School Admin**: `admin.777@omr-prod.gov.ph` / `password123`
-*   **Edge Operator**: `operator1@mshs.edu.ph` / `password123` (Linked to MACHINE-00001)
+*   **Edge Operator**: `operator1@mshs.edu.ph` / `password123` (linked to MACHINE-00001)
+
+### Scan Directories
+Raw scans, processed images, and results are stored at the **project root** (not inside any app):
+
+```
+raw_scans/   ← drop files here to simulate scanner input
+uploads/     ← scans staged for cloud sync
+success/     ← processed scans (served as static files by api-edge)
+error/       ← scans that failed OMR processing
+```
+
+These directories are created automatically by `./scripts/init.sh`.

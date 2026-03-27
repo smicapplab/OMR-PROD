@@ -364,7 +364,7 @@ export default function ValidationDetail({ params }: { params: Promise<{ id: str
                                 </Badge>
                             </div>
                             <div className="flex-1 bg-slate-200 overflow-hidden cursor-crosshair">
-                                <ZoomableImage src={`http://localhost:4000${scan.fileUrl}`} alt="Exam Paper Reference" />
+                                <ZoomableImage src={`${process.env.NEXT_PUBLIC_API_URL || ''}${scan.fileUrl}`} alt="Exam Paper Reference" />
                             </div>
                             <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10 bg-white/90 backdrop-blur-md px-4 py-2 rounded-full border border-slate-100 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">
                                 <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Scroll to Zoom • Drag to Pan</p>

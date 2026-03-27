@@ -77,14 +77,14 @@ export default function UsersManagement() {
             const [userRes, schoolRes, regionRes, machineRes] = await Promise.all([
                 apiFetch<any>("/api/v1/maintenance/users", { params: { limit: LIMIT, offset: currentOffset, search } }),
                 apiFetch<any>("/api/v1/maintenance/schools?limit=1000"),
-                apiFetch<RegionData[]>("/api/v1/maintenance/regions"),
-                apiFetch<MachineData[]>("/api/v1/maintenance/machines")
+                apiFetch<any>("/api/v1/maintenance/regions"),
+                apiFetch<any>("/api/v1/maintenance/machines")
             ]);
             setUsers(userRes.items || []);
             setTotal(userRes.total || 0);
             setSchools(Array.isArray(schoolRes) ? schoolRes : schoolRes.items || []);
-            setRegions(regionRes || []);
-            setMachines(machineRes || []);
+            setRegions(Array.isArray(regionRes) ? regionRes : regionRes?.items || []);
+            setMachines(Array.isArray(machineRes) ? machineRes : machineRes?.items || []);
         } catch (err) {
             console.error("❌ Failed to load registry data", err);
         } finally {
@@ -183,12 +183,12 @@ export default function UsersManagement() {
             try {
                 const [schoolRes, regionRes, machineRes] = await Promise.all([
                     apiFetch<any>("/api/v1/maintenance/schools?limit=1000"),
-                    apiFetch<RegionData[]>("/api/v1/maintenance/regions"),
-                    apiFetch<MachineData[]>("/api/v1/maintenance/machines")
+                    apiFetch<any>("/api/v1/maintenance/regions"),
+                    apiFetch<any>("/api/v1/maintenance/machines")
                 ]);
                 setSchools(Array.isArray(schoolRes) ? schoolRes : schoolRes.items || []);
-                setRegions(regionRes || []);
-                setMachines(machineRes || []);
+                setRegions(Array.isArray(regionRes) ? regionRes : regionRes?.items || []);
+                setMachines(Array.isArray(machineRes) ? machineRes : machineRes?.items || []);
             } catch (err) { }
         };
         loadMeta();

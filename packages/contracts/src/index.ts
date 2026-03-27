@@ -49,6 +49,7 @@ export interface AuditLog {
     details: {
         old_data: any;
         new_data: any;
+        reason?: string;
     };
     createdAt: string;
 }

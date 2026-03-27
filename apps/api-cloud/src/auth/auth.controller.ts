@@ -6,7 +6,7 @@ import { AuthService } from './auth.service';
 export class AuthController {
   constructor(private readonly authService: AuthService) {
     if (!this.authService) {
-        console.error('❌ AuthService was not injected into AuthController');
+      console.error('❌ AuthService was not injected into AuthController');
     }
   }
 
@@ -34,8 +34,13 @@ export class AuthController {
 
   @Post('refresh')
   async refresh(@Req() req: Request) {
+    console.log('--- AuthController REFRESH REQUEST ---');
+    console.log('Cookies present:', Object.keys(req.cookies));
     const token = req.cookies['omr_cloud_refresh'];
-    if (!token) throw new UnauthorizedException();
+    if (!token) {
+      console.error('❌ [AuthController] Missing omr_cloud_refresh cookie');
+      throw new UnauthorizedException('Missing refresh cookie');
+    }
     return this.authService.refresh(token);
   }
 
@@ -49,7 +54,7 @@ export class AuthController {
   async me(@Req() req: Request) {
     const authHeader = req.headers.authorization;
     if (!authHeader) throw new UnauthorizedException();
-    
+
     const token = authHeader.split(' ')[1];
     const user = await this.authService.verifyToken(token);
     if (!user) throw new UnauthorizedException();

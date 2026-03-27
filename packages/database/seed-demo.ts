@@ -20,7 +20,7 @@ async function main() {
 
   // 2. Comprehensive School List
   const schoolsToInsert = [
-    { name: 'Manila Science High School', code: '567890', regionId: findId('NCR'), division: 'Manila', address: 'Taft Ave, Manila' },
+    { name: 'Manila Science High School', code: '305312', regionId: findId('NCR'), division: 'Manila', address: 'Taft Ave, Manila' },
     { name: 'Philippine Science HS (Main)', code: '300401', regionId: findId('NCR'), division: 'Quezon City', address: 'Agham Road, QC' },
     { name: 'Test School Alpha', code: '777888', regionId: findId('NCR'), division: 'Manila', address: 'Test Site 1' },
     { name: 'Test School Beta', code: '123456', regionId: findId('NCR'), division: 'Manila', address: 'Test Site 2' },
@@ -45,7 +45,7 @@ async function main() {
   const salt = await bcrypt.genSalt(10);
   const pass = await bcrypt.hash('password123', salt);
 
-  const [msSci] = await db.select().from(schema.schools).where(eq(schema.schools.code, '567890')).limit(1);
+  const [msSci] = await db.select().from(schema.schools).where(eq(schema.schools.code, '305312')).limit(1);
   const [tsAlpha] = await db.select().from(schema.schools).where(eq(schema.schools.code, '777888')).limit(1);
   const [tsBeta] = await db.select().from(schema.schools).where(eq(schema.schools.code, '123456')).limit(1);
 

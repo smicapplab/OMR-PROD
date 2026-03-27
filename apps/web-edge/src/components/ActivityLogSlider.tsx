@@ -193,6 +193,14 @@ export function ActivityLogSlider({ scanId, isOpen, onClose }: ActivityLogSlider
                                                         </div>
                                                     )}
 
+                                                    {log.details?.reason && (
+                                                        <div className="mb-2 p-3 rounded-xl bg-slate-50/50 border border-slate-100 border-dashed relative">
+                                                            <p className="text-[10px] text-slate-600 font-medium italic leading-relaxed">
+                                                                &quot;{log.details.reason}&quot;
+                                                            </p>
+                                                        </div>
+                                                    )}
+
                                                     <div className="flex items-center justify-between px-1">
                                                         <span className="text-[8px] text-slate-300 uppercase tracking-widest text-right w-full">
                                                             State: {log.statusAfter?.replace('_', ' ') || 'OK'}

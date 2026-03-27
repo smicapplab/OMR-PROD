@@ -4,6 +4,7 @@ from pathlib import Path
 from sqlalchemy.orm import Session
 from app.models.scan import Scan
 from app.services.omr import omr_service
+from app.core.config import settings
 import logging
 
 logger = logging.getLogger("ScannerService")
@@ -12,11 +13,11 @@ class ScannerService:
     """
     Handles file ingestion and database persistence.
     """
-    
-    def __init__(self, upload_dir: str = "uploads", success_dir: str = "success", error_dir: str = "error"):
-        self.upload_dir = Path(upload_dir)
-        self.success_dir = Path(success_dir)
-        self.error_dir = Path(error_dir)
+
+    def __init__(self, upload_dir: str = None, success_dir: str = None, error_dir: str = None):
+        self.upload_dir = Path(upload_dir or settings.UPLOADS_DIR)
+        self.success_dir = Path(success_dir or settings.SUCCESS_DIR)
+        self.error_dir = Path(error_dir or settings.ERROR_DIR)
         
         # Ensure directories exist
         for d in [self.upload_dir, self.success_dir, self.error_dir]:

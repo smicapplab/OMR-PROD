@@ -360,6 +360,17 @@ export class MaintenanceController {
         .returning();
     }
 
+    const existing = await this.db.select().from(schema.answerKeys)
+      .where(and(eq(schema.answerKeys.subject, subject), eq(schema.answerKeys.version, version)))
+      .limit(1);
+
+    if (existing.length > 0) {
+      return this.db.update(schema.answerKeys)
+        .set({ examName, answers, updatedAt: new Date() })
+        .where(eq(schema.answerKeys.id, existing[0].id))
+        .returning();
+    }
+
     return this.db.insert(schema.answerKeys).values({
       examName,
       subject,
