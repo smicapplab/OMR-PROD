@@ -207,10 +207,15 @@ Replace `<server-ip>` with your Linode's public IP address. Then start everythin
 ### Securing with Nginx and Free SSL (Let's Encrypt)
 To safely expose the applications over standard HTTPS ports (443) and encrypt all traffic, install Nginx as a reverse proxy alongside Certbot.
 
-#### 1. Install Dependencies (Ubuntu/Debian)
+#### 1. Install Dependencies
 ```bash
+# Debian/Ubuntu:
 sudo apt update
 sudo apt install nginx certbot python3-certbot-nginx -y
+
+# RHEL/Fedora/AlmaLinux:
+sudo dnf install epel-release -y
+sudo dnf install nginx certbot python3-certbot-nginx -y
 ```
 
 #### 2. Configure Nginx Server Blocks
