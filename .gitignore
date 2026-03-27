@@ -85,4 +85,7 @@ pids
 raw_scans/*
 /success/*
 /error/*
-#/apps/api-cloud/cloud_storage/*
+/apps/api-cloud/cloud_storage/masters/*.png
+/apps/api-cloud/cloud_storage/masters/*.jpg
+/apps/api-cloud/cloud_storage/proxies/*.webp
+/apps/api-cloud/cloud_storage/proxies/*.webp
