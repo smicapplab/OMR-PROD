@@ -88,6 +88,104 @@ We recently completed a systematic upgrade of the OMR-PROD codebase to improve s
 
 ---
 
+## 🍎 MacOS Installation
+
+This section provides instructions for setting up OMR-PROD on macOS.
+
+### 1. Install Homebrew
+Homebrew is the essential package manager for macOS.
+```bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+```
+
+### 2. Install Docker Desktop
+OMR-PROD uses Docker for the Cloud Hub database. Install it via Homebrew Cask or download from the official website.
+```bash
+brew install --cask docker
+```
+*Make sure to start the Docker Desktop application after installation.*
+
+### 3. Install Node.js (via fnm)
+We recommend **fnm** for managing Node.js versions.
+```bash
+brew install fnm
+# Add eval "$(fnm env --use-on-cd)" to your ~/.zshrc or ~/.bash_profile
+fnm install --lts
+fnm use --lts
+```
+
+### 4. Install Python 3 & PM2
+```bash
+brew install python
+npm install -g pm2
+```
+
+### 5. Deployment Workflow
+```bash
+# 1. Initialize Database (Cloud Hub)
+./scripts/reset-db-demo.sh
+
+# 2. Install Dependencies & Build
+npm install
+npm run build
+
+# 3. Run the Demo
+./scripts/run-demo.sh
+```
+
+---
+
+## 🐧 Linux Standalone Installation (Debian/RHEL/Linode)
+
+This section provides distribution-agnostic instructions for setting up OMR-PROD on a clean Linux system (e.g., Linode, VPS, or local server).
+
+### 1. Install Docker & Docker Compose
+The most agnostic way to install Docker on Linux is using the official convenience script:
+```bash
+curl -fsSL https://get.docker.com -o get-docker.sh
+sudo sh get-docker.sh
+sudo usermod -aG docker $USER && newgrp docker # Allow running docker without sudo
+```
+
+### 2. Install Node.js (via fnm)
+We recommend **fnm** (Fast Node Manager) as it is a single-binary version manager that works across all shells.
+```bash
+curl -fsSL https://fnm.vercel.app/install | bash
+source ~/.bashrc # Or restart your shell
+fnm install --lts
+fnm use --lts
+```
+
+### 3. Verify Python 3 & venv
+Most modern Linux distributions come with Python 3.10+. Ensure it is installed along with the venv module:
+```bash
+python3 --version
+# On Debian/Ubuntu: sudo apt update && sudo apt install python3-venv -y
+# On RHEL/Fedora: sudo dnf install python3 -y
+```
+
+### 4. Install PM2 (Process Manager)
+```bash
+npm install -g pm2
+```
+
+### 5. Deployment Workflow
+Once the environment is ready, follow these steps to deploy the OMR-PROD demo:
+
+```bash
+# 1. Initialize Database (Cloud Hub)
+./scripts/reset-db-demo.sh
+
+# 2. Install Dependencies & Build
+npm install
+npm run build
+
+# 3. Run the Demo
+./scripts/run-demo.sh
+```
+
+---
+
 ## 🛠 Developer Operations
 
 ### Workspace Management
