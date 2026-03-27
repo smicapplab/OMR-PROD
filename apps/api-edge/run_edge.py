@@ -19,24 +19,13 @@ def run_watcher():
     start_watcher(settings.RAW_SCANS_DIR)
 
 if __name__ == "__main__":
-    # Start background sync thread
-    start_sync_thread()
-    
-    # Start the Watcher as a separate process
-    p2 = multiprocessing.Process(target=run_watcher)
-    p2.start()
-    
     print("\n--- Starting OMR Edge Hub (V2 - RELOAD ENABLED) ---")
     print("🚀 API: http://localhost:8000")
     print(f"👀 Watcher: Monitoring '{settings.RAW_SCANS_DIR}/' folder")
     print("🔄 Sync: Auto-sync agent is active\n")
     
     try:
-        # Run the server in the main process with reload enabled
-        # This is the most reliable way to get auto-reload working
+        # Background services (Sync & Watcher) are now managed via FastAPI lifespan in app.main
         uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
     except KeyboardInterrupt:
-        print("\nStopping services...")
-        p2.terminate()
-        p2.join()
-        print("Shutdown complete.")
+        print("\nShutdown complete.")

@@ -68,7 +68,7 @@ class ScanHandler(FileSystemEventHandler):
             db.close()
 
 def start_watcher(path_to_watch: str):
-    path = Path(path_to_watch)
+    path = Path(path_to_watch).resolve()
     path.mkdir(exist_ok=True)
     
     # Process existing files before starting the real-time observer

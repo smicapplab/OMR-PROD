@@ -11,16 +11,46 @@ from app.core.security import decode_token
 from pydantic import BaseModel
 from typing import Optional, Dict
 
+from contextlib import asynccontextmanager
+from app.services.sync_agent import start_sync_thread
+from app.services.watcher import start_watcher
+import logging
+import threading
+from pathlib import Path
 
 # Initialize database
 from app.models.school import School  # Ensure table is created
 Base.metadata.create_all(bind=engine)
 
+logger = logging.getLogger("api-edge")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # STARTUP
+    logger.info("🚀 Starting Background Services...")
+    
+    # Start Sync Agent (Separate Thread)
+    start_sync_thread()
+    
+    # Start Watcher (Separate Thread)
+    # This thread will handle BOTH the initial sweep and real-time monitoring
+    watcher_thread = threading.Thread(
+        target=start_watcher,
+        args=(settings.RAW_SCANS_DIR,),
+        daemon=True
+    )
+    watcher_thread.start()
+    
+    yield
+    # SHUTDOWN
+    logger.info("🛑 Stopping Background Services...")
+
 app = FastAPI(
     title=settings.PROJECT_NAME,
     description="OMR Edge API. Restricted input pipeline for security.",
     version=settings.VERSION,
-    openapi_url=f"{settings.API_V1_STR}/openapi.json"
+    openapi_url=f"{settings.API_V1_STR}/openapi.json",
+    lifespan=lifespan
 )
 
 app.add_middleware(
