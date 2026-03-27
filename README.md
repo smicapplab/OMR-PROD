@@ -198,6 +198,7 @@ NEXT_PUBLIC_MACHINE_ID=MACHINE-00001
 **`apps/api-edge/.env`** — Edge API syncs back to the Cloud API
 ```env
 CLOUD_API_URL=http://<server-ip>:4000
+CORS_ORIGINS="http://<server-ip>:3000,http://<server-ip>:3001"
 ```
 
 Replace `<server-ip>` with your Linode's public IP address. Then start everything with `./scripts/demo.sh`.

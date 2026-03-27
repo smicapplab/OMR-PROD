@@ -79,7 +79,7 @@ echo "🛑 Stopping any previous demo processes..."
 pm2 delete api-cloud web-cloud api-edge web-edge 2>/dev/null || true
 
 echo "☁️  Starting Cloud Hub..."
-pm2 start apps/api-cloud/dist/apps/api-cloud/src/main.js --name api-cloud
+(set -a; [ -f apps/api-cloud/.env ] && source apps/api-cloud/.env; set +a; pm2 start apps/api-cloud/dist/apps/api-cloud/src/main.js --name api-cloud)
 
 pm2 start "npm --prefix apps/web-cloud run start -- -p 3001" \
   --name web-cloud
