@@ -1,5 +1,5 @@
 import { Controller, Post, Body, Res, Req, UnauthorizedException, Get, UseGuards } from '@nestjs/common';
-import { Response, Request } from 'express';
+import type { Response, Request } from 'express';
 import { AuthService } from './auth.service';
 
 @Controller('auth')
@@ -32,19 +32,33 @@ export class AuthController {
   }
 
   @Post('refresh')
-  async refresh(@Req() req: Request) {
-    console.log('--- AuthController REFRESH REQUEST ---');
-    console.log('Cookies present:', Object.keys(req.cookies));
+  async refresh(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
     const token = req.cookies['omr_cloud_refresh'];
-    if (!token) {
-      console.error('❌ [AuthController] Missing omr_cloud_refresh cookie');
-      throw new UnauthorizedException('Missing refresh cookie');
-    }
-    return this.authService.refresh(token);
+    if (!token) throw new UnauthorizedException('Missing refresh cookie');
+
+    const result = await this.authService.refresh(token);
+
+    // Re-issue the refresh cookie (Sliding Session)
+    res.cookie('omr_cloud_refresh', result.refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/api/v1/auth/refresh',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    return { accessToken: result.accessToken };
   }
 
   @Post('logout')
-  async logout(@Res({ passthrough: true }) res: Response) {
+  async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    const token = req.cookies['omr_cloud_refresh'];
+    if (token) {
+      const payload = this.authService.verifyRefreshPayload(token);
+      if (payload?.sub) {
+        await this.authService.logout(payload.sub, token);
+      }
+    }
     res.clearCookie('omr_cloud_refresh', { path: '/api/v1/auth/refresh' });
     return { ok: true };
   }

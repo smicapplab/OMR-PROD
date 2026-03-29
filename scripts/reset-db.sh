@@ -45,6 +45,7 @@ MACHINE_SECRET=dev-machine-secret-123
 CLOUD_API_URL=http://localhost:4000
 DATABASE_URL=sqlite:///./omr_edge.db
 DEFAULT_SCHOOL_ID=305312
+CORS_ORIGINS=http://localhost:3000,http://localhost:3001
 EOF
 else
   echo "⏩ Skipping Edge .env (already exists)"

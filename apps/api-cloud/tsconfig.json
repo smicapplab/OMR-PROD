@@ -2,7 +2,6 @@
   "extends": "../../packages/config/tsconfig.base.json",
   "compilerOptions": {
     "outDir": "./dist",
-    "baseUrl": ".",
     "rootDir": "../../",
     "noEmit": false
   },

@@ -87,7 +87,7 @@ export async function apiFetch<T>(
         credentials: 'include',
     })
 
-    if (res.status === 401 && init.retry !== false) {
+    if (res.status === 401 && init.retry !== false && !path.includes('/auth/login')) {
         const newToken = await refreshAccessToken()
         if (!newToken) {
             if (typeof window !== 'undefined' && window.location.pathname !== '/') {
@@ -97,7 +97,7 @@ export async function apiFetch<T>(
         }
 
         const retryHeaders = buildHeaders(init.headers, newToken, !!init.body)
-        const retryRes = await fetch(`${API_URL}${path}`, {
+        const retryRes = await fetch(url, {
             ...init,
             headers: retryHeaders,
             credentials: 'include',
