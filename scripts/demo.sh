@@ -66,6 +66,12 @@ echo ""
 
 # ── Schema migrations ─────────────────────────────────────────────────────
 echo "☁️  Syncing Cloud schema..."
+
+if [ -z "$DATABASE_URL" ]; then
+  echo "❌ Error: DATABASE_URL not set and not found in .env"
+  exit 1
+fi
+
 npm run db:cloud:generate -w @omr-prod/database
 npm run db:cloud:migrate  -w @omr-prod/database
 

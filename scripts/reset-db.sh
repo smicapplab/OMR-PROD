@@ -16,9 +16,13 @@ echo "⏳ Waiting for Postgres..."
 until docker exec omr-prod-db pg_isready -U postgres -d omr_prod > /dev/null 2>&1; do
   sleep 1; echo -n "."
 done
-echo " Ready!"
+# Source .env if it exists and ensure DATABASE_URL is in scope for migrations
+[ -f .env ] && { set -a; source .env; set +a; }
 
-export DATABASE_URL="postgresql://postgres:postgres@localhost:5432/omr_prod"
+if [ -z "$DATABASE_URL" ]; then
+  echo "❌ Error: DATABASE_URL not set and not found in .env"
+  exit 1
+fi
 
 echo "📦 Applying Cloud schema..."
 npm run db:cloud:generate -w @omr-prod/database

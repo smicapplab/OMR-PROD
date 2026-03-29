@@ -78,6 +78,12 @@ echo ""
 # generate: creates a new migration file if the schema changed (no-op if not)
 # migrate:  applies any pending migrations — never drops without an explicit migration
 echo "☁️  Syncing Cloud schema..."
+
+if [ -z "$DATABASE_URL" ]; then
+  echo "❌ Error: DATABASE_URL not set and not found in .env"
+  exit 1
+fi
+
 npm run db:cloud:generate -w @omr-prod/database
 npm run db:cloud:migrate  -w @omr-prod/database
 

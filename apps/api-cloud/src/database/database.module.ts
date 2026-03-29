@@ -16,7 +16,12 @@ import * as schema from '@omr-prod/database';
             console.error('❌ DATABASE_URL is not defined in environment');
         }
         const postgresFunc = (postgres as any).default || postgres;
-        const queryClient = postgresFunc(dbUrl!);
+        const queryClient = postgresFunc(dbUrl!, {
+          max: 10,              // connection pool size
+          idle_timeout: 20,     // close idle connections after 20s (before Linode NAT drops them)
+          max_lifetime: 1800,   // recycle connections after 30min regardless of activity
+          connect_timeout: 10,  // fail fast if Postgres is unreachable
+        });
         return drizzle(queryClient, { schema });
       },
     },
