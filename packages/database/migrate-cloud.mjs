@@ -27,6 +27,13 @@ try {
   console.log('  ✅ Cloud schema up to date');
 } catch (err) {
   console.error('  ❌ Migration failed:', err.message ?? err);
+  // Unwrap postgres-js error details
+  const cause = err.cause ?? err;
+  if (cause?.code)    console.error('  PG error code:', cause.code);
+  if (cause?.detail)  console.error('  Detail:', cause.detail);
+  if (cause?.hint)    console.error('  Hint:', cause.hint);
+  if (cause?.file)    console.error('  PG source:', cause.file, 'line', cause.line);
+  if (cause !== err && cause?.message) console.error('  Cause:', cause.message);
   process.exit(1);
 } finally {
   await sql.end();
