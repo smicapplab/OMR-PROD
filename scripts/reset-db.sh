@@ -37,14 +37,18 @@ echo "📟 Edge: wiping SQLite..."
 rm -f apps/api-edge/omr_edge.db
 rm -rf success/* error/* raw_scans/* uploads/*
 
-echo "📝 Writing Edge .env (MACHINE-00001)..."
-cat > apps/api-edge/.env <<'EOF'
+if [ ! -f "apps/api-edge/.env" ]; then
+  echo "📝 Writing Edge .env (MACHINE-00001)..."
+  cat > apps/api-edge/.env <<'EOF'
 MACHINE_ID=MACHINE-00001
 MACHINE_SECRET=dev-machine-secret-123
 CLOUD_API_URL=http://localhost:4000
 DATABASE_URL=sqlite:///./omr_edge.db
 DEFAULT_SCHOOL_ID=305312
 EOF
+else
+  echo "⏩ Skipping Edge .env (already exists)"
+fi
 
 echo "📦 Applying Edge schema..."
 npm run db:edge:generate -w @omr-prod/database
