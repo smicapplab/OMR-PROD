@@ -72,7 +72,6 @@ if [ -z "$DATABASE_URL" ]; then
   exit 1
 fi
 
-npm run db:cloud:generate -w @omr-prod/database
 npm run db:cloud:migrate  -w @omr-prod/database
 
 echo "📟 Syncing Edge schema..."
