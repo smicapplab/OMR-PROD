@@ -72,7 +72,7 @@ if [ -z "$DATABASE_URL" ]; then
   exit 1
 fi
 
-(cd packages/database && DATABASE_URL="$DATABASE_URL" npx drizzle-kit migrate --config=drizzle.config.ts)
+node packages/database/migrate-cloud.mjs
 
 echo "📟 Syncing Edge schema..."
 npm run db:edge:generate -w @omr-prod/database
