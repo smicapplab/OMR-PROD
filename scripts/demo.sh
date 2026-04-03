@@ -57,14 +57,42 @@ docker ps --filter "name=omr-prod-db" --filter "status=running" | grep -q "omr-p
 echo "⏳ Waiting for PostgreSQL..."
 until docker exec omr-prod-db pg_isready -U postgres > /dev/null 2>&1; do sleep 0.5; done
 # Docker only applies POSTGRES_PASSWORD on first volume init — the password can drift
-# if the container is recreated while the volume persists. Force-sync it from DATABASE_URL
-# using docker exec (Unix socket peer auth, no password required).
+# if the container is recreated while the volume persists. Force-sync it from DATABASE_URL.
+# We use --user postgres so that docker exec runs as the postgres OS user, which triggers
+# peer authentication on the unix socket — no password required regardless of pg_hba.conf.
 PG_PASSWORD=$(echo "$DATABASE_URL" | sed -E 's|^[^:]+://[^:]+:([^@]+)@.*|\1|' | tr -d '"' | tr -d "'")
 
 if [ -n "$PG_PASSWORD" ] && [ "$PG_PASSWORD" != "$DATABASE_URL" ]; then
-  docker exec omr-prod-db psql -U postgres -c "ALTER USER postgres PASSWORD '${PG_PASSWORD}';" || echo "⚠️  Could not sync PostgreSQL password"
+  echo "  Syncing PostgreSQL password from DATABASE_URL..."
+  if docker exec --user postgres omr-prod-db psql -c "ALTER USER postgres PASSWORD '${PG_PASSWORD}';" > /dev/null 2>&1; then
+    echo "  ✅ Password synced via peer auth"
+  else
+    echo "  ⚠️  Peer auth failed — trying root unix socket..."
+    docker exec omr-prod-db psql -U postgres -c "ALTER USER postgres PASSWORD '${PG_PASSWORD}';" > /dev/null 2>&1 \
+      || echo "  ⚠️  Could not sync password — continuing anyway"
+  fi
 else
   echo "⚠️  Could not extract PostgreSQL password from DATABASE_URL (skipping sync)"
+fi
+
+# Verify the password is correct with a real TCP connection (same path api-cloud uses).
+# This catches silent sync failures before the server starts.
+PG_HOST=$(echo "$DATABASE_URL" | sed -E 's|^[^:]+://[^:]+:[^@]+@([^:/]+).*|\1|')
+PG_PORT=$(echo "$DATABASE_URL" | sed -E 's|.*:([0-9]+)/.*|\1|')
+PG_DB=$(echo "$DATABASE_URL"   | sed -E 's|.*/([^?]+).*|\1|')
+if docker exec \
+     -e PGPASSWORD="${PG_PASSWORD}" \
+     -e PGCONNECT_TIMEOUT=5 \
+     omr-prod-db \
+     psql -U postgres -h "${PG_HOST}" -p "${PG_PORT}" -d "${PG_DB}" -c "SELECT 1;" > /dev/null 2>&1; then
+  echo "  ✅ TCP connection verified — DATABASE_URL password is correct"
+else
+  echo ""
+  echo "❌ PostgreSQL TCP authentication FAILED."
+  echo "   The password in DATABASE_URL does not match the database."
+  echo "   To reset: docker compose down -v && docker compose up -d db"
+  echo "   Then re-run this script."
+  exit 1
 fi
 echo "✅ PostgreSQL ready"
 echo ""
