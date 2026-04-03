@@ -5,6 +5,7 @@ import compression from 'compression';
 import * as express from 'express';
 import { ValidationPipe } from '@nestjs/common';
 import { NestExpressApplication } from '@nestjs/platform-express';
+import { DbExceptionFilter } from './db-exception.filter';
 import { join } from 'path';
 import { existsSync } from 'fs';
 
@@ -40,6 +41,7 @@ async function bootstrap() {
   });
 
   app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
+  app.useGlobalFilters(new DbExceptionFilter());
   app.setGlobalPrefix('api/v1');
 
   let storagePath = join(process.cwd(), 'cloud_storage');
