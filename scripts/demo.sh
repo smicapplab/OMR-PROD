@@ -59,9 +59,13 @@ until docker exec omr-prod-db pg_isready -U postgres > /dev/null 2>&1; do sleep 
 # Docker only applies POSTGRES_PASSWORD on first volume init — the password can drift
 # if the container is recreated while the volume persists. Force-sync it from DATABASE_URL
 # using docker exec (Unix socket peer auth, no password required).
-PG_PASSWORD=$(echo "$DATABASE_URL" | sed -E 's|^[^:]+://[^:]+:([^@]+)@.*|\1|')
-docker exec omr-prod-db psql -U postgres -c "ALTER USER postgres PASSWORD '${PG_PASSWORD}';" > /dev/null 2>&1 \
-  || echo "⚠️  Could not sync PostgreSQL password (continuing anyway)"
+PG_PASSWORD=$(echo "$DATABASE_URL" | sed -E 's|^[^:]+://[^:]+:([^@]+)@.*|\1|' | tr -d '"' | tr -d "'")
+
+if [ -n "$PG_PASSWORD" ] && [ "$PG_PASSWORD" != "$DATABASE_URL" ]; then
+  docker exec omr-prod-db psql -U postgres -c "ALTER USER postgres PASSWORD '${PG_PASSWORD}';" || echo "⚠️  Could not sync PostgreSQL password"
+else
+  echo "⚠️  Could not extract PostgreSQL password from DATABASE_URL (skipping sync)"
+fi
 echo "✅ PostgreSQL ready"
 echo ""
 
