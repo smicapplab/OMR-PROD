@@ -108,6 +108,11 @@ fi
 
 node packages/database/migrate-cloud.mjs
 
+echo "🌱 Seeding Cloud database..."
+DATABASE_URL="$DATABASE_URL" npm run seed:regions   -w @omr-prod/database
+DATABASE_URL="$DATABASE_URL" npm run seed:essential -w @omr-prod/database
+DATABASE_URL="$DATABASE_URL" npm run seed:demo      -w @omr-prod/database
+
 echo "📟 Syncing Edge schema..."
 npm run db:edge:generate -w @omr-prod/database
 npm run db:edge:migrate  -w @omr-prod/database
