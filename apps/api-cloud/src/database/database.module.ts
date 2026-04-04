@@ -1,8 +1,10 @@
-import { Module, Global } from '@nestjs/common';
+import { Module, Global, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import * as postgres from 'postgres';
 import * as schema from '@omr-prod/database';
+
+const dbLogger = new Logger('DatabaseModule');
 
 @Global()
 @Module({
@@ -15,6 +17,12 @@ import * as schema from '@omr-prod/database';
         if (!dbUrl) {
             console.error('❌ DATABASE_URL is not defined in environment');
         }
+        // Log the effective DATABASE_URL with password masked so we can confirm
+        // which credentials the pool is actually using (helps diagnose 28P01 mismatches)
+        const maskedUrl = dbUrl
+          ? dbUrl.replace(/:([^@]+)@/, (_, pw) => `:${'*'.repeat(pw.length)}@`)
+          : '(undefined)';
+        dbLogger.log(`Connecting with DATABASE_URL: ${maskedUrl}`);
         const postgresFunc = (postgres as any).default || postgres;
         const queryClient = postgresFunc(dbUrl!, {
           max: 10,              // connection pool size
