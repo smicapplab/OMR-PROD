@@ -99,7 +99,7 @@ echo ""
 
 # ── Build ─────────────────────────────────────────────────────────────────
 echo "🔨 Building..."
-npm run build
+npx turbo build --force
 echo ""
 
 # ── Schema migrations ─────────────────────────────────────────────────────
