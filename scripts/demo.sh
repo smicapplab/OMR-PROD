@@ -52,46 +52,42 @@ else
 fi
 
 # ── PostgreSQL ────────────────────────────────────────────────────────────
-docker ps --filter "name=omr-prod-db" --filter "status=running" | grep -q "omr-prod-db" \
-  || { echo "🐳 Starting PostgreSQL..."; docker compose up -d db > /dev/null 2>&1; }
-echo "⏳ Waiting for PostgreSQL..."
-until docker exec omr-prod-db pg_isready -U postgres > /dev/null 2>&1; do sleep 0.5; done
-# Docker only applies POSTGRES_PASSWORD on first volume init — the password can drift
-# if the container is recreated while the volume persists. Force-sync it from DATABASE_URL.
-# We use --user postgres so that docker exec runs as the postgres OS user, which triggers
-# peer authentication on the unix socket — no password required regardless of pg_hba.conf.
 PG_PASSWORD=$(echo "$DATABASE_URL" | sed -E 's|^[^:]+://[^:]+:([^@]+)@.*|\1|' | tr -d '"' | tr -d "'")
-
-if [ -n "$PG_PASSWORD" ] && [ "$PG_PASSWORD" != "$DATABASE_URL" ]; then
-  echo "  Syncing PostgreSQL password from DATABASE_URL..."
-  if docker exec --user postgres omr-prod-db psql -c "ALTER USER postgres PASSWORD '${PG_PASSWORD}';" > /dev/null 2>&1; then
-    echo "  ✅ Password synced via peer auth"
-  else
-    echo "  ⚠️  Peer auth failed — trying root unix socket..."
-    docker exec omr-prod-db psql -U postgres -c "ALTER USER postgres PASSWORD '${PG_PASSWORD}';" > /dev/null 2>&1 \
-      || echo "  ⚠️  Could not sync password — continuing anyway"
-  fi
-else
-  echo "⚠️  Could not extract PostgreSQL password from DATABASE_URL (skipping sync)"
-fi
-
-# Verify the password is correct using the SAME path api-cloud uses: from the HOST through
-# docker-proxy. We use Node + the project's own postgres-js so we catch any client-library
-# auth failures (e.g. SCRAM negotiation issues) that psql inside the container would miss.
 PG_PORT=$(echo "$DATABASE_URL" | sed -E 's|.*:([0-9]+)/.*|\1|')
 PG_DB=$(echo "$DATABASE_URL"   | sed -E 's|.*/([^?]+).*|\1|')
+
+# Prefer native PostgreSQL if it is already listening on the configured port.
+# On Linux servers docker-proxy introduces a bridge-network hop that causes
+# intermittent SCRAM/md5 auth failures on connection recycling; a native install
+# avoids that entirely. On Mac/dev Docker Desktop handles this transparently.
+if pg_isready -h 127.0.0.1 -p "${PG_PORT}" -U postgres > /dev/null 2>&1 && \
+   ! docker ps --filter "name=omr-prod-db" --filter "status=running" | grep -q "omr-prod-db"; then
+  echo "✅ Using native PostgreSQL on port ${PG_PORT}"
+else
+  # Fall back to Docker
+  docker ps --filter "name=omr-prod-db" --filter "status=running" | grep -q "omr-prod-db" \
+    || { echo "🐳 Starting PostgreSQL..."; docker compose up -d db > /dev/null 2>&1; }
+  echo "⏳ Waiting for PostgreSQL..."
+  until docker exec omr-prod-db pg_isready -U postgres > /dev/null 2>&1; do sleep 0.5; done
+  # Sync password via peer auth (avoids docker-proxy auth issues)
+  if [ -n "$PG_PASSWORD" ] && [ "$PG_PASSWORD" != "$DATABASE_URL" ]; then
+    docker exec --user postgres omr-prod-db psql -c "ALTER USER postgres PASSWORD '${PG_PASSWORD}';" > /dev/null 2>&1 \
+      || true
+  fi
+fi
+
+# Verify connectivity using the same postgres-js library and path the app uses.
 if node -e "
   const postgres = require('$(pwd)/node_modules/postgres');
   const sql = postgres('postgres://postgres:${PG_PASSWORD}@127.0.0.1:${PG_PORT}/${PG_DB}', { connect_timeout: 5 });
   sql\`SELECT 1\`.then(() => { sql.end(); process.exit(0); }).catch(() => { sql.end(); process.exit(1); });
 " 2>/dev/null; then
-  echo "  ✅ TCP connection verified — DATABASE_URL password is correct"
+  echo "  ✅ PostgreSQL connection verified"
 else
   echo ""
-  echo "❌ PostgreSQL TCP authentication FAILED."
-  echo "   The password in DATABASE_URL does not match the database."
-  echo "   To reset: docker compose down -v && docker compose up -d db"
-  echo "   Then re-run this script."
+  echo "❌ PostgreSQL connection FAILED on 127.0.0.1:${PG_PORT}."
+  echo "   Native:  sudo systemctl start postgresql"
+  echo "   Docker:  docker compose down -v && docker compose up -d db"
   exit 1
 fi
 echo "✅ PostgreSQL ready"
