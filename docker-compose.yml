@@ -7,6 +7,8 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=omr_prod
+      - POSTGRES_HOST_AUTH_METHOD=md5
+      - POSTGRES_INITDB_ARGS=--auth-host=md5 --auth-local=trust
     ports:
       - "127.0.0.1:5432:5432"  # localhost-only — do not expose to public internet
     volumes:

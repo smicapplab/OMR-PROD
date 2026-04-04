@@ -75,16 +75,16 @@ else
   echo "⚠️  Could not extract PostgreSQL password from DATABASE_URL (skipping sync)"
 fi
 
-# Verify the password is correct with a real TCP connection (same path api-cloud uses).
-# This catches silent sync failures before the server starts.
-PG_HOST=$(echo "$DATABASE_URL" | sed -E 's|^[^:]+://[^:]+:[^@]+@([^:/]+).*|\1|')
+# Verify the password is correct using the SAME path api-cloud uses: from the HOST through
+# docker-proxy. We use Node + the project's own postgres-js so we catch any client-library
+# auth failures (e.g. SCRAM negotiation issues) that psql inside the container would miss.
 PG_PORT=$(echo "$DATABASE_URL" | sed -E 's|.*:([0-9]+)/.*|\1|')
 PG_DB=$(echo "$DATABASE_URL"   | sed -E 's|.*/([^?]+).*|\1|')
-if docker exec \
-     -e PGPASSWORD="${PG_PASSWORD}" \
-     -e PGCONNECT_TIMEOUT=5 \
-     omr-prod-db \
-     psql -U postgres -h "${PG_HOST}" -p "${PG_PORT}" -d "${PG_DB}" -c "SELECT 1;" > /dev/null 2>&1; then
+if node -e "
+  const postgres = require('$(pwd)/node_modules/postgres');
+  const sql = postgres('postgres://postgres:${PG_PASSWORD}@127.0.0.1:${PG_PORT}/${PG_DB}', { connect_timeout: 5 });
+  sql\`SELECT 1\`.then(() => { sql.end(); process.exit(0); }).catch(() => { sql.end(); process.exit(1); });
+" 2>/dev/null; then
   echo "  ✅ TCP connection verified — DATABASE_URL password is correct"
 else
   echo ""
