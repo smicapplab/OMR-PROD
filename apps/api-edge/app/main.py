@@ -359,6 +359,10 @@ async def operator_correction(scan_id: int, payload: ScanUpdatePayload, db: Sess
     if scan.process_status not in ("errored", "errored_corrected"):
         raise HTTPException(status_code=400, detail="Scan is not in errored state")
 
+    # M-2: Guard against nulling out scan data if client sends empty or invalid payload
+    if not payload.raw_data:
+        raise HTTPException(status_code=400, detail="raw_data is required for correction")
+
     old_data = scan.raw_data
     scan.raw_data = payload.raw_data
     scan.process_status = "errored_corrected"
