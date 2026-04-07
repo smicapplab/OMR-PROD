@@ -75,7 +75,6 @@ export class AuthService {
       const dbTokens = await this.db.select().from(schema.refreshTokens)
         .where(eq(schema.refreshTokens.userId, payload.sub));
 
-      console.log(`🔍 [AuthService] Found ${dbTokens.length} tokens in DB for user ${payload.sub}`);
 
       // 2. Find the matching token hash
       let matchedToken: any = null;
