@@ -8,5 +8,5 @@ export default defineConfig({
     url: 'file:../../apps/api-edge/omr_edge.db',
   },
   verbose: true,
-  strict: true,
+  strict: false,
 });

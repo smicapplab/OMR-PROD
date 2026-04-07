@@ -424,13 +424,21 @@ export class MaintenanceController {
 
     if (user.userType === 'SUPER_ADMIN') {
       const results = await this.db.select().from(schema.scans)
-        .where(eq(schema.scans.reviewRequired, true))
+        .where(
+          and(
+            eq(schema.scans.reviewRequired, true),
+            sql`${schema.scans.pending_data} IS NOT NULL`
+          )
+        )
         .orderBy(desc(schema.scans.createdAt));
       console.log(`✅ [PENDING REVIEW] Found ${results.length} records for SUPER_ADMIN`);
       return results;
     }
 
-    const conditions = [eq(schema.scans.reviewRequired, true)];
+    const conditions = [
+      eq(schema.scans.reviewRequired, true),
+      sql`${schema.scans.pending_data} IS NOT NULL`
+    ];
 
     if (user.visibilityScope === 'SCHOOL') {
       conditions.push(eq(schema.scans.schoolId, user.scopeValue));
@@ -550,6 +558,8 @@ export class MaintenanceController {
 
       await tx.update(schema.scans)
         .set({
+          status: 'success', // Overwrite any errored status
+          errorReviewAction: 'operator_corrected', // Specifically flag as authorized
           extracted_data: finalData,
           pending_data: null,
           gradingDetails: gradingDetails,
@@ -591,6 +601,8 @@ export class MaintenanceController {
       // 2. Update the scan immediately
       await tx.update(schema.scans)
         .set({
+          status: 'success', // Overwrite any errored status
+          errorReviewAction: 'operator_corrected', // Specifically flag as authorized
           extracted_data: correctedData,
           pending_data: null, // Clear any pending data if it exists
           gradingDetails: gradingDetails,

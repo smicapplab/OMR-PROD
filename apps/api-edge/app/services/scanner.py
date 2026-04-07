@@ -1,5 +1,6 @@
 import shutil
 import time
+import datetime
 from pathlib import Path
 from sqlalchemy.orm import Session
 from app.models.scan import Scan
@@ -14,13 +15,14 @@ class ScannerService:
     Handles file ingestion and database persistence.
     """
 
-    def __init__(self, upload_dir: str = None, success_dir: str = None, error_dir: str = None):
+    def __init__(self, upload_dir: str = None, success_dir: str = None, error_dir: str = None, errored_dir: str = None):
         self.upload_dir = Path(upload_dir or settings.UPLOADS_DIR)
         self.success_dir = Path(success_dir or settings.SUCCESS_DIR)
         self.error_dir = Path(error_dir or settings.ERROR_DIR)
+        self.errored_dir = Path(errored_dir or settings.ERRORED_DIR)
         
         # Ensure directories exist
-        for d in [self.upload_dir, self.success_dir, self.error_dir]:
+        for d in [self.upload_dir, self.success_dir, self.error_dir, self.errored_dir]:
             d.mkdir(parents=True, exist_ok=True)
 
     def process_new_file(self, file_path: Path, db: Session, machine_id: str, school_id: str = None):
@@ -33,26 +35,27 @@ class ScannerService:
             result = omr_service.process_scan(file_path)
             sha = result["original_sha"]
             extracted_data = result["data"]
+            recognized_ratio = result.get("recognized_ratio", 1.0)
             
             # 2. VALIDATE SCHOOL IDENTIFICATION
-            # Trust the paper first (extracted_school_id). 
-            # Fallback to the context school_id (DEFAULT_SCHOOL_ID) only if the paper is blank.
             extracted_school_id = extracted_data.get("student_info", {}).get("current_school", {}).get("school_id", {}).get("answer")
-            
-            # Determine the authoritative ID for this record
             final_school_id = extracted_school_id if extracted_school_id else school_id
             
             review_required = result["review_required"]
             
-            # If the paper differs from the machine context, flag it for auditor review
-            # but still use the paper's ID as the record's primary attribution.
             if school_id and extracted_school_id and str(school_id) != str(extracted_school_id):
                 logger.warning(f"⚠️ School Mismatch Detected! Context: {school_id}, Paper: {extracted_school_id}")
                 review_required = True 
 
+            # ERRORED SHEET LOGIC (Plan Step 5.1)
+            is_errored = recognized_ratio < 0.10
+            process_status = "errored" if is_errored else "success"
+            error_reason = f"recognition_below_threshold ({recognized_ratio*100:.1f}%)" if is_errored else None
+            
             # Use SHA as the filename to match cloud naming and prevent collisions
             unique_filename = f"{sha}{file_path.suffix}"
-            target_path = self.success_dir / unique_filename
+            target_dir = self.errored_dir if is_errored else self.success_dir
+            target_path = target_dir / unique_filename
 
             # 3. Persist to DB
             db_scan = Scan(
@@ -62,7 +65,10 @@ class ScannerService:
                 confidence=result["confidence"],
                 review_required=review_required,
                 raw_data=extracted_data,
-                process_status="success",
+                process_status=process_status,
+                recognized_ratio=recognized_ratio,
+                error_detected_at=datetime.datetime.utcnow() if is_errored else None,
+                error_reason=error_reason,
                 school_id=final_school_id,
                 machine_id=machine_id
             )

@@ -79,6 +79,12 @@ If a student bubbles an invalid School Code, the Cloud Hub accepts the data but 
 *   **Correction Queue**: Orphaned scans are held for manual school assignment by National QA.
 *   **Audit**: Every institutional assignment is permanently logged in the **Audit History**.
 
+### Errored Sheets Workflow
+Scans with recognition confidence below 10% are automatically isolated for manual review.
+*   **Edge Isolation**: Errored images are moved to a dedicated `errored/` directory and synced to the cloud with an `errored` status.
+*   **Edge Correction**: Operators can use the integrated **Bubble Editor** to perform a best-effort correction before sync.
+*   **Authoritative Review**: National QA must perform an authoritative review (Correct or Mark Invalid) before the record is finalized.
+
 ### Side-by-Side Validation
 Manual field corrections are automatically flagged for HQ verification:
 *   **Interface**: Side-by-side comparison of **Original Capture** vs. **Field Correction**.

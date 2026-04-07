@@ -29,6 +29,16 @@ export const scans = pgTable('omr_scans', {
     originalSha: varchar('original_sha', { length: 64 }).notNull().unique(),
     
     status: varchar('status', { length: 50 }).notNull().default('pending'),
+    
+    // Errored Sheet Fields (Cloud Review)
+    errorSyncedAt: timestamp('error_synced_at', { withTimezone: true }),
+    errorReviewStatus: varchar('error_review_status', { length: 50 }).notNull().default('pending'), // 'pending' | 'reviewed'
+    errorReviewedBy: uuid('error_reviewed_by').references(() => users.id, { onDelete: 'set null' }),
+    errorReviewedAt: timestamp('error_reviewed_at', { withTimezone: true }),
+    errorReviewAction: varchar('error_review_action', { length: 50 }), // 'marked_invalid' | 'bubble_corrected' | 'operator_corrected'
+    errorOperatorCorrectionRef: uuid('error_operator_correction_ref').references((): any => correctionLogs.id, { onDelete: 'set null' }),
+    recognizedRatio: real('recognized_ratio'),
+    
     confidence: real('confidence'),
     reviewRequired: boolean('review_required').notNull().default(false),
     
@@ -55,7 +65,7 @@ export const scans = pgTable('omr_scans', {
 
 export const correctionLogs = pgTable('correction_logs', {
     id: uuid('id').defaultRandom().primaryKey(),
-    scanId: uuid('scan_id').notNull().references(() => scans.id, { onDelete: 'cascade' }),
+    scanId: uuid('scan_id').notNull().references((): any => scans.id, { onDelete: 'cascade' }),
     userId: uuid('user_id').references(() => users.id),
     action: varchar('action', { length: 50 }).notNull(), // 'SCHOOL_ASSIGNMENT' | 'BUBBLE_CORRECTION'
     oldData: jsonb('old_data'),

@@ -108,10 +108,29 @@ if $EDGE_IS_NEW; then
 fi
 
 echo ""
-echo "🚀 Starting dev servers (hot reload)..."
+echo "☁️  Starting Cloud dev servers..."
+# Ensure child processes are killed when the script exits
+trap 'trap - EXIT INT TERM; kill 0' EXIT INT TERM
+
+npm run dev -- --filter=api-cloud --filter=web-cloud &
+
+echo "⏳ Waiting for Cloud Hub API (port 4000) to be ready before starting Edge..."
+until nc -z localhost 4000 2>/dev/null; do
+  sleep 1
+done
+echo "✅ Cloud Hub API is listening."
+sleep 2 # Extra buffer for app to fully initialize
+
+echo "📟 Starting Edge dev servers..."
+npm run dev -- --filter=api-edge --filter=web-edge &
+
+echo ""
+echo "🚀 All dev servers running (hot reload)..."
 echo "  Cloud API → http://localhost:4000/api/v1"
 echo "  Cloud UI  → http://localhost:3001"
 echo "  Edge API  → http://localhost:8000"
 echo "  Edge UI   → http://localhost:3000"
+echo "  (Press Ctrl+C to stop all)"
 echo ""
-npm run dev
+
+wait

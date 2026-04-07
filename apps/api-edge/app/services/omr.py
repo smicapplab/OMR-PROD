@@ -254,8 +254,40 @@ class OMRService:
             return False
 
         overall_rev = check_review(info)
+        
+        # --- ERRORED SHEET DETECTION (Plan Step 2) ---
+        total_fields = 0
+        confident_fields = 0
+        
+        # 1. Count personal info fields
+        def count_info_fields(d):
+            nonlocal total_fields, confident_fields
+            if isinstance(d, dict) and "confidence" in d and "review_required" in d:
+                total_fields += 1
+                if not d["review_required"] and d["confidence"] >= self.REVIEW_THRESHOLD:
+                    confident_fields += 1
+                return
+            if isinstance(d, dict):
+                for v in d.values():
+                    count_info_fields(v)
+
+        count_info_fields(info)
+        
+        # 2. Count answers
+        for sub in self.SUBJECTS:
+            for q_num, res in answers[sub].items():
+                total_fields += 1
+                if not res["review_required"] and res["confidence"] >= self.REVIEW_THRESHOLD:
+                    confident_fields += 1
+                    
+        recognized_ratio = round(confident_fields / total_fields, 4) if total_fields > 0 else 0.0
+
         return {
-            "original_sha": sha256, "status": "success", "confidence": info["last_name"]["confidence"], "review_required": overall_rev,
+            "original_sha": sha256, 
+            "status": "success", 
+            "confidence": info["last_name"]["confidence"], 
+            "review_required": overall_rev,
+            "recognized_ratio": recognized_ratio,
             "data": {"student_info": info, "answers": answers}
         }
 

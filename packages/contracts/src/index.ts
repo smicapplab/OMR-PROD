@@ -21,7 +21,7 @@ export interface Scan {
     filePath?: string;
     originalSha: string;
     syncStatus: 'pending' | 'synced' | 'error';
-    processStatus: 'pending' | 'success' | 'error' | 'pending_approval' | 'hq_resolved';
+    processStatus: 'pending' | 'success' | 'error' | 'pending_approval' | 'hq_resolved' | 'errored' | 'errored_corrected';
     confidence: number;
     reviewRequired: boolean;
     isManuallyEdited: boolean;
@@ -32,6 +32,12 @@ export interface Scan {
     updatedAt: string;
     schoolId?: string;
     machineId?: string;
+    // Errored Sheet Fields
+    errorDetectedAt?: string;
+    errorReason?: string;
+    recognizedRatio?: number;
+    operatorCorrectionSubmittedAt?: string;
+    operatorCorrectionBy?: string;
 }
 
 export interface AuditLog {
@@ -72,6 +78,14 @@ export interface CloudScan {
     pending_data?: any;
     gradingDetails?: any;
     fileUrl?: string;
+    // Errored Sheet Fields
+    errorSyncedAt?: string;
+    errorReviewStatus?: 'pending' | 'reviewed';
+    errorReviewedBy?: string;
+    errorReviewedAt?: string;
+    errorReviewAction?: 'marked_invalid' | 'bubble_corrected' | 'operator_corrected';
+    errorOperatorCorrectionRef?: string;
+    recognizedRatio?: number;
 }
 
 export * from './omr';

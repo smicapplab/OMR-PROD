@@ -1,6 +1,8 @@
 {
   "version": "6",
   "dialect": "sqlite",
+  "id": "39839f00-ea11-4231-bc4d-aef1b428b8cf",
+  "prevId": "b9acf3e7-6461-445f-801e-b18eda70ad2c",
   "tables": {
     "activity_logs": {
       "name": "activity_logs",
@@ -124,6 +126,34 @@
           "autoincrement": false,
           "default": "'pending'"
         },
+        "error_detected_at": {
+          "name": "error_detected_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "error_reason": {
+          "name": "error_reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "operator_correction_submitted_at": {
+          "name": "operator_correction_submitted_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "operator_correction_by": {
+          "name": "operator_correction_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "confidence": {
           "name": "confidence",
           "type": "real",
@@ -192,12 +222,14 @@
       "checkConstraints": {}
     }
   },
+  "views": {},
   "enums": {},
   "_meta": {
+    "schemas": {},
     "tables": {},
     "columns": {}
   },
-  "id": "b9acf3e7-6461-445f-801e-b18eda70ad2c",
-  "prevId": "6e45160f-5207-49dd-aa97-059bafb21c51",
-  "views": {}
+  "internal": {
+    "indexes": {}
+  }
 }

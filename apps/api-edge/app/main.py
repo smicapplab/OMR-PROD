@@ -90,7 +90,13 @@ async def get_current_user(request: Request, db: Session = Depends(get_db)):
 
 def format_scan(scan):
     """Maps SQLAlchemy snake_case to Contract camelCase"""
-    image_base = "/images/success" if scan.process_status != "error" else "/images/error"
+    if scan.process_status == "errored" or scan.process_status == "errored_corrected":
+        image_base = "/images/errored"
+    elif scan.process_status == "error":
+        image_base = "/images/error"
+    else:
+        image_base = "/images/success"
+        
     return {
         "id": scan.id,
         "fileName": scan.file_name,
@@ -98,10 +104,18 @@ def format_scan(scan):
         "syncStatus": scan.sync_status,
         "processStatus": scan.process_status,
         "confidence": scan.confidence,
+        "recognizedRatio": scan.recognized_ratio,
         "reviewRequired": scan.review_required,
         "isManuallyEdited": scan.is_manually_edited,
         "rawData": scan.raw_data,
         "machineId": scan.machine_id,
+        "errorDetectedAt": scan.error_detected_at.isoformat() if scan.error_detected_at else None,
+        "errorReason": scan.error_reason,
+        "operatorCorrectionSubmittedAt": scan.operator_correction_submitted_at.isoformat() if scan.operator_correction_submitted_at else None,
+        "operatorCorrectionBy": scan.operator_correction_by,
+        "cloudReviewStatus": scan.cloud_review_status,
+        "cloudReviewAction": scan.cloud_review_action,
+        "cloudReviewSyncedAt": scan.cloud_review_synced_at.isoformat() if scan.cloud_review_synced_at else None,
         "createdAt": scan.created_at.isoformat() if scan.created_at else None,
         "updatedAt": scan.updated_at.isoformat() if scan.updated_at else None,
         "imageUrl": f"{image_base}/{scan.file_name}",
@@ -112,9 +126,11 @@ def format_scan(scan):
 import os
 os.makedirs(settings.SUCCESS_DIR, exist_ok=True)
 os.makedirs(settings.ERROR_DIR, exist_ok=True)
+os.makedirs(settings.ERRORED_DIR, exist_ok=True)
 
 app.mount("/images/success", StaticFiles(directory=settings.SUCCESS_DIR), name="success_images")
 app.mount("/images/error", StaticFiles(directory=settings.ERROR_DIR), name="error_images")
+app.mount("/images/errored", StaticFiles(directory=settings.ERRORED_DIR), name="errored_images")
 app.include_router(auth.router, prefix=f"{settings.API_V1_STR}/auth", tags=["auth"])
 
 @app.get("/")
@@ -138,13 +154,24 @@ class ScanUpdatePayload(BaseModel):
 @app.get(f"{settings.API_V1_STR}/scans")
 async def list_scans(skip: int = 0, limit: int = 50, search: str = None, db: Session = Depends(get_db), user=Depends(get_current_user)):
     from app.models.scan import Scan
+    from sqlalchemy import or_, and_, not_
+    
     # Optimization: Only select necessary fields. Include raw_data to calculate name but exclude from final payload.
     query = db.query(
         Scan.id, Scan.file_name, Scan.original_sha, Scan.sync_status, 
         Scan.process_status, Scan.confidence, Scan.review_required, 
         Scan.is_manually_edited, Scan.machine_id, Scan.created_at, Scan.updated_at,
         Scan.raw_data
+    ).filter(
+        or_(
+            not_(Scan.process_status.in_(['errored', 'errored_corrected'])),
+            and_(
+                Scan.process_status.in_(['errored', 'errored_corrected']),
+                Scan.cloud_review_action.in_(['bubble_corrected', 'operator_corrected'])
+            )
+        )
     )
+    
     if search:
         st = f"%{search}%"
         query = query.filter(or_(Scan.file_name.ilike(st), Scan.raw_data.cast(String).ilike(st)))
@@ -282,6 +309,76 @@ async def get_scan_logs(scan_id: int, db: Session = Depends(get_db), user=Depend
             "details": log.ActivityLog.details
         } for log in logs
     ]
+
+@app.get(f"{settings.API_V1_STR}/errored-sheets")
+async def list_errored_sheets(skip: int = 0, limit: int = 50, status: str = "pending", search: str = None, db: Session = Depends(get_db), user=Depends(get_current_user)):
+    if user.user_type != "EDGE_OPERATOR" and user.user_type != "SUPER_ADMIN":
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    from app.models.scan import Scan
+    from sqlalchemy import func
+    query = db.query(Scan)
+    
+    if status == "pending":
+        query = query.filter(Scan.cloud_review_status == "pending", Scan.process_status.in_(["errored", "errored_corrected"]))
+    elif status == "reviewed":
+        query = query.filter(Scan.cloud_review_status == "reviewed")
+    else:
+        query = query.filter(Scan.process_status.in_(["errored", "errored_corrected"]))
+
+    if search:
+        st = f"%{search.lower()}%"
+        first_name = func.json_extract(Scan.raw_data, '$.student_info.first_name.answer')
+        last_name = func.json_extract(Scan.raw_data, '$.student_info.last_name.answer')
+        query = query.filter(or_(
+            Scan.file_name.ilike(st), 
+            func.lower(first_name).like(st),
+            func.lower(last_name).like(st)
+        ))
+    
+    limit = max(1, min(limit, 100))
+    total = query.count()
+    items = query.order_by(Scan.created_at.desc()).offset(skip).limit(limit).all()
+    
+    return {
+        "items": [format_scan(i) for i in items],
+        "total": total, "skip": skip, "limit": limit
+    }
+
+@app.post(f"{settings.API_V1_STR}/errored-sheets/{{scan_id}}/operator-correction")
+async def operator_correction(scan_id: int, payload: ScanUpdatePayload, db: Session = Depends(get_db), user = Depends(get_current_user)):
+    if user.user_type != "EDGE_OPERATOR":
+        raise HTTPException(status_code=403, detail="Only operators can submit corrections")
+    from app.models.scan import Scan
+    from app.models.user import ActivityLog
+    import datetime
+    
+    scan = db.query(Scan).filter(Scan.id == scan_id).first()
+    if not scan:
+        raise HTTPException(status_code=404, detail="Scan not found")
+        
+    old_data = scan.raw_data
+    scan.raw_data = payload.raw_data
+    scan.process_status = "errored_corrected"
+    scan.sync_status = "pending"
+    scan.operator_correction_submitted_at = datetime.datetime.utcnow()
+    scan.operator_correction_by = f"{user.first_name} {user.last_name}"
+    
+    log = ActivityLog(
+        user_id=user.id, scan_id=scan_id, action="ERRORED_SHEET_CORRECTION",
+        status_after="errored_corrected",
+        details={
+            "old_data": old_data, 
+            "new_data": payload.raw_data,
+            "sha": scan.original_sha,
+            "reason": payload.reason
+        },
+        machine_id=settings.MACHINE_ID,
+        is_synced=False
+    )
+
+    db.add(log)
+    db.commit()
+    return {"ok": True}
 
 @app.get("/health")
 async def health_check():

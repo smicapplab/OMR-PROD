@@ -6,6 +6,7 @@ The local Python-based API for the Edge Appliance, managing scanner coordination
 - **Scanner Integration**: Managed via dedicated scripts for physical paper ingestion.
 - **Local Persistence**: SQLite database for offline capture logs and forensic activity tracking.
 - **Smart Synchronization**: Heartbeat-driven upload of scans and Activity Logs; download of HQ Resolutions and Personnel lists.
+- **Quality Guardrails**: Automatic isolation of scans with < 10% recognition confidence into a dedicated `errored/` storage directory.
 - **Auth Proxy**: Facilitates local operator login using HQ-synced credentials.
 
 ## 🛠 Tech Stack

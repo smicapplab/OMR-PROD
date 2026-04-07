@@ -17,17 +17,20 @@ interface BubbleEditorProps {
     onClose: () => void;
     onSaved: () => void;
     mode?: "direct" | "pending"; // Support tiered approval
+    customEndpoint?: string;
 }
 
-export function BubbleEditor({ scan, isOpen, onClose, onSaved, mode = "pending" }: BubbleEditorProps) {
+export function BubbleEditor({ scan, isOpen, onClose, onSaved, mode = "pending", customEndpoint }: BubbleEditorProps) {
     const [localData, setLocalData] = useState<OMRRawData | null>(null);
     const [reason, setReason] = useState("");
     const [isSaving, setIsSaving] = useState(false);
 
     // Sync state when scan prop changes
     useEffect(() => {
-        if (scan?.rawData) {
-            setLocalData(structuredClone(scan.rawData));
+        // @ts-ignore: Handle both property names depending on caller
+        const data = scan?.rawData || scan?.extracted_data;
+        if (data) {
+            setLocalData(structuredClone(data));
         }
     }, [scan]);
 
@@ -37,16 +40,17 @@ export function BubbleEditor({ scan, isOpen, onClose, onSaved, mode = "pending" 
         if (!localData) return;
         setIsSaving(true);
         try {
-            const endpoint = mode === "direct"
+            const endpoint = customEndpoint || (mode === "direct"
                 ? "/api/v1/maintenance/scans/update-authoritative"
-                : "/api/v1/maintenance/scans/correct-bubbles";
+                : "/api/v1/maintenance/scans/correct-bubbles");
 
             await apiFetch(endpoint, {
                 method: "POST",
                 body: JSON.stringify({
                     scanId: scan.id,
                     correctedData: localData,
-                    reason: reason || "Manual correction via Exam Records"
+                    raw_data: localData, // For errored-sheets endpoint compatibility
+                    reason: reason || "Manual correction via Errored Sheets"
                 }),
             });
             onSaved();

@@ -73,4 +73,5 @@ export interface BubbleEditorProps {
     isOpen: boolean;
     onClose: () => void;
     onSaved: () => void;
+    saveEndpoint?: string;
 }

@@ -24,7 +24,7 @@ export function CategoricalSelect({ label, path, fieldData, onUpdate, options: o
                 value={fieldData.answer as string}
                 onValueChange={(val) => onUpdate(path, val)}
                 options={options}
-                placeholder={`Select ${label.toLowerCase()}...`}
+                placeholder={`${label.toLowerCase().replace("birth ", "")}...`}
             />
         </div>
     );

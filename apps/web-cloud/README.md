@@ -4,6 +4,7 @@ The central management interface for the OMR-PROD National Hub.
 
 ## 🚀 Key Features
 - **Validation Queues**: Specialized side-by-side interfaces for HQ verification of field corrections.
+- **Errored Sheet Hub**: Centralized review interface for scans with low OMR confidence, allowing for manual correction or invalidation.
 - **Institutional Management**: Map Machine Identities to schools, manage regional monitors, and oversee nationwide registries.
 - **Analytics & Monitoring**: Track sync health and examination status across all schools in real-time.
 - **RBAC Enforcement**: Dynamic UI visibility based on user roles (National, Regional, School).

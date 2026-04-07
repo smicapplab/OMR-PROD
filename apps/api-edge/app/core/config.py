@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     UPLOADS_DIR: str = "../../uploads"
     SUCCESS_DIR: str = "../../success"
     ERROR_DIR: str = "../../error"
+    ERRORED_DIR: str = "../../errored"
 
     # CORS: comma-separated list of allowed origins
     CORS_ORIGINS: str = "http://localhost:3000,http://localhost:3001"

@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/app/context/AuthContext";
 import { useRouter, usePathname } from "next/navigation";
+import { apiFetch } from "@/lib/api";
 import {
     LayoutDashboard, Users, School, LogOut,
     BarChart3, ChevronRight,
@@ -22,6 +23,18 @@ export default function SecureLayout({ children }: { children: React.ReactNode }
     const { user, isLoading, logout } = useAuth();
     const router = useRouter();
     const pathname = usePathname();
+
+    const [erroredCount, setErroredCount] = useState(0);
+
+    useEffect(() => {
+        const fetchErroredCount = async () => {
+            try {
+                const data = await apiFetch<any>("/api/v1/sync/errored-sheets", { params: { limit: 1, reviewStatus: 'pending' } });
+                setErroredCount(data?.total || 0);
+            } catch (err) { console.error(err); }
+        };
+        if (user) fetchErroredCount();
+    }, [user]);
 
     useEffect(() => {
         if (!isLoading && !user) {
@@ -43,6 +56,7 @@ export default function SecureLayout({ children }: { children: React.ReactNode }
     const allNavItems = [
         { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, scopes: ['NATIONAL', 'REGIONAL', 'DIVISION', 'SCHOOL'] },
         { name: "Exam Records", href: "/scans", icon: FileCheck, scopes: ['NATIONAL', 'REGIONAL', 'DIVISION', 'SCHOOL'] },
+        { name: "Errored Sheets", href: "/errored-sheets", icon: AlertTriangle, scopes: ['NATIONAL', 'REGIONAL', 'SCHOOL'], badge: erroredCount > 0 ? erroredCount : undefined },
         { name: "Data Correction Queue", href: "/maintenance/validation", icon: ShieldCheck, scopes: ['NATIONAL', 'SCHOOL'] },
         { name: "Orphaned Records", href: "/maintenance/orphaned", icon: AlertTriangle, scopes: ['NATIONAL'] },
         { name: "Audit History", href: "/maintenance/history", icon: History, scopes: ['NATIONAL'] },
@@ -85,7 +99,10 @@ export default function SecureLayout({ children }: { children: React.ReactNode }
                                 <item.icon className={cn("h-4 w-4", pathname === item.href ? "text-indigo-600" : "text-slate-300 group-hover:text-indigo-400")} />
                                 {item.name}
                             </div>
-                            {pathname === item.href && <ChevronRight className="h-3 w-3" />}
+                            <div className="flex items-center gap-2">
+                                {item.badge && <Badge className="bg-rose-500 text-white h-5 px-1.5 border-none text-[10px] font-bold shadow-sm">{item.badge}</Badge>}
+                                {pathname === item.href && <ChevronRight className="h-3 w-3" />}
+                            </div>
                         </Link>
                     ))}
                 </nav>

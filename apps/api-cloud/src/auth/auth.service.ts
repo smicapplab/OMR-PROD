@@ -63,7 +63,7 @@ export class AuthService {
   async refresh(token: string) {
     try {
       console.log('🔄 [AuthService] Refreshing token...', token.substring(0, 20) + '...');
-      const payload = this.jwtService.verify(token);
+      const payload = this.jwtService.verify(token) as any;
       console.log('✅ [AuthService] JWT Verified. Payload:', payload);
 
       if (payload.type !== 'refresh') {
@@ -159,7 +159,7 @@ export class AuthService {
 
   verifyRefreshPayload(token: string): { sub: string; type: string } | null {
     try {
-      return this.jwtService.verify(token);
+      return this.jwtService.verify(token) as { sub: string; type: string };
     } catch {
       return null;
     }
@@ -167,7 +167,7 @@ export class AuthService {
 
   async verifyToken(token: string) {
     try {
-      const payload = this.jwtService.verify(token);
+      const payload = this.jwtService.verify(token) as any;
       // Reject non-access tokens (e.g. a refresh token used as an access token)
       if (payload.type !== 'access') return null;
 

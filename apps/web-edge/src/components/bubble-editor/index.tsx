@@ -26,7 +26,7 @@ interface CollapsibleSectionProps {
     onUpdateText: (path: string[], val: string) => void;
 }
 
-export function BubbleEditor({ scan, isOpen, onClose, onSaved }: BubbleEditorProps) {
+export function BubbleEditor({ scan, isOpen, onClose, onSaved, saveEndpoint }: BubbleEditorProps) {
     const [localData, setLocalData] = useState<OMRRawData>(structuredClone(scan.rawData));
     const [reason, setReason] = useState("");
     const [isSaving, setIsSaving] = useState(false);
@@ -49,10 +49,11 @@ export function BubbleEditor({ scan, isOpen, onClose, onSaved }: BubbleEditorPro
 
     const handleSave = async () => {
         setIsSaving(true);
+        const endpoint = saveEndpoint || `/api/v1/scans/${scan.id}`;
         try {
-            await apiFetch(`/api/v1/scans/${scan.id}`, {
-                method: "PATCH",
-                body: JSON.stringify({ raw_data: localData, review_required: false, reason }),
+            await apiFetch(endpoint, {
+                method: saveEndpoint ? "POST" : "PATCH",
+                body: JSON.stringify({ raw_data: localData, reason }),
             });
             onSaved();
             onClose();

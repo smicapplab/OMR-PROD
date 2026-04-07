@@ -138,12 +138,27 @@ class SyncService:
                 sha = res["sha"]
                 # Find local scan with this SHA
                 scan = db.query(Scan).filter(Scan.original_sha == sha).first()
-                if scan and scan.process_status == "pending_approval":
-                    # HQ has resolved it!
-                    scan.process_status = "hq_resolved"
+                if scan:
+                    old_status = scan.process_status
+                    
+                    if res["status"] == "success":
+                        scan.process_status = "success"
+                    elif res["status"] == "errored" and scan.process_status == "errored_corrected":
+                        # If it was returned to errored, it means HQ rejected the correction
+                        scan.process_status = "errored"
+
+                    # For standard field corrections
+                    if scan.process_status == "pending_approval" and res["status"] == "success":
+                        scan.process_status = "hq_resolved"
+                        
                     scan.review_required = False
-                    scan.is_manually_edited = False # Clear flag as HQ data is now authoritative
-                    updated_count += 1
+                    scan.is_manually_edited = False
+                    
+                    if res.get("errorReviewAction"):
+                        scan.cloud_review_action = res["errorReviewAction"]
+                        
+                    if old_status != scan.process_status or scan.cloud_review_action != res.get("errorReviewAction"):
+                        updated_count += 1
             
             if updated_count > 0:
                 db.commit()
@@ -201,7 +216,11 @@ class SyncService:
                     "raw_data": scan.raw_data,
                     "file_name": scan.file_name,
                     "file_url": f"/cloud-assets/masters/{master_filename}",
-                    "proxy_url": f"/cloud-assets/proxies/{proxy_filename}"
+                    "proxy_url": f"/cloud-assets/proxies/{proxy_filename}",
+                    "process_status": scan.process_status,
+                    "recognized_ratio": scan.recognized_ratio,
+                    "error_reason": scan.error_reason,
+                    "error_detected_at": scan.error_detected_at.isoformat() if scan.error_detected_at else None
                 }
 
                 # Gap-5: If manually edited, try to find the original data in logs 

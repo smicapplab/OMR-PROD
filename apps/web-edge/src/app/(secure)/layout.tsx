@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useAuth } from "@/app/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
+import { Sidebar } from "@/components/Sidebar";
 
 export default function SecureLayout({ children }: { children: React.ReactNode }) {
     const { user, isLoading } = useAuth();
@@ -24,5 +25,12 @@ export default function SecureLayout({ children }: { children: React.ReactNode }
 
     if (!user) return null;
 
-    return <>{children}</>;
+    return (
+        <div className="flex h-screen bg-white overflow-hidden">
+            <Sidebar />
+            <div className="flex-1 flex flex-col overflow-hidden">
+                {children}
+            </div>
+        </div>
+    );
 }

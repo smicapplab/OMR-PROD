@@ -45,4 +45,21 @@ export class SyncScanDto {
   @IsString()
   @IsOptional()
   version?: string;
+
+  // Errored Sheet Fields
+  @IsString()
+  @IsOptional()
+  process_status?: string;
+
+  @IsNumber()
+  @IsOptional()
+  recognized_ratio?: number;
+
+  @IsString()
+  @IsOptional()
+  error_reason?: string;
+
+  @IsString()
+  @IsOptional()
+  error_detected_at?: string;
 }

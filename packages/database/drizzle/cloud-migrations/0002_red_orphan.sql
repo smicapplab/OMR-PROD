@@ -1,0 +1,2 @@
+ALTER TABLE "omr_scans" ADD COLUMN "recognized_ratio" real;--> statement-breakpoint
+ALTER TABLE "omr_scans" ADD CONSTRAINT "omr_scans_error_operator_correction_ref_correction_logs_id_fk" FOREIGN KEY ("error_operator_correction_ref") REFERENCES "public"."correction_logs"("id") ON DELETE set null ON UPDATE no action;

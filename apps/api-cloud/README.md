@@ -6,6 +6,7 @@ The core NestJS backend for the National Hub, providing authoritative grading, R
 - **Authoritative Grading**: Centralized service ensuring 100% consistent score calculation.
 - **Sync Controller**: High-performance endpoint for machine registration, scan result synchronization, and heartbeat monitoring.
 - **Audit Logging**: Comprehensive database-level tracking of all manual corrections and system actions.
+- **Errored Sheet Resolution**: Specialized endpoints for authoritative review (`mark-invalid`, `bubble-correction`) of low-confidence scans.
 - **RBAC**: Multi-layered authorization logic with visibility scoping.
 
 ## 🛠 Tech Stack
@@ -23,3 +24,4 @@ The core NestJS backend for the National Hub, providing authoritative grading, R
 npm run start:dev
 ```
 Accessible at `http://localhost:4000` (default).
+alhost:4000` (default).

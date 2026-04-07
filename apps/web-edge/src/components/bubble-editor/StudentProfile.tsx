@@ -39,9 +39,14 @@ export function StudentProfile({ localData, onUpdateField, onUpdateText }: Stude
                             <CategoricalSelect
                                 label="Birth Month"
                                 path={["birth_month"]}
-                                fieldData={localData.student_info.birth_month}
-                                onUpdate={onUpdateField}
-                                options={["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"]}
+                                fieldData={{
+                                    ...localData.student_info.birth_month,
+                                    answer: localData.student_info.birth_month.answer
+                                        ? localData.student_info.birth_month.answer.toString().padStart(2, '0')
+                                        : ""
+                                }}
+                                onUpdate={(path, val) => onUpdateText(path, val)}
+                                options={["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"]}
                             />
                             <OMRTextInput label="Birth Day" path={["birth_day"]} fieldData={localData.student_info.birth_day} onUpdate={onUpdateText} isNumeric={true} maxLength={2} padLength={2} min={1} max={31} />
 

@@ -15,6 +15,20 @@
       "when": 1774428914883,
       "tag": "0001_absent_sue_storm",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1775523954616,
+      "tag": "0002_vengeful_magus",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1775529872313,
+      "tag": "0003_mixed_mariko_yashida",
+      "breakpoints": true
     }
   ]
 }
