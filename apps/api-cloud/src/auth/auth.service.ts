@@ -64,7 +64,7 @@ export class AuthService {
     try {
       console.log('🔄 [AuthService] Refreshing token...', token.substring(0, 20) + '...');
       const payload = this.jwtService.verify(token) as any;
-      console.log('✅ [AuthService] JWT Verified. Payload:', payload);
+      console.log('✅ [AuthService] JWT Verified.');
 
       if (payload.type !== 'refresh') {
         console.error('❌ [AuthService] Invalid token type:', payload.type);

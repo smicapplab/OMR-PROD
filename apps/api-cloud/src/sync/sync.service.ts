@@ -1,4 +1,4 @@
-import { Injectable, Inject, UnauthorizedException, NotFoundException } from '@nestjs/common';
+import { Injectable, Inject, UnauthorizedException, NotFoundException, BadRequestException } from '@nestjs/common';
 import { eq, and, or, inArray, desc, sql, count } from 'drizzle-orm';
 import * as schema from '@omr-prod/database';
 import { SyncScanDto } from './dto/sync-scan.dto';
@@ -418,6 +418,10 @@ export class SyncService {
     }
 
     async markInvalid(id: string, notes: string, userId: string) {
+        const [scan] = await this.db.select({ status: schema.scans.status }).from(schema.scans).where(eq(schema.scans.id, id)).limit(1);
+        if (!scan) throw new NotFoundException('Scan not found');
+        if (scan.status !== 'errored') throw new BadRequestException('Scan is not in errored state');
+
         await this.db.update(schema.scans).set({
             errorReviewStatus: 'reviewed',
             errorReviewAction: 'marked_invalid',
@@ -438,8 +442,9 @@ export class SyncService {
     }
 
     async bubbleCorrection(id: string, raw_data: any, reason: string, version: string, userId: string) {
-        const [scan] = await this.db.select().from(schema.scans).where(eq(schema.scans.id, id)).limit(1);
-        if (!scan) throw new NotFoundException();
+        const [scan] = await this.db.select({ status: schema.scans.status }).from(schema.scans).where(eq(schema.scans.id, id)).limit(1);
+        if (!scan) throw new NotFoundException('Scan not found');
+        if (scan.status !== 'errored') throw new BadRequestException('Scan is not in errored state');
 
         const { totalScore, maxPossibleScore, gradingDetails } = await this.gradingService.gradeScan(raw_data, version);
 

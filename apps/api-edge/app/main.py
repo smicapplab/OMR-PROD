@@ -147,7 +147,7 @@ def get_student_name(data):
     return name if name else "UNIDENTIFIED STUDENT"
  
 class ScanUpdatePayload(BaseModel):
-    raw_data: Optional[Dict] = None
+    raw_data: Dict
     reason: Optional[str] = "Manual correction via Edge Console"
 
 
@@ -356,6 +356,9 @@ async def operator_correction(scan_id: int, payload: ScanUpdatePayload, db: Sess
     if not scan:
         raise HTTPException(status_code=404, detail="Scan not found")
         
+    if scan.process_status not in ("errored", "errored_corrected"):
+        raise HTTPException(status_code=400, detail="Scan is not in errored state")
+
     old_data = scan.raw_data
     scan.raw_data = payload.raw_data
     scan.process_status = "errored_corrected"
