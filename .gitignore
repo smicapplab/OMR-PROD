@@ -88,3 +88,10 @@ raw_scans/*
 /apps/api-cloud/cloud_storage/masters/*.jpg
 /apps/api-cloud/cloud_storage/proxies/*.webp
 /apps/api-cloud/cloud_storage/proxies/*.webp
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/

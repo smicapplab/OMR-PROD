@@ -14,8 +14,11 @@ until pg_isready -h 127.0.0.1 -p 5432 -U postgres > /dev/null 2>&1; do
   sleep 1
 done
 
-# Drop all tables by recreating the public schema
-psql -h 127.0.0.1 -U postgres -d omr_prod -c "DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public;"
+echo "🗄  Ensuring 'omr_prod' database exists..."
+psql -h 127.0.0.1 -U postgres -tc "SELECT 1 FROM pg_database WHERE datname = 'omr_prod'" | grep -q 1 || psql -h 127.0.0.1 -U postgres -c "CREATE DATABASE omr_prod;"
+
+# Drop all tables by recreating the public schema and clearing drizzle migrations
+psql -h 127.0.0.1 -U postgres -d omr_prod -c "DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public; DROP SCHEMA IF EXISTS drizzle CASCADE;"
 
 [ -f .env ] && { set -a; source .env; set +a; }
 
@@ -40,10 +43,9 @@ npm run db:edge:generate -w @omr-prod/database
 npm run db:edge:migrate  -w @omr-prod/database
 
 if [ -d "apps/api-edge/.venv" ]; then
-  source apps/api-edge/.venv/bin/activate
-  cd apps/api-edge
   echo "🌱 Seeding dev credentials..."
-  DATABASE_URL=sqlite:///./omr_edge.db python seed_dev.py
+  cd apps/api-edge
+  DATABASE_URL=sqlite:///./omr_edge.db .venv/bin/python seed_dev.py
   cd ../..
 fi
 

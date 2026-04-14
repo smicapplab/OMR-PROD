@@ -10,7 +10,8 @@ echo "--- 🚀 OMR-PROD UTM Init ---"
 echo ""
 
 echo "📝 Writing fixed .env files..."
-cat > .env <<'EOF'
+if [ ! -f .env ]; then
+  cat > .env <<'EOF'
 DATABASE_URL="postgresql://postgres:password@127.0.0.1:5432/omr_prod"
 JWT_TTL="1h"
 JWT_REFRESH_TTL="7d"
@@ -18,12 +19,14 @@ JWT_SECRET="utm-secret-key-123"
 JWT_REFRESH_SECRET="utm-refresh-secret-123"
 ENROLLMENT_SECRET="utm-enrollment-secret-123"
 EOF
+fi
 
-cp apps/api-cloud/.env.example apps/api-cloud/.env 2>/dev/null || true
-cp apps/web-cloud/.env.local.example apps/web-cloud/.env.local 2>/dev/null || true
-cp apps/web-edge/.env.local.example apps/web-edge/.env.local 2>/dev/null || true
+[ ! -f apps/api-cloud/.env ] && cp apps/api-cloud/.env.example apps/api-cloud/.env 2>/dev/null || true
+[ ! -f apps/web-cloud/.env.local ] && cp apps/web-cloud/.env.local.example apps/web-cloud/.env.local 2>/dev/null || true
+[ ! -f apps/web-edge/.env.local ] && cp apps/web-edge/.env.local.example apps/web-edge/.env.local 2>/dev/null || true
 
-cat > apps/api-edge/.env <<'EOF'
+if [ ! -f apps/api-edge/.env ]; then
+  cat > apps/api-edge/.env <<'EOF'
 MACHINE_ID=MACHINE-00001
 MACHINE_SECRET=dev-machine-secret-123
 CLOUD_API_URL=http://localhost:4000
@@ -31,6 +34,9 @@ DATABASE_URL=sqlite:///./omr_edge.db
 DEFAULT_SCHOOL_ID=305312
 SECRET_KEY="utm-secret-key-123"
 EOF
+fi
+
+[ -f .env ] && { set -a; source .env; set +a; }
 
 echo "📦 Installing Node dependencies..."
 npm install

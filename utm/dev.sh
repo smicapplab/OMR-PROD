@@ -11,8 +11,9 @@ echo ""
 
 echo "🧹 Clearing stale processes on ports 3000 3001 4000 8000..."
 for port in 3000 3001 4000 8000; do
-  pid=$(lsof -t -i :"$port" 2>/dev/null) || true
-  [ -n "$pid" ] && kill -9 "$pid" 2>/dev/null || true
+  for pid in $(lsof -t -i :"$port" 2>/dev/null); do
+    kill -9 "$pid" 2>/dev/null || true
+  done
 done
 
 [ -f .env ] && { set -a; source .env; set +a; }
@@ -51,7 +52,7 @@ trap 'trap - EXIT INT TERM; kill 0' EXIT INT TERM
 npm run dev -- --filter=api-cloud --filter=web-cloud &
 
 echo "⏳ Waiting for Cloud Hub API (port 4000)..."
-until nc -z localhost 4000 2>/dev/null; do
+until (echo > /dev/tcp/127.0.0.1/4000) 2>/dev/null; do
   sleep 1
 done
 sleep 2
